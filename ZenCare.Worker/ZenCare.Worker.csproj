@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-ZenCare.Worker-fcd4230b-941f-4592-9e42-cc9e9926303e</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ZenCare.Services\ZenCare.Services.csproj" />
+    <ProjectReference Include="..\ZenCare.Model\ZenCare.Model.csproj" />
+    <ProjectReference Include="..\ZenCare.Common\ZenCare.Common.csproj" />
+  </ItemGroup>
+</Project>
