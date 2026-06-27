@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using ZenCare.Model.Enums;
 using ZenCare.Services.Database;
 
 namespace ZenCare.Services;
@@ -252,5 +253,52 @@ public class ZenCareDbContext : DbContext
             .WithMany(fc => fc.FAQs)
             .HasForeignKey(f => f.FAQCategoryId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        var createdAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        modelBuilder.Entity<Role>().HasData(
+            new Role { Id = 1, Name = "Admin", RoleType = UserRoleType.Admin, Description = "Administrator role", IsActive = true, CreatedAt = createdAt },
+            new Role { Id = 2, Name = "Employee", RoleType = UserRoleType.Employee, Description = "Employee role", IsActive = true, CreatedAt = createdAt },
+            new Role { Id = 3, Name = "Client", RoleType = UserRoleType.Client, Description = "Client role", IsActive = true, CreatedAt = createdAt }
+        );
+
+        modelBuilder.Entity<ServiceCategory>().HasData(
+            new ServiceCategory { Id = 1, Name = "Masaže", IsActive = true, CreatedAt = createdAt },
+            new ServiceCategory { Id = 2, Name = "Aromaterapija", IsActive = true, CreatedAt = createdAt },
+            new ServiceCategory { Id = 3, Name = "Njega lica", IsActive = true, CreatedAt = createdAt },
+            new ServiceCategory { Id = 4, Name = "Wellness tretmani", IsActive = true, CreatedAt = createdAt },
+            new ServiceCategory { Id = 5, Name = "Relaksacija", IsActive = true, CreatedAt = createdAt }
+        );
+
+        modelBuilder.Entity<ProductCategory>().HasData(
+            new ProductCategory { Id = 1, Name = "Eterična ulja", IsActive = true, CreatedAt = createdAt },
+            new ProductCategory { Id = 2, Name = "Njega kože", IsActive = true, CreatedAt = createdAt },
+            new ProductCategory { Id = 3, Name = "Pilinzi", IsActive = true, CreatedAt = createdAt },
+            new ProductCategory { Id = 4, Name = "Wellness preparati", IsActive = true, CreatedAt = createdAt },
+            new ProductCategory { Id = 5, Name = "Poklon paketi", IsActive = true, CreatedAt = createdAt }
+        );
+
+        modelBuilder.Entity<ProductType>().HasData(
+            new ProductType { Id = 1, Name = "Preparat", IsActive = true, CreatedAt = createdAt },
+            new ProductType { Id = 2, Name = "Ulje", IsActive = true, CreatedAt = createdAt },
+            new ProductType { Id = 3, Name = "Krema", IsActive = true, CreatedAt = createdAt },
+            new ProductType { Id = 4, Name = "Piling", IsActive = true, CreatedAt = createdAt },
+            new ProductType { Id = 5, Name = "Paket", IsActive = true, CreatedAt = createdAt }
+        );
+
+        modelBuilder.Entity<UnitOfMeasure>().HasData(
+            new UnitOfMeasure { Id = 1, Name = "kom", Abbreviation = "kom", IsActive = true, CreatedAt = createdAt },
+            new UnitOfMeasure { Id = 2, Name = "ml", Abbreviation = "ml", IsActive = true, CreatedAt = createdAt },
+            new UnitOfMeasure { Id = 3, Name = "g", Abbreviation = "g", IsActive = true, CreatedAt = createdAt },
+            new UnitOfMeasure { Id = 4, Name = "pakovanje", Abbreviation = "pakovanje", IsActive = true, CreatedAt = createdAt }
+        );
+
+        modelBuilder.Entity<FAQCategory>().HasData(
+            new FAQCategory { Id = 1, Name = "Rezervacije", IsActive = true, CreatedAt = createdAt },
+            new FAQCategory { Id = 2, Name = "Plaćanje", IsActive = true, CreatedAt = createdAt },
+            new FAQCategory { Id = 3, Name = "Preparati", IsActive = true, CreatedAt = createdAt },
+            new FAQCategory { Id = 4, Name = "Wellness usluge", IsActive = true, CreatedAt = createdAt },
+            new FAQCategory { Id = 5, Name = "Korisnički račun", IsActive = true, CreatedAt = createdAt }
+        );
     }
 }
