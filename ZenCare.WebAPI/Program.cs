@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using ZenCare.Services;
+using ZenCare.Services.Interfaces;
+using ZenCare.Services.Mapping;
+using ZenCare.Services.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,6 +10,10 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ZenCareDbContext>(options =>
     options.UseSqlServer(connectionString));
+
+builder.Services.AddAutoMapper(_ => { }, typeof(RoleProfile).Assembly);
+
+builder.Services.AddScoped<IRoleService, RoleService>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
