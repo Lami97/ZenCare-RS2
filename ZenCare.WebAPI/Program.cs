@@ -11,11 +11,12 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ZenCareDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-builder.Services.AddAutoMapper(_ => { }, typeof(RoleProfile).Assembly, typeof(ServiceCategoryProfile).Assembly, typeof(ProductCategoryProfile).Assembly);
+builder.Services.AddAutoMapper(_ => { }, typeof(RoleProfile).Assembly, typeof(ServiceCategoryProfile).Assembly, typeof(ProductCategoryProfile).Assembly, typeof(ProductTypeProfile).Assembly);
 
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IServiceCategoryService, ServiceCategoryService>();
 builder.Services.AddScoped<IProductCategoryService, ProductCategoryService>();
+builder.Services.AddScoped<IProductTypeService, ProductTypeService>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
