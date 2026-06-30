@@ -11,7 +11,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ZenCareDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-builder.Services.AddAutoMapper(_ => { }, typeof(RoleProfile).Assembly, typeof(ServiceCategoryProfile).Assembly, typeof(ProductCategoryProfile).Assembly, typeof(ProductTypeProfile).Assembly, typeof(UnitOfMeasureProfile).Assembly, typeof(FAQCategoryProfile).Assembly, typeof(FAQProfile).Assembly, typeof(ServiceProfile).Assembly, typeof(ProductProfile).Assembly, typeof(UserProfile).Assembly, typeof(UserRoleProfile).Assembly, typeof(ClientProfileProfile).Assembly, typeof(EmployeeProfile).Assembly, typeof(EmployeeServiceProfile).Assembly, typeof(AppointmentProfile).Assembly, typeof(PaymentProfile).Assembly);
+builder.Services.AddAutoMapper(_ => { }, typeof(RoleProfile).Assembly, typeof(ServiceCategoryProfile).Assembly, typeof(ProductCategoryProfile).Assembly, typeof(ProductTypeProfile).Assembly, typeof(UnitOfMeasureProfile).Assembly, typeof(FAQCategoryProfile).Assembly, typeof(FAQProfile).Assembly, typeof(ServiceProfile).Assembly, typeof(ProductProfile).Assembly, typeof(UserProfile).Assembly, typeof(UserRoleProfile).Assembly, typeof(ClientProfileProfile).Assembly, typeof(EmployeeProfile).Assembly, typeof(EmployeeServiceProfile).Assembly, typeof(AppointmentProfile).Assembly, typeof(PaymentProfile).Assembly, typeof(ReviewProfile).Assembly);
 
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IServiceCategoryService, ServiceCategoryService>();
@@ -29,6 +29,7 @@ builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<IEmployeeServiceService, EmployeeServiceService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
