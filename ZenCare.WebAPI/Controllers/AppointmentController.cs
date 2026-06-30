@@ -1,0 +1,61 @@
+using Microsoft.AspNetCore.Mvc;
+using ZenCare.Model.Requests;
+using ZenCare.Model.Responses;
+using ZenCare.Model.SearchObjects;
+using ZenCare.Services.Interfaces;
+
+namespace ZenCare.WebAPI.Controllers;
+
+[ApiController]
+[Route("[controller]")]
+public class AppointmentController : ControllerBase
+{
+    private readonly IAppointmentService _appointmentService;
+
+    public AppointmentController(IAppointmentService appointmentService)
+    {
+        _appointmentService = appointmentService;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<PagedResult<AppointmentResponse>>> GetAll([FromQuery] AppointmentSearchObject? search)
+    {
+        var result = await _appointmentService.GetAllAsync(search);
+        return Ok(result);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<AppointmentResponse>> GetById(int id)
+    {
+        var result = await _appointmentService.GetByIdAsync(id);
+        return Ok(result);
+    }
+
+    [HttpPost]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<AppointmentResponse>> Create([FromBody] AppointmentInsertRequest request)
+    {
+        var result = await _appointmentService.InsertAsync(request);
+        return result;
+    }
+
+    [HttpPut("{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<AppointmentResponse>> Update(int id, [FromBody] AppointmentUpdateRequest request)
+    {
+        var result = await _appointmentService.UpdateAsync(id, request);
+        return Ok(result);
+    }
+
+    [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(int id)
+    {
+        await _appointmentService.DeleteAsync(id);
+        return NoContent();
+    }
+}
