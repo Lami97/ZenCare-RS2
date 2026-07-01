@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
@@ -7,6 +8,7 @@ using ZenCare.Services.Interfaces;
 namespace ZenCare.WebAPI.Controllers;
 
 [ApiController]
+[Authorize(Roles = "Client,Employee,Admin")]
 [Route("[controller]")]
 public class NotificationController : ControllerBase
 {
