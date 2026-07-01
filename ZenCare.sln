@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZenCare.Common", "ZenCare.C
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZenCare.Worker", "ZenCare.Worker\ZenCare.Worker.csproj", "{1EF33EA0-B290-4E93-BF51-BD4C00DBC3FC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZenCare.WinUI", "ZenCare.WinUI\ZenCare.WinUI.csproj", "{E45CC795-D278-452A-89F9-13504DCD3DD6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -83,6 +85,18 @@ Global
 		{1EF33EA0-B290-4E93-BF51-BD4C00DBC3FC}.Release|x64.Build.0 = Release|Any CPU
 		{1EF33EA0-B290-4E93-BF51-BD4C00DBC3FC}.Release|x86.ActiveCfg = Release|Any CPU
 		{1EF33EA0-B290-4E93-BF51-BD4C00DBC3FC}.Release|x86.Build.0 = Release|Any CPU
+		{E45CC795-D278-452A-89F9-13504DCD3DD6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E45CC795-D278-452A-89F9-13504DCD3DD6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E45CC795-D278-452A-89F9-13504DCD3DD6}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E45CC795-D278-452A-89F9-13504DCD3DD6}.Debug|x64.Build.0 = Debug|Any CPU
+		{E45CC795-D278-452A-89F9-13504DCD3DD6}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E45CC795-D278-452A-89F9-13504DCD3DD6}.Debug|x86.Build.0 = Debug|Any CPU
+		{E45CC795-D278-452A-89F9-13504DCD3DD6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E45CC795-D278-452A-89F9-13504DCD3DD6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E45CC795-D278-452A-89F9-13504DCD3DD6}.Release|x64.ActiveCfg = Release|Any CPU
+		{E45CC795-D278-452A-89F9-13504DCD3DD6}.Release|x64.Build.0 = Release|Any CPU
+		{E45CC795-D278-452A-89F9-13504DCD3DD6}.Release|x86.ActiveCfg = Release|Any CPU
+		{E45CC795-D278-452A-89F9-13504DCD3DD6}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
