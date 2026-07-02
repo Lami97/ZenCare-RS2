@@ -36,6 +36,7 @@ partial class MainForm
         btnServices = new Button();
         btnUnits = new Button();
         btnProductTypes = new Button();
+        btnProductsManagement = new Button();
         btnProducts = new Button();
         lblNavigationTitle = new Label();
         pnlContent = new Panel();
@@ -55,6 +56,7 @@ partial class MainForm
         pnlNavigation.Controls.Add(btnServices);
         pnlNavigation.Controls.Add(btnUnits);
         pnlNavigation.Controls.Add(btnProductTypes);
+        pnlNavigation.Controls.Add(btnProductsManagement);
         pnlNavigation.Controls.Add(btnProducts);
         pnlNavigation.Controls.Add(lblNavigationTitle);
         pnlNavigation.Dock = DockStyle.Left;
@@ -80,7 +82,7 @@ partial class MainForm
         // 
         btnReports.FlatStyle = FlatStyle.Flat;
         btnReports.ForeColor = Color.White;
-        btnReports.Location = new Point(20, 420);
+        btnReports.Location = new Point(20, 476);
         btnReports.Name = "btnReports";
         btnReports.Size = new Size(160, 40);
         btnReports.TabIndex = 5;
@@ -91,7 +93,7 @@ partial class MainForm
         // 
         btnAppointments.FlatStyle = FlatStyle.Flat;
         btnAppointments.ForeColor = Color.White;
-        btnAppointments.Location = new Point(20, 364);
+        btnAppointments.Location = new Point(20, 420);
         btnAppointments.Name = "btnAppointments";
         btnAppointments.Size = new Size(160, 40);
         btnAppointments.TabIndex = 4;
@@ -102,7 +104,7 @@ partial class MainForm
         // 
         btnEmployees.FlatStyle = FlatStyle.Flat;
         btnEmployees.ForeColor = Color.White;
-        btnEmployees.Location = new Point(20, 308);
+        btnEmployees.Location = new Point(20, 364);
         btnEmployees.Name = "btnEmployees";
         btnEmployees.Size = new Size(160, 40);
         btnEmployees.TabIndex = 3;
@@ -113,7 +115,7 @@ partial class MainForm
         // 
         btnServices.FlatStyle = FlatStyle.Flat;
         btnServices.ForeColor = Color.White;
-        btnServices.Location = new Point(20, 252);
+        btnServices.Location = new Point(20, 308);
         btnServices.Name = "btnServices";
         btnServices.Size = new Size(160, 40);
         btnServices.TabIndex = 2;
@@ -124,7 +126,7 @@ partial class MainForm
         // 
         btnUnits.FlatStyle = FlatStyle.Flat;
         btnUnits.ForeColor = Color.White;
-        btnUnits.Location = new Point(20, 196);
+        btnUnits.Location = new Point(20, 252);
         btnUnits.Name = "btnUnits";
         btnUnits.Size = new Size(160, 40);
         btnUnits.TabIndex = 8;
@@ -136,13 +138,25 @@ partial class MainForm
         // 
         btnProductTypes.FlatStyle = FlatStyle.Flat;
         btnProductTypes.ForeColor = Color.White;
-        btnProductTypes.Location = new Point(20, 140);
+        btnProductTypes.Location = new Point(20, 196);
         btnProductTypes.Name = "btnProductTypes";
         btnProductTypes.Size = new Size(160, 40);
         btnProductTypes.TabIndex = 7;
         btnProductTypes.Text = "Product Types";
         btnProductTypes.UseVisualStyleBackColor = true;
         btnProductTypes.Click += btnProductTypes_Click;
+        // 
+        // btnProductsManagement
+        // 
+        btnProductsManagement.FlatStyle = FlatStyle.Flat;
+        btnProductsManagement.ForeColor = Color.White;
+        btnProductsManagement.Location = new Point(20, 140);
+        btnProductsManagement.Name = "btnProductsManagement";
+        btnProductsManagement.Size = new Size(160, 40);
+        btnProductsManagement.TabIndex = 9;
+        btnProductsManagement.Text = "Products Management";
+        btnProductsManagement.UseVisualStyleBackColor = true;
+        btnProductsManagement.Click += btnProductsManagement_Click;
         // 
         // btnProducts
         // 
@@ -213,6 +227,7 @@ partial class MainForm
     private Button btnServices;
     private Button btnUnits;
     private Button btnProductTypes;
+    private Button btnProductsManagement;
     private Button btnProducts;
     private Label lblNavigationTitle;
     private Panel pnlContent;
