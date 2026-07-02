@@ -28,9 +28,125 @@ partial class MainForm
     /// </summary>
     private void InitializeComponent()
     {
+        pnlNavigation = new Panel();
+        btnLogout = new Button();
+        btnReports = new Button();
+        btnAppointments = new Button();
+        btnEmployees = new Button();
+        btnServices = new Button();
+        btnProducts = new Button();
+        lblNavigationTitle = new Label();
+        pnlContent = new Panel();
         lblDashboardTitle = new Label();
         this.components = new System.ComponentModel.Container();
+        pnlNavigation.SuspendLayout();
+        pnlContent.SuspendLayout();
         SuspendLayout();
+        // 
+        // pnlNavigation
+        // 
+        pnlNavigation.BackColor = Color.FromArgb(32, 45, 57);
+        pnlNavigation.Controls.Add(btnLogout);
+        pnlNavigation.Controls.Add(btnReports);
+        pnlNavigation.Controls.Add(btnAppointments);
+        pnlNavigation.Controls.Add(btnEmployees);
+        pnlNavigation.Controls.Add(btnServices);
+        pnlNavigation.Controls.Add(btnProducts);
+        pnlNavigation.Controls.Add(lblNavigationTitle);
+        pnlNavigation.Dock = DockStyle.Left;
+        pnlNavigation.Location = new Point(0, 0);
+        pnlNavigation.Name = "pnlNavigation";
+        pnlNavigation.Size = new Size(200, 800);
+        pnlNavigation.TabIndex = 0;
+        // 
+        // btnLogout
+        // 
+        btnLogout.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+        btnLogout.FlatStyle = FlatStyle.Flat;
+        btnLogout.ForeColor = Color.White;
+        btnLogout.Location = new Point(20, 736);
+        btnLogout.Name = "btnLogout";
+        btnLogout.Size = new Size(160, 40);
+        btnLogout.TabIndex = 6;
+        btnLogout.Text = "Logout";
+        btnLogout.UseVisualStyleBackColor = true;
+        btnLogout.Click += btnLogout_Click;
+        // 
+        // btnReports
+        // 
+        btnReports.FlatStyle = FlatStyle.Flat;
+        btnReports.ForeColor = Color.White;
+        btnReports.Location = new Point(20, 308);
+        btnReports.Name = "btnReports";
+        btnReports.Size = new Size(160, 40);
+        btnReports.TabIndex = 5;
+        btnReports.Text = "Reports";
+        btnReports.UseVisualStyleBackColor = true;
+        // 
+        // btnAppointments
+        // 
+        btnAppointments.FlatStyle = FlatStyle.Flat;
+        btnAppointments.ForeColor = Color.White;
+        btnAppointments.Location = new Point(20, 252);
+        btnAppointments.Name = "btnAppointments";
+        btnAppointments.Size = new Size(160, 40);
+        btnAppointments.TabIndex = 4;
+        btnAppointments.Text = "Appointments";
+        btnAppointments.UseVisualStyleBackColor = true;
+        // 
+        // btnEmployees
+        // 
+        btnEmployees.FlatStyle = FlatStyle.Flat;
+        btnEmployees.ForeColor = Color.White;
+        btnEmployees.Location = new Point(20, 196);
+        btnEmployees.Name = "btnEmployees";
+        btnEmployees.Size = new Size(160, 40);
+        btnEmployees.TabIndex = 3;
+        btnEmployees.Text = "Employees";
+        btnEmployees.UseVisualStyleBackColor = true;
+        // 
+        // btnServices
+        // 
+        btnServices.FlatStyle = FlatStyle.Flat;
+        btnServices.ForeColor = Color.White;
+        btnServices.Location = new Point(20, 140);
+        btnServices.Name = "btnServices";
+        btnServices.Size = new Size(160, 40);
+        btnServices.TabIndex = 2;
+        btnServices.Text = "Services";
+        btnServices.UseVisualStyleBackColor = true;
+        // 
+        // btnProducts
+        // 
+        btnProducts.FlatStyle = FlatStyle.Flat;
+        btnProducts.ForeColor = Color.White;
+        btnProducts.Location = new Point(20, 84);
+        btnProducts.Name = "btnProducts";
+        btnProducts.Size = new Size(160, 40);
+        btnProducts.TabIndex = 1;
+        btnProducts.Text = "Products";
+        btnProducts.UseVisualStyleBackColor = true;
+        // 
+        // lblNavigationTitle
+        // 
+        lblNavigationTitle.AutoSize = true;
+        lblNavigationTitle.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+        lblNavigationTitle.ForeColor = Color.White;
+        lblNavigationTitle.Location = new Point(20, 24);
+        lblNavigationTitle.Name = "lblNavigationTitle";
+        lblNavigationTitle.Size = new Size(126, 21);
+        lblNavigationTitle.TabIndex = 0;
+        lblNavigationTitle.Text = "ZenCare Admin";
+        // 
+        // pnlContent
+        // 
+        pnlContent.BackColor = Color.White;
+        pnlContent.Controls.Add(lblDashboardTitle);
+        pnlContent.Dock = DockStyle.Fill;
+        pnlContent.Location = new Point(200, 0);
+        pnlContent.Name = "pnlContent";
+        pnlContent.Size = new Size(1000, 800);
+        pnlContent.TabIndex = 1;
         // 
         // lblDashboardTitle
         // 
@@ -45,16 +161,29 @@ partial class MainForm
         // MainForm
         // 
         this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-        this.ClientSize = new System.Drawing.Size(1000, 700);
-        Controls.Add(lblDashboardTitle);
+        this.ClientSize = new System.Drawing.Size(1200, 800);
+        Controls.Add(pnlContent);
+        Controls.Add(pnlNavigation);
         this.Name = "MainForm";
         this.StartPosition = FormStartPosition.CenterScreen;
         this.Text = "ZenCare Admin";
+        pnlNavigation.ResumeLayout(false);
+        pnlNavigation.PerformLayout();
+        pnlContent.ResumeLayout(false);
+        pnlContent.PerformLayout();
         ResumeLayout(false);
-        PerformLayout();
     }
 
     #endregion
 
+    private Panel pnlNavigation;
+    private Button btnLogout;
+    private Button btnReports;
+    private Button btnAppointments;
+    private Button btnEmployees;
+    private Button btnServices;
+    private Button btnProducts;
+    private Label lblNavigationTitle;
+    private Panel pnlContent;
     private Label lblDashboardTitle;
 }
