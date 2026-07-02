@@ -105,6 +105,7 @@ partial class MainForm
         btnAppointments.TabIndex = 4;
         btnAppointments.Text = "Appointments";
         btnAppointments.UseVisualStyleBackColor = true;
+        btnAppointments.Click += btnAppointments_Click;
         // 
         // btnEmployees
         // 
