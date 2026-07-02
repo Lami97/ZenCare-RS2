@@ -64,6 +64,11 @@ public partial class MainForm : Form
         LoadChildForm(new UserForm());
     }
 
+    private void btnUserRoles_Click(object sender, EventArgs e)
+    {
+        LoadChildForm(new UserRoleForm());
+    }
+
     private void LoadChildForm(Form form)
     {
         pnlContent.Controls.Clear();

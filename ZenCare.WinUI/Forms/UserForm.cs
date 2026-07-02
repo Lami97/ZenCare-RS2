@@ -34,7 +34,7 @@ public partial class UserForm : Form
 
         if (selectedId == null)
         {
-            MessageBox.Show("Odaberite korisnika.");
+            MessageBox.Show("Please select a user.");
             return;
         }
 
@@ -47,13 +47,13 @@ public partial class UserForm : Form
 
         if (selectedId == null)
         {
-            MessageBox.Show("Odaberite korisnika.");
+            MessageBox.Show("Please select a user.");
             return;
         }
 
         var result = MessageBox.Show(
-            "Da li ste sigurni da zelite obrisati korisnika?",
-            "Potvrda brisanja",
+            "Are you sure you want to delete this user?",
+            "Confirm delete",
             MessageBoxButtons.YesNo,
             MessageBoxIcon.Question);
 
@@ -66,11 +66,11 @@ public partial class UserForm : Form
 
         if (!deleted)
         {
-            MessageBox.Show(GetApiErrorMessage("Korisnika nije moguce obrisati."));
+            MessageBox.Show(GetApiErrorMessage("Unable to delete user."));
             return;
         }
 
-        MessageBox.Show("Korisnik je uspjesno obrisan.");
+        MessageBox.Show("User was deleted successfully.");
         await LoadUsers();
     }
 
@@ -106,7 +106,7 @@ public partial class UserForm : Form
 
         if (result == null)
         {
-            MessageBox.Show(GetApiErrorMessage("Korisnike nije moguce ucitati."));
+            MessageBox.Show(GetApiErrorMessage("Unable to load users."));
             dgvUsers.DataSource = new List<UserResponse>();
             return;
         }

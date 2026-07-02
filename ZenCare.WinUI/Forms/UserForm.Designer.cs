@@ -62,9 +62,9 @@ partial class UserForm
         lblSearch.AutoSize = true;
         lblSearch.Location = new Point(24, 34);
         lblSearch.Name = "lblSearch";
-        lblSearch.Size = new Size(89, 15);
+        lblSearch.Size = new Size(60, 15);
         lblSearch.TabIndex = 0;
-        lblSearch.Text = "Korisničko ime";
+        lblSearch.Text = "Username";
         // 
         // txtSearch
         // 
@@ -80,7 +80,7 @@ partial class UserForm
         chkIsActive.Name = "chkIsActive";
         chkIsActive.Size = new Size(92, 24);
         chkIsActive.TabIndex = 6;
-        chkIsActive.Text = "Aktivan";
+        chkIsActive.Text = "Active";
         chkIsActive.ThreeState = true;
         chkIsActive.UseVisualStyleBackColor = true;
         // 
@@ -90,7 +90,7 @@ partial class UserForm
         btnSearch.Name = "btnSearch";
         btnSearch.Size = new Size(96, 28);
         btnSearch.TabIndex = 2;
-        btnSearch.Text = "Pretraga";
+        btnSearch.Text = "Search";
         btnSearch.UseVisualStyleBackColor = true;
         btnSearch.Click += btnSearch_Click;
         // 
@@ -100,7 +100,7 @@ partial class UserForm
         btnAdd.Name = "btnAdd";
         btnAdd.Size = new Size(96, 28);
         btnAdd.TabIndex = 3;
-        btnAdd.Text = "Dodaj";
+        btnAdd.Text = "Add";
         btnAdd.UseVisualStyleBackColor = true;
         btnAdd.Click += btnAdd_Click;
         // 
@@ -110,7 +110,7 @@ partial class UserForm
         btnEdit.Name = "btnEdit";
         btnEdit.Size = new Size(96, 28);
         btnEdit.TabIndex = 4;
-        btnEdit.Text = "Izmijeni";
+        btnEdit.Text = "Edit";
         btnEdit.UseVisualStyleBackColor = true;
         btnEdit.Click += btnEdit_Click;
         // 
@@ -120,7 +120,7 @@ partial class UserForm
         btnDelete.Name = "btnDelete";
         btnDelete.Size = new Size(96, 28);
         btnDelete.TabIndex = 5;
-        btnDelete.Text = "Obriši";
+        btnDelete.Text = "Delete";
         btnDelete.UseVisualStyleBackColor = true;
         btnDelete.Click += btnDelete_Click;
         // 
@@ -130,7 +130,7 @@ partial class UserForm
         btnRefresh.Name = "btnRefresh";
         btnRefresh.Size = new Size(96, 28);
         btnRefresh.TabIndex = 6;
-        btnRefresh.Text = "Osvježi";
+        btnRefresh.Text = "Refresh";
         btnRefresh.UseVisualStyleBackColor = true;
         btnRefresh.Click += btnRefresh_Click;
         // 
@@ -155,15 +155,15 @@ partial class UserForm
         // columns
         // 
         colFirstName.DataPropertyName = "FirstName";
-        colFirstName.HeaderText = "Ime";
+        colFirstName.HeaderText = "First name";
         colFirstName.Name = "colFirstName";
         colFirstName.ReadOnly = true;
         colLastName.DataPropertyName = "LastName";
-        colLastName.HeaderText = "Prezime";
+        colLastName.HeaderText = "Last name";
         colLastName.Name = "colLastName";
         colLastName.ReadOnly = true;
         colUsername.DataPropertyName = "Username";
-        colUsername.HeaderText = "Korisničko ime";
+        colUsername.HeaderText = "Username";
         colUsername.Name = "colUsername";
         colUsername.ReadOnly = true;
         colEmail.DataPropertyName = "Email";
@@ -171,19 +171,19 @@ partial class UserForm
         colEmail.Name = "colEmail";
         colEmail.ReadOnly = true;
         colPhoneNumber.DataPropertyName = "PhoneNumber";
-        colPhoneNumber.HeaderText = "Telefon";
+        colPhoneNumber.HeaderText = "Phone";
         colPhoneNumber.Name = "colPhoneNumber";
         colPhoneNumber.ReadOnly = true;
         colIsActive.DataPropertyName = "IsActive";
-        colIsActive.HeaderText = "Aktivan";
+        colIsActive.HeaderText = "Active";
         colIsActive.Name = "colIsActive";
         colIsActive.ReadOnly = true;
         colCreatedAt.DataPropertyName = "CreatedAt";
-        colCreatedAt.HeaderText = "Kreirano";
+        colCreatedAt.HeaderText = "CreatedAt";
         colCreatedAt.Name = "colCreatedAt";
         colCreatedAt.ReadOnly = true;
         colLastLoginAt.DataPropertyName = "LastLoginAt";
-        colLastLoginAt.HeaderText = "Zadnja prijava";
+        colLastLoginAt.HeaderText = "Last login";
         colLastLoginAt.Name = "colLastLoginAt";
         colLastLoginAt.ReadOnly = true;
         // 
@@ -196,7 +196,7 @@ partial class UserForm
         Controls.Add(pnlTop);
         FormBorderStyle = FormBorderStyle.None;
         Name = "UserForm";
-        Text = "Korisnici";
+        Text = "Users";
         Load += UserForm_Load;
         pnlTop.ResumeLayout(false);
         pnlTop.PerformLayout();

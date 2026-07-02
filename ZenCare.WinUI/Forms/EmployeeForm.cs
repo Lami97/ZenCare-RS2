@@ -69,6 +69,7 @@ public partial class EmployeeForm : Form
 
     private async void btnRefresh_Click(object sender, EventArgs e)
     {
+        txtSearch.Clear();
         cmbUser.SelectedIndex = 0;
         txtSpecialization.Clear();
         chkIsAvailable.CheckState = CheckState.Indeterminate;
@@ -86,7 +87,6 @@ public partial class EmployeeForm : Form
         var search = new EmployeeSearchObject
         {
             UserId = GetSelectedLookupId(cmbUser),
-            Specialization = string.IsNullOrWhiteSpace(txtSpecialization.Text) ? null : txtSpecialization.Text,
             IsAvailable = chkIsAvailable.CheckState == CheckState.Indeterminate ? null : chkIsAvailable.Checked
         };
 
@@ -97,11 +97,6 @@ public partial class EmployeeForm : Form
             query.Add($"UserId={search.UserId.Value}");
         }
 
-        if (!string.IsNullOrWhiteSpace(search.Specialization))
-        {
-            query.Add($"Specialization={Uri.EscapeDataString(search.Specialization)}");
-        }
-
         if (search.IsAvailable.HasValue)
         {
             query.Add($"IsAvailable={search.IsAvailable.Value}");
@@ -109,7 +104,24 @@ public partial class EmployeeForm : Form
 
         var endpoint = query.Count == 0 ? "Employee" : $"Employee?{string.Join("&", query)}";
         var result = await _apiService.Get<PagedResult<EmployeeResponse>>(endpoint);
-        dgvEmployees.DataSource = result?.Items ?? new List<EmployeeResponse>();
+        var items = result?.Items ?? new List<EmployeeResponse>();
+
+        if (!string.IsNullOrWhiteSpace(txtSearch.Text))
+        {
+            items = items
+                .Where(x => x.UserName.Contains(txtSearch.Text, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        if (!string.IsNullOrWhiteSpace(txtSpecialization.Text))
+        {
+            items = items
+                .Where(x => !string.IsNullOrWhiteSpace(x.Specialization)
+                    && x.Specialization.Contains(txtSpecialization.Text, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        dgvEmployees.DataSource = items;
     }
 
     private int? GetSelectedEmployeeId()

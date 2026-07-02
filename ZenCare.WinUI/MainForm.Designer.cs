@@ -33,6 +33,7 @@ partial class MainForm
         btnReports = new Button();
         btnAppointments = new Button();
         btnEmployees = new Button();
+        btnUserRoles = new Button();
         btnUsers = new Button();
         btnServiceCategories = new Button();
         btnServices = new Button();
@@ -55,6 +56,7 @@ partial class MainForm
         pnlNavigation.Controls.Add(btnReports);
         pnlNavigation.Controls.Add(btnAppointments);
         pnlNavigation.Controls.Add(btnEmployees);
+        pnlNavigation.Controls.Add(btnUserRoles);
         pnlNavigation.Controls.Add(btnUsers);
         pnlNavigation.Controls.Add(btnServiceCategories);
         pnlNavigation.Controls.Add(btnServices);
@@ -86,7 +88,7 @@ partial class MainForm
         // 
         btnReports.FlatStyle = FlatStyle.Flat;
         btnReports.ForeColor = Color.White;
-        btnReports.Location = new Point(20, 588);
+        btnReports.Location = new Point(20, 644);
         btnReports.Name = "btnReports";
         btnReports.Size = new Size(160, 40);
         btnReports.TabIndex = 5;
@@ -97,7 +99,7 @@ partial class MainForm
         // 
         btnAppointments.FlatStyle = FlatStyle.Flat;
         btnAppointments.ForeColor = Color.White;
-        btnAppointments.Location = new Point(20, 532);
+        btnAppointments.Location = new Point(20, 588);
         btnAppointments.Name = "btnAppointments";
         btnAppointments.Size = new Size(160, 40);
         btnAppointments.TabIndex = 4;
@@ -108,13 +110,25 @@ partial class MainForm
         // 
         btnEmployees.FlatStyle = FlatStyle.Flat;
         btnEmployees.ForeColor = Color.White;
-        btnEmployees.Location = new Point(20, 476);
+        btnEmployees.Location = new Point(20, 532);
         btnEmployees.Name = "btnEmployees";
         btnEmployees.Size = new Size(160, 40);
         btnEmployees.TabIndex = 3;
         btnEmployees.Text = "Employees";
         btnEmployees.UseVisualStyleBackColor = true;
         btnEmployees.Click += btnEmployees_Click;
+        // 
+        // btnUserRoles
+        // 
+        btnUserRoles.FlatStyle = FlatStyle.Flat;
+        btnUserRoles.ForeColor = Color.White;
+        btnUserRoles.Location = new Point(20, 476);
+        btnUserRoles.Name = "btnUserRoles";
+        btnUserRoles.Size = new Size(160, 40);
+        btnUserRoles.TabIndex = 12;
+        btnUserRoles.Text = "User Roles";
+        btnUserRoles.UseVisualStyleBackColor = true;
+        btnUserRoles.Click += btnUserRoles_Click;
         // 
         // btnUsers
         // 
@@ -254,6 +268,7 @@ partial class MainForm
     private Button btnReports;
     private Button btnAppointments;
     private Button btnEmployees;
+    private Button btnUserRoles;
     private Button btnUsers;
     private Button btnServiceCategories;
     private Button btnServices;

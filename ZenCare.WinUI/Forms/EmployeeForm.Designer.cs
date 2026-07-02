@@ -19,6 +19,8 @@ partial class EmployeeForm
     private void InitializeComponent()
     {
         pnlTop = new Panel();
+        txtSearch = new TextBox();
+        lblSearch = new Label();
         chkIsAvailable = new CheckBox();
         txtSpecialization = new TextBox();
         lblSpecialization = new Label();
@@ -45,6 +47,8 @@ partial class EmployeeForm
         // 
         // pnlTop
         // 
+        pnlTop.Controls.Add(txtSearch);
+        pnlTop.Controls.Add(lblSearch);
         pnlTop.Controls.Add(chkIsAvailable);
         pnlTop.Controls.Add(txtSpecialization);
         pnlTop.Controls.Add(lblSpecialization);
@@ -62,6 +66,22 @@ partial class EmployeeForm
         pnlTop.Size = new Size(1000, 116);
         pnlTop.TabIndex = 0;
         // 
+        // txtSearch
+        // 
+        txtSearch.Location = new Point(76, 22);
+        txtSearch.Name = "txtSearch";
+        txtSearch.Size = new Size(200, 23);
+        txtSearch.TabIndex = 1;
+        // 
+        // lblSearch
+        // 
+        lblSearch.AutoSize = true;
+        lblSearch.Location = new Point(24, 26);
+        lblSearch.Name = "lblSearch";
+        lblSearch.Size = new Size(42, 15);
+        lblSearch.TabIndex = 0;
+        lblSearch.Text = "Search";
+        // 
         // chkIsAvailable
         // 
         chkIsAvailable.CheckState = CheckState.Indeterminate;
@@ -69,7 +89,7 @@ partial class EmployeeForm
         chkIsAvailable.Name = "chkIsAvailable";
         chkIsAvailable.Size = new Size(100, 24);
         chkIsAvailable.TabIndex = 9;
-        chkIsAvailable.Text = "IsAvailable";
+        chkIsAvailable.Text = "Available";
         chkIsAvailable.ThreeState = true;
         chkIsAvailable.UseVisualStyleBackColor = true;
         // 
@@ -109,7 +129,7 @@ partial class EmployeeForm
         // 
         // btnRefresh
         // 
-        btnRefresh.Location = new Point(520, 20);
+        btnRefresh.Location = new Point(744, 20);
         btnRefresh.Name = "btnRefresh";
         btnRefresh.Size = new Size(96, 28);
         btnRefresh.TabIndex = 4;
@@ -119,7 +139,7 @@ partial class EmployeeForm
         // 
         // btnDelete
         // 
-        btnDelete.Location = new Point(408, 20);
+        btnDelete.Location = new Point(632, 20);
         btnDelete.Name = "btnDelete";
         btnDelete.Size = new Size(96, 28);
         btnDelete.TabIndex = 3;
@@ -129,7 +149,7 @@ partial class EmployeeForm
         // 
         // btnEdit
         // 
-        btnEdit.Location = new Point(296, 20);
+        btnEdit.Location = new Point(520, 20);
         btnEdit.Name = "btnEdit";
         btnEdit.Size = new Size(96, 28);
         btnEdit.TabIndex = 2;
@@ -139,7 +159,7 @@ partial class EmployeeForm
         // 
         // btnAdd
         // 
-        btnAdd.Location = new Point(184, 20);
+        btnAdd.Location = new Point(408, 20);
         btnAdd.Name = "btnAdd";
         btnAdd.Size = new Size(96, 28);
         btnAdd.TabIndex = 1;
@@ -149,7 +169,7 @@ partial class EmployeeForm
         // 
         // btnSearch
         // 
-        btnSearch.Location = new Point(72, 20);
+        btnSearch.Location = new Point(296, 20);
         btnSearch.Name = "btnSearch";
         btnSearch.Size = new Size(96, 28);
         btnSearch.TabIndex = 0;
@@ -180,10 +200,12 @@ partial class EmployeeForm
         colId.HeaderText = "Id";
         colId.Name = "colId";
         colId.ReadOnly = true;
+        colId.Visible = false;
         colUserId.DataPropertyName = "UserId";
         colUserId.HeaderText = "UserId";
         colUserId.Name = "colUserId";
         colUserId.ReadOnly = true;
+        colUserId.Visible = false;
         colUserName.DataPropertyName = "UserName";
         colUserName.HeaderText = "User";
         colUserName.Name = "colUserName";
@@ -197,21 +219,23 @@ partial class EmployeeForm
         colBio.Name = "colBio";
         colBio.ReadOnly = true;
         colHireDate.DataPropertyName = "HireDate";
-        colHireDate.HeaderText = "HireDate";
+        colHireDate.HeaderText = "Hire Date";
         colHireDate.Name = "colHireDate";
         colHireDate.ReadOnly = true;
         colIsAvailable.DataPropertyName = "IsAvailable";
-        colIsAvailable.HeaderText = "IsAvailable";
+        colIsAvailable.HeaderText = "Available";
         colIsAvailable.Name = "colIsAvailable";
         colIsAvailable.ReadOnly = true;
         colCreatedAt.DataPropertyName = "CreatedAt";
         colCreatedAt.HeaderText = "CreatedAt";
         colCreatedAt.Name = "colCreatedAt";
         colCreatedAt.ReadOnly = true;
+        colCreatedAt.Visible = false;
         colUpdatedAt.DataPropertyName = "UpdatedAt";
         colUpdatedAt.HeaderText = "UpdatedAt";
         colUpdatedAt.Name = "colUpdatedAt";
         colUpdatedAt.ReadOnly = true;
+        colUpdatedAt.Visible = false;
         // 
         // EmployeeForm
         // 
@@ -233,6 +257,8 @@ partial class EmployeeForm
     #endregion
 
     private Panel pnlTop;
+    private TextBox txtSearch;
+    private Label lblSearch;
     private CheckBox chkIsAvailable;
     private TextBox txtSpecialization;
     private Label lblSpecialization;
