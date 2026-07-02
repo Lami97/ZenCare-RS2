@@ -126,6 +126,7 @@ partial class MainForm
         btnProducts.TabIndex = 1;
         btnProducts.Text = "Products";
         btnProducts.UseVisualStyleBackColor = true;
+        btnProducts.Click += btnProducts_Click;
         // 
         // lblNavigationTitle
         // 

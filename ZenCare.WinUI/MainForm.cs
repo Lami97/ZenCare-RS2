@@ -23,4 +23,21 @@ public partial class MainForm : Form
 
         Close();
     }
+
+    private void btnProducts_Click(object sender, EventArgs e)
+    {
+        LoadChildForm(new ProductCategoryForm());
+    }
+
+    private void LoadChildForm(Form form)
+    {
+        pnlContent.Controls.Clear();
+
+        form.TopLevel = false;
+        form.FormBorderStyle = FormBorderStyle.None;
+        form.Dock = DockStyle.Fill;
+
+        pnlContent.Controls.Add(form);
+        form.Show();
+    }
 }
