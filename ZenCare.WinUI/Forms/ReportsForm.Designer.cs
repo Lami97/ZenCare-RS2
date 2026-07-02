@@ -19,6 +19,8 @@ partial class ReportsForm
     private void InitializeComponent()
     {
         pnlTop = new Panel();
+        btnExportBusinessStatistics = new Button();
+        btnExportAppointmentSummary = new Button();
         btnRefresh = new Button();
         lblTitle = new Label();
         lblStatus = new Label();
@@ -75,6 +77,8 @@ partial class ReportsForm
         // 
         // pnlTop
         // 
+        pnlTop.Controls.Add(btnExportBusinessStatistics);
+        pnlTop.Controls.Add(btnExportAppointmentSummary);
         pnlTop.Controls.Add(btnRefresh);
         pnlTop.Controls.Add(lblTitle);
         pnlTop.Dock = DockStyle.Top;
@@ -82,6 +86,26 @@ partial class ReportsForm
         pnlTop.Name = "pnlTop";
         pnlTop.Size = new Size(1000, 72);
         pnlTop.TabIndex = 0;
+        // 
+        // btnExportBusinessStatistics
+        // 
+        btnExportBusinessStatistics.Location = new Point(672, 22);
+        btnExportBusinessStatistics.Name = "btnExportBusinessStatistics";
+        btnExportBusinessStatistics.Size = new Size(176, 28);
+        btnExportBusinessStatistics.TabIndex = 3;
+        btnExportBusinessStatistics.Text = "Export Business Statistics PDF";
+        btnExportBusinessStatistics.UseVisualStyleBackColor = true;
+        btnExportBusinessStatistics.Click += btnExportBusinessStatistics_Click;
+        // 
+        // btnExportAppointmentSummary
+        // 
+        btnExportAppointmentSummary.Location = new Point(464, 22);
+        btnExportAppointmentSummary.Name = "btnExportAppointmentSummary";
+        btnExportAppointmentSummary.Size = new Size(192, 28);
+        btnExportAppointmentSummary.TabIndex = 2;
+        btnExportAppointmentSummary.Text = "Export Appointment Summary PDF";
+        btnExportAppointmentSummary.UseVisualStyleBackColor = true;
+        btnExportAppointmentSummary.Click += btnExportAppointmentSummary_Click;
         // 
         // btnRefresh
         // 
@@ -442,6 +466,8 @@ partial class ReportsForm
     #endregion
 
     private Panel pnlTop;
+    private Button btnExportBusinessStatistics;
+    private Button btnExportAppointmentSummary;
     private Button btnRefresh;
     private Label lblTitle;
     private Label lblStatus;
