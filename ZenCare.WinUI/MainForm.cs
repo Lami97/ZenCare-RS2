@@ -54,6 +54,16 @@ public partial class MainForm : Form
         LoadChildForm(new ServiceCategoryForm());
     }
 
+    private void btnFAQCategories_Click(object sender, EventArgs e)
+    {
+        LoadChildForm(new FAQCategoryForm());
+    }
+
+    private void btnFAQs_Click(object sender, EventArgs e)
+    {
+        LoadChildForm(new FAQForm());
+    }
+
     private void btnEmployees_Click(object sender, EventArgs e)
     {
         LoadChildForm(new EmployeeForm());
