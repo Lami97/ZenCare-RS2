@@ -44,6 +44,11 @@ public partial class MainForm : Form
         LoadChildForm(new UnitOfMeasureForm());
     }
 
+    private void btnServices_Click(object sender, EventArgs e)
+    {
+        LoadChildForm(new ServiceForm());
+    }
+
     private void btnServiceCategories_Click(object sender, EventArgs e)
     {
         LoadChildForm(new ServiceCategoryForm());

@@ -133,8 +133,9 @@ partial class MainForm
         btnServices.Name = "btnServices";
         btnServices.Size = new Size(160, 40);
         btnServices.TabIndex = 2;
-        btnServices.Text = "Services";
+        btnServices.Text = "Services Management";
         btnServices.UseVisualStyleBackColor = true;
+        btnServices.Click += btnServices_Click;
         // 
         // btnUnits
         // 
