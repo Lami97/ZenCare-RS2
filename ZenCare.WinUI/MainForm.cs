@@ -54,6 +54,11 @@ public partial class MainForm : Form
         LoadChildForm(new ServiceCategoryForm());
     }
 
+    private void btnEmployees_Click(object sender, EventArgs e)
+    {
+        LoadChildForm(new EmployeeForm());
+    }
+
     private void LoadChildForm(Form form)
     {
         pnlContent.Controls.Clear();

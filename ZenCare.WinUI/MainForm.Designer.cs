@@ -112,6 +112,7 @@ partial class MainForm
         btnEmployees.TabIndex = 3;
         btnEmployees.Text = "Employees";
         btnEmployees.UseVisualStyleBackColor = true;
+        btnEmployees.Click += btnEmployees_Click;
         // 
         // btnServiceCategories
         // 
