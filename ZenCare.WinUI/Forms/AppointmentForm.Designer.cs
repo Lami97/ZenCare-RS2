@@ -158,6 +158,7 @@ partial class AppointmentForm
         cmbServiceCategory.Name = "cmbServiceCategory";
         cmbServiceCategory.Size = new Size(160, 23);
         cmbServiceCategory.TabIndex = 16;
+        cmbServiceCategory.SelectedIndexChanged += cmbServiceCategory_SelectedIndexChanged;
         // 
         // lblServiceCategory
         // 

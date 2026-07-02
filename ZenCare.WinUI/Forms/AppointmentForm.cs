@@ -92,17 +92,46 @@ public partial class AppointmentForm : Form
     private async Task LoadLookups()
     {
         var users = await _apiService.Get<PagedResult<UserResponse>>("User");
-        cmbUser.DataSource = CreateLookupItems(users?.Items.Select(x => new LookupItem(x.Id, GetUserDisplayName(x))), "All");
+        var userRoles = await _apiService.Get<PagedResult<UserRoleResponse>>("UserRole");
+        var roles = userRoles?.Items ?? new List<UserRoleResponse>();
+
+        var clientUsers = GetClientUsers(users?.Items ?? new List<UserResponse>(), roles);
+        cmbUser.DataSource = CreateLookupItems(clientUsers.Select(x => new LookupItem(x.Id, GetUserDisplayName(x))), "All");
 
         var employees = await _apiService.Get<PagedResult<EmployeeResponse>>("Employee");
-        cmbEmployee.DataSource = CreateLookupItems(employees?.Items.Select(x => new LookupItem(x.Id, x.UserName)), "All");
+        var roleFilteredEmployees = GetEmployeeRoleEmployees(employees?.Items ?? new List<EmployeeResponse>(), roles);
+        cmbEmployee.DataSource = CreateLookupItems(roleFilteredEmployees.Select(x => new LookupItem(x.Id, x.UserName)), "All");
 
         var serviceCategories = await _apiService.Get<PagedResult<ServiceCategoryResponse>>("ServiceCategory");
         cmbServiceCategory.DataSource = CreateLookupItems(serviceCategories?.Items.Select(x => new LookupItem(x.Id, x.Name)), "All");
 
         var services = await _apiService.Get<PagedResult<ServiceResponse>>("Service");
         _services = services?.Items ?? new List<ServiceResponse>();
-        cmbService.DataSource = CreateLookupItems(_services.Select(x => new LookupItem(x.Id, x.Name)), "All");
+        PopulateServices();
+    }
+
+    private static List<UserResponse> GetClientUsers(List<UserResponse> users, List<UserRoleResponse> userRoles)
+    {
+        var clientUserIds = userRoles
+            .Where(x => string.Equals(x.RoleName, "Client", StringComparison.OrdinalIgnoreCase))
+            .Select(x => x.UserId)
+            .ToHashSet();
+
+        return users
+            .Where(x => clientUserIds.Contains(x.Id))
+            .ToList();
+    }
+
+    private static List<EmployeeResponse> GetEmployeeRoleEmployees(List<EmployeeResponse> employees, List<UserRoleResponse> userRoles)
+    {
+        var employeeUserIds = userRoles
+            .Where(x => string.Equals(x.RoleName, "Employee", StringComparison.OrdinalIgnoreCase))
+            .Select(x => x.UserId)
+            .ToHashSet();
+
+        return employees
+            .Where(x => employeeUserIds.Contains(x.UserId))
+            .ToList();
     }
 
     private void LoadStatusLookup()
@@ -188,6 +217,30 @@ public partial class AppointmentForm : Form
         }
 
         dgvAppointments.DataSource = items;
+    }
+
+    private void cmbServiceCategory_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        PopulateServices();
+    }
+
+    private void PopulateServices()
+    {
+        var selectedServiceId = GetSelectedLookupId(cmbService);
+        var selectedServiceCategoryId = GetSelectedLookupId(cmbServiceCategory);
+        var services = _services.AsEnumerable();
+
+        if (selectedServiceCategoryId.HasValue)
+        {
+            services = services.Where(x => x.ServiceCategoryId == selectedServiceCategoryId.Value);
+        }
+
+        cmbService.DataSource = CreateLookupItems(services.Select(x => new LookupItem(x.Id, x.Name)), "All");
+
+        if (selectedServiceId.HasValue)
+        {
+            SelectLookupItem(cmbService, selectedServiceId.Value);
+        }
     }
 
     private int? GetSelectedAppointmentId()
