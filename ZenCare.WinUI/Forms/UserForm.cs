@@ -66,7 +66,7 @@ public partial class UserForm : Form
 
         if (!deleted)
         {
-            MessageBox.Show(GetApiErrorMessage("Unable to delete user."));
+            MessageBox.Show(GetUserDeleteErrorMessage());
             return;
         }
 
@@ -126,6 +126,34 @@ public partial class UserForm : Form
         return string.IsNullOrWhiteSpace(_apiService.LastErrorMessage)
             ? fallback
             : _apiService.LastErrorMessage;
+    }
+
+    private string GetUserDeleteErrorMessage()
+    {
+        const string linkedRecordsMessage = "User cannot be deleted because it is linked to appointments, roles, purchases, or other records.";
+
+        if (string.IsNullOrWhiteSpace(_apiService.LastErrorMessage))
+        {
+            return linkedRecordsMessage;
+        }
+
+        var errorMessage = _apiService.LastErrorMessage;
+
+        if (errorMessage.Contains("REFERENCE constraint", StringComparison.OrdinalIgnoreCase)
+            || errorMessage.Contains("FOREIGN KEY", StringComparison.OrdinalIgnoreCase)
+            || errorMessage.Contains("conflicted with", StringComparison.OrdinalIgnoreCase)
+            || errorMessage.Contains("DbUpdateException", StringComparison.OrdinalIgnoreCase)
+            || errorMessage.Contains("SqlException", StringComparison.OrdinalIgnoreCase)
+            || errorMessage.Contains("Exception", StringComparison.OrdinalIgnoreCase)
+            || errorMessage.Contains("StackTrace", StringComparison.OrdinalIgnoreCase)
+            || errorMessage.Contains("Microsoft.EntityFrameworkCore", StringComparison.OrdinalIgnoreCase)
+            || errorMessage.Contains(" at ", StringComparison.OrdinalIgnoreCase)
+            || errorMessage.Contains("<html", StringComparison.OrdinalIgnoreCase))
+        {
+            return linkedRecordsMessage;
+        }
+
+        return errorMessage;
     }
 
     private async void OpenDetailsForm(UserDetailsForm form)
