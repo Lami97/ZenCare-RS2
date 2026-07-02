@@ -14,20 +14,33 @@ public class APIService
     public string? Username { get; set; }
     public string? Password { get; set; }
     public string? Token { get; set; }
+    public string? LastErrorMessage { get; private set; }
 
     public async Task<T?> Get<T>(string endpoint)
     {
         AttachAuthorizationHeader();
-        return await Client.GetFromJsonAsync<T>(endpoint);
+        LastErrorMessage = null;
+
+        var response = await Client.GetAsync(endpoint);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            LastErrorMessage = await ReadErrorMessage(response);
+            return default;
+        }
+
+        return await response.Content.ReadFromJsonAsync<T>();
     }
 
     public async Task<T?> Post<T>(string endpoint, object request)
     {
         AttachAuthorizationHeader();
+        LastErrorMessage = null;
         var response = await Client.PostAsJsonAsync(endpoint, request);
 
         if (!response.IsSuccessStatusCode)
         {
+            LastErrorMessage = await ReadErrorMessage(response);
             return default;
         }
 
@@ -37,20 +50,31 @@ public class APIService
     public async Task<T?> Put<T>(string endpoint, object request)
     {
         AttachAuthorizationHeader();
+        LastErrorMessage = null;
         var response = await Client.PutAsJsonAsync(endpoint, request);
 
         if (!response.IsSuccessStatusCode)
         {
+            LastErrorMessage = await ReadErrorMessage(response);
             return default;
         }
 
         return await response.Content.ReadFromJsonAsync<T>();
     }
 
-    public async Task Delete(string endpoint)
+    public async Task<bool> Delete(string endpoint)
     {
         AttachAuthorizationHeader();
-        await Client.DeleteAsync(endpoint);
+        LastErrorMessage = null;
+        var response = await Client.DeleteAsync(endpoint);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            LastErrorMessage = await ReadErrorMessage(response);
+            return false;
+        }
+
+        return true;
     }
 
     private void AttachAuthorizationHeader()
@@ -60,5 +84,24 @@ public class APIService
         Client.DefaultRequestHeaders.Authorization = string.IsNullOrWhiteSpace(token)
             ? null
             : new AuthenticationHeaderValue("Bearer", token);
+    }
+
+    private static async Task<string> ReadErrorMessage(HttpResponseMessage response)
+    {
+        var content = await response.Content.ReadAsStringAsync();
+
+        if (!string.IsNullOrWhiteSpace(content))
+        {
+            return content;
+        }
+
+        return response.StatusCode switch
+        {
+            System.Net.HttpStatusCode.Unauthorized => "Niste prijavljeni.",
+            System.Net.HttpStatusCode.Forbidden => "Nemate pravo pristupa.",
+            System.Net.HttpStatusCode.NotFound => "Trazeni podatak nije pronadjen.",
+            System.Net.HttpStatusCode.Conflict => "Podatak je u konfliktu sa postojecim zapisima.",
+            _ => $"Greska prilikom poziva API-ja: {(int)response.StatusCode}"
+        };
     }
 }

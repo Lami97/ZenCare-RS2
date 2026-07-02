@@ -59,6 +59,11 @@ public partial class MainForm : Form
         LoadChildForm(new EmployeeForm());
     }
 
+    private void btnUsers_Click(object sender, EventArgs e)
+    {
+        LoadChildForm(new UserForm());
+    }
+
     private void LoadChildForm(Form form)
     {
         pnlContent.Controls.Clear();
