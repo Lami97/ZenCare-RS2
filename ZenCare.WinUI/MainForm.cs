@@ -74,6 +74,11 @@ public partial class MainForm : Form
         LoadChildForm(new AppointmentForm());
     }
 
+    private void btnReports_Click(object sender, EventArgs e)
+    {
+        LoadChildForm(new ReportsForm());
+    }
+
     private void LoadChildForm(Form form)
     {
         pnlContent.Controls.Clear();
