@@ -31,6 +31,8 @@ partial class MainForm
         pnlNavigation = new Panel();
         btnLogout = new Button();
         btnReports = new Button();
+        btnPurchaseItems = new Button();
+        btnPurchases = new Button();
         btnReviews = new Button();
         btnAppointments = new Button();
         btnEmployees = new Button();
@@ -57,6 +59,8 @@ partial class MainForm
         pnlNavigation.BackColor = Color.FromArgb(32, 45, 57);
         pnlNavigation.Controls.Add(btnLogout);
         pnlNavigation.Controls.Add(btnReports);
+        pnlNavigation.Controls.Add(btnPurchaseItems);
+        pnlNavigation.Controls.Add(btnPurchases);
         pnlNavigation.Controls.Add(btnReviews);
         pnlNavigation.Controls.Add(btnAppointments);
         pnlNavigation.Controls.Add(btnEmployees);
@@ -94,13 +98,37 @@ partial class MainForm
         // 
         btnReports.FlatStyle = FlatStyle.Flat;
         btnReports.ForeColor = Color.White;
-        btnReports.Location = new Point(20, 596);
+        btnReports.Location = new Point(20, 676);
         btnReports.Name = "btnReports";
         btnReports.Size = new Size(160, 34);
         btnReports.TabIndex = 5;
         btnReports.Text = "Reports";
         btnReports.UseVisualStyleBackColor = true;
         btnReports.Click += btnReports_Click;
+        // 
+        // btnPurchaseItems
+        // 
+        btnPurchaseItems.FlatStyle = FlatStyle.Flat;
+        btnPurchaseItems.ForeColor = Color.White;
+        btnPurchaseItems.Location = new Point(20, 636);
+        btnPurchaseItems.Name = "btnPurchaseItems";
+        btnPurchaseItems.Size = new Size(160, 34);
+        btnPurchaseItems.TabIndex = 17;
+        btnPurchaseItems.Text = "Purchase Items";
+        btnPurchaseItems.UseVisualStyleBackColor = true;
+        btnPurchaseItems.Click += btnPurchaseItems_Click;
+        // 
+        // btnPurchases
+        // 
+        btnPurchases.FlatStyle = FlatStyle.Flat;
+        btnPurchases.ForeColor = Color.White;
+        btnPurchases.Location = new Point(20, 596);
+        btnPurchases.Name = "btnPurchases";
+        btnPurchases.Size = new Size(160, 34);
+        btnPurchases.TabIndex = 16;
+        btnPurchases.Text = "Purchases";
+        btnPurchases.UseVisualStyleBackColor = true;
+        btnPurchases.Click += btnPurchases_Click;
         // 
         // btnReviews
         // 
@@ -310,6 +338,8 @@ partial class MainForm
     private Panel pnlNavigation;
     private Button btnLogout;
     private Button btnReports;
+    private Button btnPurchaseItems;
+    private Button btnPurchases;
     private Button btnReviews;
     private Button btnAppointments;
     private Button btnEmployees;

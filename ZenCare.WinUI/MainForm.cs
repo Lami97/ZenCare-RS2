@@ -89,6 +89,16 @@ public partial class MainForm : Form
         LoadChildForm(new ReviewForm());
     }
 
+    private void btnPurchases_Click(object sender, EventArgs e)
+    {
+        LoadChildForm(new PurchaseForm());
+    }
+
+    private void btnPurchaseItems_Click(object sender, EventArgs e)
+    {
+        LoadChildForm(new PurchaseItemForm());
+    }
+
     private void btnReports_Click(object sender, EventArgs e)
     {
         LoadChildForm(new ReportsForm());
