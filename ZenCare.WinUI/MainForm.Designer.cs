@@ -34,6 +34,7 @@ partial class MainForm
         btnAppointments = new Button();
         btnEmployees = new Button();
         btnServices = new Button();
+        btnUnits = new Button();
         btnProductTypes = new Button();
         btnProducts = new Button();
         lblNavigationTitle = new Label();
@@ -52,6 +53,7 @@ partial class MainForm
         pnlNavigation.Controls.Add(btnAppointments);
         pnlNavigation.Controls.Add(btnEmployees);
         pnlNavigation.Controls.Add(btnServices);
+        pnlNavigation.Controls.Add(btnUnits);
         pnlNavigation.Controls.Add(btnProductTypes);
         pnlNavigation.Controls.Add(btnProducts);
         pnlNavigation.Controls.Add(lblNavigationTitle);
@@ -78,7 +80,7 @@ partial class MainForm
         // 
         btnReports.FlatStyle = FlatStyle.Flat;
         btnReports.ForeColor = Color.White;
-        btnReports.Location = new Point(20, 364);
+        btnReports.Location = new Point(20, 420);
         btnReports.Name = "btnReports";
         btnReports.Size = new Size(160, 40);
         btnReports.TabIndex = 5;
@@ -89,7 +91,7 @@ partial class MainForm
         // 
         btnAppointments.FlatStyle = FlatStyle.Flat;
         btnAppointments.ForeColor = Color.White;
-        btnAppointments.Location = new Point(20, 308);
+        btnAppointments.Location = new Point(20, 364);
         btnAppointments.Name = "btnAppointments";
         btnAppointments.Size = new Size(160, 40);
         btnAppointments.TabIndex = 4;
@@ -100,7 +102,7 @@ partial class MainForm
         // 
         btnEmployees.FlatStyle = FlatStyle.Flat;
         btnEmployees.ForeColor = Color.White;
-        btnEmployees.Location = new Point(20, 252);
+        btnEmployees.Location = new Point(20, 308);
         btnEmployees.Name = "btnEmployees";
         btnEmployees.Size = new Size(160, 40);
         btnEmployees.TabIndex = 3;
@@ -111,12 +113,24 @@ partial class MainForm
         // 
         btnServices.FlatStyle = FlatStyle.Flat;
         btnServices.ForeColor = Color.White;
-        btnServices.Location = new Point(20, 196);
+        btnServices.Location = new Point(20, 252);
         btnServices.Name = "btnServices";
         btnServices.Size = new Size(160, 40);
         btnServices.TabIndex = 2;
         btnServices.Text = "Services";
         btnServices.UseVisualStyleBackColor = true;
+        // 
+        // btnUnits
+        // 
+        btnUnits.FlatStyle = FlatStyle.Flat;
+        btnUnits.ForeColor = Color.White;
+        btnUnits.Location = new Point(20, 196);
+        btnUnits.Name = "btnUnits";
+        btnUnits.Size = new Size(160, 40);
+        btnUnits.TabIndex = 8;
+        btnUnits.Text = "Units";
+        btnUnits.UseVisualStyleBackColor = true;
+        btnUnits.Click += btnUnits_Click;
         // 
         // btnProductTypes
         // 
@@ -197,6 +211,7 @@ partial class MainForm
     private Button btnAppointments;
     private Button btnEmployees;
     private Button btnServices;
+    private Button btnUnits;
     private Button btnProductTypes;
     private Button btnProducts;
     private Label lblNavigationTitle;

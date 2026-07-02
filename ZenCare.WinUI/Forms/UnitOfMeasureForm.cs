@@ -4,55 +4,55 @@ using ZenCare.WinUI.Helpers;
 
 namespace ZenCare.WinUI.Forms;
 
-public partial class ProductTypeForm : Form
+public partial class UnitOfMeasureForm : Form
 {
     private readonly APIService _apiService = new APIService();
 
-    public ProductTypeForm()
+    public UnitOfMeasureForm()
     {
         InitializeComponent();
     }
 
-    private async void ProductTypeForm_Load(object sender, EventArgs e)
+    private async void UnitOfMeasureForm_Load(object sender, EventArgs e)
     {
-        await LoadProductTypes();
+        await LoadUnits();
     }
 
     private async void btnSearch_Click(object sender, EventArgs e)
     {
-        await LoadProductTypes();
+        await LoadUnits();
     }
 
     private void btnAdd_Click(object sender, EventArgs e)
     {
-        OpenDetailsForm(new ProductTypeDetailsForm());
+        OpenDetailsForm(new UnitOfMeasureDetailsForm());
     }
 
     private void btnEdit_Click(object sender, EventArgs e)
     {
-        var selectedId = GetSelectedProductTypeId();
+        var selectedId = GetSelectedUnitId();
 
         if (selectedId == null)
         {
-            MessageBox.Show("Please select a product type.");
+            MessageBox.Show("Please select a unit.");
             return;
         }
 
-        OpenDetailsForm(new ProductTypeDetailsForm(selectedId.Value));
+        OpenDetailsForm(new UnitOfMeasureDetailsForm(selectedId.Value));
     }
 
     private async void btnDelete_Click(object sender, EventArgs e)
     {
-        var selectedId = GetSelectedProductTypeId();
+        var selectedId = GetSelectedUnitId();
 
         if (selectedId == null)
         {
-            MessageBox.Show("Please select a product type.");
+            MessageBox.Show("Please select a unit.");
             return;
         }
 
         var result = MessageBox.Show(
-            "Are you sure you want to delete this product type?",
+            "Are you sure you want to delete this unit?",
             "Confirm delete",
             MessageBoxButtons.YesNo,
             MessageBoxIcon.Question);
@@ -62,46 +62,46 @@ public partial class ProductTypeForm : Form
             return;
         }
 
-        await _apiService.Delete($"ProductType/{selectedId.Value}");
-        await LoadProductTypes();
+        await _apiService.Delete($"UnitOfMeasure/{selectedId.Value}");
+        await LoadUnits();
     }
 
     private async void btnRefresh_Click(object sender, EventArgs e)
     {
         txtName.Clear();
-        await LoadProductTypes();
+        await LoadUnits();
     }
 
-    private async Task LoadProductTypes()
+    private async Task LoadUnits()
     {
-        var search = new ProductTypeSearchObject
+        var search = new UnitOfMeasureSearchObject
         {
             Name = string.IsNullOrWhiteSpace(txtName.Text) ? null : txtName.Text
         };
 
-        var endpoint = "ProductType";
+        var endpoint = "UnitOfMeasure";
 
         if (!string.IsNullOrWhiteSpace(search.Name))
         {
             endpoint += $"?Name={Uri.EscapeDataString(search.Name)}";
         }
 
-        var result = await _apiService.Get<PagedResult<ProductTypeResponse>>(endpoint);
-        dgvProductTypes.DataSource = result?.Items ?? new List<ProductTypeResponse>();
+        var result = await _apiService.Get<PagedResult<UnitOfMeasureResponse>>(endpoint);
+        dgvUnits.DataSource = result?.Items ?? new List<UnitOfMeasureResponse>();
     }
 
-    private int? GetSelectedProductTypeId()
+    private int? GetSelectedUnitId()
     {
-        return dgvProductTypes.CurrentRow?.DataBoundItem is ProductTypeResponse productType
-            ? productType.Id
+        return dgvUnits.CurrentRow?.DataBoundItem is UnitOfMeasureResponse unit
+            ? unit.Id
             : null;
     }
 
-    private async void OpenDetailsForm(ProductTypeDetailsForm form)
+    private async void OpenDetailsForm(UnitOfMeasureDetailsForm form)
     {
         if (form.ShowDialog() == DialogResult.OK)
         {
-            await LoadProductTypes();
+            await LoadUnits();
         }
     }
 }

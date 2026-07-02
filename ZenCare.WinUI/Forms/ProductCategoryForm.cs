@@ -68,6 +68,8 @@ public partial class ProductCategoryForm : Form
 
     private async void btnRefresh_Click(object sender, EventArgs e)
     {
+        txtName.Clear();
+        chkIsActive.Checked = false;
         await LoadProductCategories();
     }
 

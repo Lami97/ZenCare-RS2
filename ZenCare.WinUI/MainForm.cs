@@ -34,6 +34,11 @@ public partial class MainForm : Form
         LoadChildForm(new ProductTypeForm());
     }
 
+    private void btnUnits_Click(object sender, EventArgs e)
+    {
+        LoadChildForm(new UnitOfMeasureForm());
+    }
+
     private void LoadChildForm(Form form)
     {
         pnlContent.Controls.Clear();
