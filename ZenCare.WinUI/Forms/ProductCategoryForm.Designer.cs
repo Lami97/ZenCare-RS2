@@ -19,6 +19,9 @@ partial class ProductCategoryForm
     private void InitializeComponent()
     {
         pnlTop = new Panel();
+        btnRefresh = new Button();
+        btnDelete = new Button();
+        btnEdit = new Button();
         btnAdd = new Button();
         btnSearch = new Button();
         chkIsActive = new CheckBox();
@@ -35,6 +38,9 @@ partial class ProductCategoryForm
         // 
         // pnlTop
         // 
+        pnlTop.Controls.Add(btnRefresh);
+        pnlTop.Controls.Add(btnDelete);
+        pnlTop.Controls.Add(btnEdit);
         pnlTop.Controls.Add(btnAdd);
         pnlTop.Controls.Add(btnSearch);
         pnlTop.Controls.Add(chkIsActive);
@@ -47,9 +53,39 @@ partial class ProductCategoryForm
         pnlTop.Size = new Size(1000, 84);
         pnlTop.TabIndex = 0;
         // 
+        // btnRefresh
+        // 
+        btnRefresh.Location = new Point(744, 28);
+        btnRefresh.Name = "btnRefresh";
+        btnRefresh.Size = new Size(96, 28);
+        btnRefresh.TabIndex = 7;
+        btnRefresh.Text = "Refresh";
+        btnRefresh.UseVisualStyleBackColor = true;
+        btnRefresh.Click += btnRefresh_Click;
+        // 
+        // btnDelete
+        // 
+        btnDelete.Location = new Point(632, 28);
+        btnDelete.Name = "btnDelete";
+        btnDelete.Size = new Size(96, 28);
+        btnDelete.TabIndex = 6;
+        btnDelete.Text = "Delete";
+        btnDelete.UseVisualStyleBackColor = true;
+        btnDelete.Click += btnDelete_Click;
+        // 
+        // btnEdit
+        // 
+        btnEdit.Location = new Point(520, 28);
+        btnEdit.Name = "btnEdit";
+        btnEdit.Size = new Size(96, 28);
+        btnEdit.TabIndex = 5;
+        btnEdit.Text = "Edit";
+        btnEdit.UseVisualStyleBackColor = true;
+        btnEdit.Click += btnEdit_Click;
+        // 
         // btnAdd
         // 
-        btnAdd.Location = new Point(520, 28);
+        btnAdd.Location = new Point(408, 28);
         btnAdd.Name = "btnAdd";
         btnAdd.Size = new Size(96, 28);
         btnAdd.TabIndex = 4;
@@ -59,7 +95,7 @@ partial class ProductCategoryForm
         // 
         // btnSearch
         // 
-        btnSearch.Location = new Point(408, 28);
+        btnSearch.Location = new Point(296, 28);
         btnSearch.Name = "btnSearch";
         btnSearch.Size = new Size(96, 28);
         btnSearch.TabIndex = 3;
@@ -70,7 +106,7 @@ partial class ProductCategoryForm
         // chkIsActive
         // 
         chkIsActive.AutoSize = true;
-        chkIsActive.Location = new Point(300, 33);
+        chkIsActive.Location = new Point(860, 33);
         chkIsActive.Name = "chkIsActive";
         chkIsActive.Size = new Size(68, 19);
         chkIsActive.TabIndex = 2;
@@ -98,6 +134,7 @@ partial class ProductCategoryForm
         dgvProductCategories.AllowUserToAddRows = false;
         dgvProductCategories.AllowUserToDeleteRows = false;
         dgvProductCategories.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+        dgvProductCategories.AutoGenerateColumns = false;
         dgvProductCategories.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
         dgvProductCategories.Columns.AddRange(new DataGridViewColumn[] { colId, colName, colIsActive, colCreatedAt });
         dgvProductCategories.Dock = DockStyle.Fill;
@@ -157,6 +194,9 @@ partial class ProductCategoryForm
     #endregion
 
     private Panel pnlTop;
+    private Button btnRefresh;
+    private Button btnDelete;
+    private Button btnEdit;
     private Button btnAdd;
     private Button btnSearch;
     private CheckBox chkIsActive;
