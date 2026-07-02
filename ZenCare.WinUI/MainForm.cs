@@ -84,6 +84,11 @@ public partial class MainForm : Form
         LoadChildForm(new AppointmentForm());
     }
 
+    private void btnReviews_Click(object sender, EventArgs e)
+    {
+        LoadChildForm(new ReviewForm());
+    }
+
     private void btnReports_Click(object sender, EventArgs e)
     {
         LoadChildForm(new ReportsForm());

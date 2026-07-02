@@ -31,6 +31,7 @@ partial class MainForm
         pnlNavigation = new Panel();
         btnLogout = new Button();
         btnReports = new Button();
+        btnReviews = new Button();
         btnAppointments = new Button();
         btnEmployees = new Button();
         btnUserRoles = new Button();
@@ -56,6 +57,7 @@ partial class MainForm
         pnlNavigation.BackColor = Color.FromArgb(32, 45, 57);
         pnlNavigation.Controls.Add(btnLogout);
         pnlNavigation.Controls.Add(btnReports);
+        pnlNavigation.Controls.Add(btnReviews);
         pnlNavigation.Controls.Add(btnAppointments);
         pnlNavigation.Controls.Add(btnEmployees);
         pnlNavigation.Controls.Add(btnUserRoles);
@@ -92,13 +94,25 @@ partial class MainForm
         // 
         btnReports.FlatStyle = FlatStyle.Flat;
         btnReports.ForeColor = Color.White;
-        btnReports.Location = new Point(20, 556);
+        btnReports.Location = new Point(20, 596);
         btnReports.Name = "btnReports";
         btnReports.Size = new Size(160, 34);
         btnReports.TabIndex = 5;
         btnReports.Text = "Reports";
         btnReports.UseVisualStyleBackColor = true;
         btnReports.Click += btnReports_Click;
+        // 
+        // btnReviews
+        // 
+        btnReviews.FlatStyle = FlatStyle.Flat;
+        btnReviews.ForeColor = Color.White;
+        btnReviews.Location = new Point(20, 556);
+        btnReviews.Name = "btnReviews";
+        btnReviews.Size = new Size(160, 34);
+        btnReviews.TabIndex = 15;
+        btnReviews.Text = "Reviews";
+        btnReviews.UseVisualStyleBackColor = true;
+        btnReviews.Click += btnReviews_Click;
         // 
         // btnAppointments
         // 
@@ -296,6 +310,7 @@ partial class MainForm
     private Panel pnlNavigation;
     private Button btnLogout;
     private Button btnReports;
+    private Button btnReviews;
     private Button btnAppointments;
     private Button btnEmployees;
     private Button btnUserRoles;
