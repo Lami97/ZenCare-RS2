@@ -29,6 +29,11 @@ public partial class MainForm : Form
         LoadChildForm(new ProductCategoryForm());
     }
 
+    private void btnProductTypes_Click(object sender, EventArgs e)
+    {
+        LoadChildForm(new ProductTypeForm());
+    }
+
     private void LoadChildForm(Form form)
     {
         pnlContent.Controls.Clear();
