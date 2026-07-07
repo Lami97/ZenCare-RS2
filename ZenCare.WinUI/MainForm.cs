@@ -99,6 +99,11 @@ public partial class MainForm : Form
         LoadChildForm(new PurchaseItemForm());
     }
 
+    private void btnSuppliers_Click(object sender, EventArgs e)
+    {
+        LoadChildForm(new SupplierForm());
+    }
+
     private void btnReports_Click(object sender, EventArgs e)
     {
         LoadChildForm(new ReportsForm());

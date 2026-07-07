@@ -31,6 +31,7 @@ public class ZenCareDbContext : DbContext
     public DbSet<Review> Reviews { get; set; }
     public DbSet<Role> Roles { get; set; }
     public DbSet<ServiceCategory> ServiceCategories { get; set; }
+    public DbSet<Supplier> Suppliers { get; set; }
     public DbSet<UnitOfMeasure> UnitOfMeasures { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<UserRole> UserRoles { get; set; }

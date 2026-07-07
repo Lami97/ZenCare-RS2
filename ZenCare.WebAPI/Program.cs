@@ -15,7 +15,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ZenCareDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-builder.Services.AddAutoMapper(_ => { }, typeof(RoleProfile).Assembly, typeof(ServiceCategoryProfile).Assembly, typeof(ProductCategoryProfile).Assembly, typeof(ProductTypeProfile).Assembly, typeof(UnitOfMeasureProfile).Assembly, typeof(FAQCategoryProfile).Assembly, typeof(FAQProfile).Assembly, typeof(ServiceProfile).Assembly, typeof(ProductProfile).Assembly, typeof(UserProfile).Assembly, typeof(UserRoleProfile).Assembly, typeof(ClientProfileProfile).Assembly, typeof(EmployeeProfile).Assembly, typeof(EmployeeServiceProfile).Assembly, typeof(AppointmentProfile).Assembly, typeof(PaymentProfile).Assembly, typeof(ReviewProfile).Assembly, typeof(PurchaseProfile).Assembly, typeof(PurchaseItemProfile).Assembly, typeof(CartProfile).Assembly, typeof(CartItemProfile).Assembly, typeof(NotificationProfile).Assembly, typeof(RecommendationLogProfile).Assembly, typeof(BusinessReportProfile).Assembly);
+builder.Services.AddAutoMapper(_ => { }, typeof(RoleProfile).Assembly, typeof(ServiceCategoryProfile).Assembly, typeof(ProductCategoryProfile).Assembly, typeof(ProductTypeProfile).Assembly, typeof(UnitOfMeasureProfile).Assembly, typeof(FAQCategoryProfile).Assembly, typeof(FAQProfile).Assembly, typeof(ServiceProfile).Assembly, typeof(ProductProfile).Assembly, typeof(UserProfile).Assembly, typeof(UserRoleProfile).Assembly, typeof(ClientProfileProfile).Assembly, typeof(EmployeeProfile).Assembly, typeof(EmployeeServiceProfile).Assembly, typeof(AppointmentProfile).Assembly, typeof(PaymentProfile).Assembly, typeof(ReviewProfile).Assembly, typeof(PurchaseProfile).Assembly, typeof(PurchaseItemProfile).Assembly, typeof(CartProfile).Assembly, typeof(CartItemProfile).Assembly, typeof(NotificationProfile).Assembly, typeof(RecommendationLogProfile).Assembly, typeof(BusinessReportProfile).Assembly, typeof(SupplierProfile).Assembly);
 
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IServiceCategoryService, ServiceCategoryService>();
@@ -41,6 +41,7 @@ builder.Services.AddScoped<ICartItemService, CartItemService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IRecommendationLogService, RecommendationLogService>();
 builder.Services.AddScoped<IBusinessReportService, BusinessReportService>();
+builder.Services.AddScoped<ISupplierService, SupplierService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
