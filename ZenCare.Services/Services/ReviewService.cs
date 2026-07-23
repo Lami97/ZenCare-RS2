@@ -14,6 +14,52 @@ namespace ZenCare.Services.Services
         {
         }
 
+        public async Task<PagedResult<ReviewResponse>> GetMyAsync(int userId, ReviewSearchObject? search)
+        {
+            search ??= new ReviewSearchObject();
+            search.UserId = userId;
+
+            return await GetAllAsync(search);
+        }
+
+        public async Task<ReviewResponse> GetMyByIdAsync(int id, int userId)
+        {
+            var entity = await GetClientReviewEntityAsync(id, userId);
+
+            return Mapper.Map<ReviewResponse>(entity);
+        }
+
+        public async Task<ReviewResponse> InsertMyAsync(int userId, ReviewInsertRequest request)
+        {
+            request.UserId = userId;
+
+            return await InsertAsync(request);
+        }
+
+        public async Task<ReviewResponse> UpdateMyAsync(int id, int userId, ReviewUpdateRequest request)
+        {
+            await EnsureClientReviewExistsAsync(id, userId);
+
+            request.Id = id;
+            request.UserId = userId;
+
+            return await UpdateAsync(id, request);
+        }
+
+        public async Task DeleteMyAsync(int id, int userId)
+        {
+            var entity = await DbContext.Reviews
+                .FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId);
+
+            if (entity == null)
+            {
+                throw new NotFoundException(nameof(Database.Review), id);
+            }
+
+            DbContext.Reviews.Remove(entity);
+            await DbContext.SaveChangesAsync();
+        }
+
         public override async Task<ReviewResponse> GetByIdAsync(int id)
         {
             var entity = await DbContext.Reviews
@@ -64,6 +110,32 @@ namespace ZenCare.Services.Services
                 .Include(r => r.Product);
 
             return Task.FromResult(query);
+        }
+
+        private async Task<Database.Review> GetClientReviewEntityAsync(int id, int userId)
+        {
+            var entity = await DbContext.Reviews
+                .Include(r => r.User)
+                .Include(r => r.Product)
+                .FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId);
+
+            if (entity == null)
+            {
+                throw new NotFoundException(nameof(Database.Review), id);
+            }
+
+            return entity;
+        }
+
+        private async Task EnsureClientReviewExistsAsync(int id, int userId)
+        {
+            var exists = await DbContext.Reviews
+                .AnyAsync(r => r.Id == id && r.UserId == userId);
+
+            if (!exists)
+            {
+                throw new NotFoundException(nameof(Database.Review), id);
+            }
         }
     }
 }
