@@ -14,6 +14,38 @@ namespace ZenCare.Services.Services
         {
         }
 
+        public async Task<PagedResult<AppointmentResponse>> GetMyAsync(int userId, AppointmentSearchObject? search)
+        {
+            search ??= new AppointmentSearchObject();
+            search.UserId = userId;
+
+            return await GetAllAsync(search);
+        }
+
+        public async Task<AppointmentResponse> GetMyByIdAsync(int id, int userId)
+        {
+            var entity = await GetClientAppointmentEntityAsync(id, userId);
+
+            return Mapper.Map<AppointmentResponse>(entity);
+        }
+
+        public async Task<AppointmentResponse> InsertMyAsync(int userId, AppointmentInsertRequest request)
+        {
+            request.UserId = userId;
+
+            return await InsertAsync(request);
+        }
+
+        public async Task<AppointmentResponse> UpdateMyAsync(int id, int userId, AppointmentUpdateRequest request)
+        {
+            await EnsureClientAppointmentExistsAsync(id, userId);
+
+            request.Id = id;
+            request.UserId = userId;
+
+            return await UpdateAsync(id, request);
+        }
+
         public override async Task<AppointmentResponse> GetByIdAsync(int id)
         {
             var entity = await DbContext.Appointments
@@ -73,6 +105,34 @@ namespace ZenCare.Services.Services
                 .Include(a => a.WellnessService);
 
             return Task.FromResult(query);
+        }
+
+        private async Task<Database.Appointment> GetClientAppointmentEntityAsync(int id, int userId)
+        {
+            var entity = await DbContext.Appointments
+                .Include(a => a.User)
+                .Include(a => a.Employee)
+                    .ThenInclude(e => e.User)
+                .Include(a => a.WellnessService)
+                .FirstOrDefaultAsync(a => a.Id == id && a.UserId == userId);
+
+            if (entity == null)
+            {
+                throw new NotFoundException(nameof(Database.Appointment), id);
+            }
+
+            return entity;
+        }
+
+        private async Task EnsureClientAppointmentExistsAsync(int id, int userId)
+        {
+            var exists = await DbContext.Appointments
+                .AnyAsync(a => a.Id == id && a.UserId == userId);
+
+            if (!exists)
+            {
+                throw new NotFoundException(nameof(Database.Appointment), id);
+            }
         }
     }
 }

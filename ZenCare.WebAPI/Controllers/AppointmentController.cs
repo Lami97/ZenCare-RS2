@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using ZenCare.Model.Exceptions;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
 using ZenCare.Model.SearchObjects;
@@ -19,6 +21,43 @@ public class AppointmentController : ControllerBase
         _appointmentService = appointmentService;
     }
 
+    [HttpGet("My")]
+    [Authorize(Roles = "Client")]
+    public async Task<ActionResult<PagedResult<AppointmentResponse>>> GetMy([FromQuery] AppointmentSearchObject? search)
+    {
+        var userId = GetCurrentUserId();
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        var result = await _appointmentService.GetMyAsync(userId.Value, search);
+        return Ok(result);
+    }
+
+    [HttpGet("My/{id}")]
+    [Authorize(Roles = "Client")]
+    public async Task<ActionResult<AppointmentResponse>> GetMyById(int id)
+    {
+        var userId = GetCurrentUserId();
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var result = await _appointmentService.GetMyByIdAsync(id, userId.Value);
+            return Ok(result);
+        }
+        catch (NotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
     [HttpGet]
     public async Task<ActionResult<PagedResult<AppointmentResponse>>> GetAll([FromQuery] AppointmentSearchObject? search)
     {
@@ -33,6 +72,23 @@ public class AppointmentController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPost("My")]
+    [Authorize(Roles = "Client")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<AppointmentResponse>> CreateMy([FromBody] AppointmentInsertRequest request)
+    {
+        var userId = GetCurrentUserId();
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        var result = await _appointmentService.InsertMyAsync(userId.Value, request);
+        return result;
+    }
+
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -40,6 +96,31 @@ public class AppointmentController : ControllerBase
     {
         var result = await _appointmentService.InsertAsync(request);
         return result;
+    }
+
+    [HttpPut("My/{id}")]
+    [Authorize(Roles = "Client")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<AppointmentResponse>> UpdateMy(int id, [FromBody] AppointmentUpdateRequest request)
+    {
+        var userId = GetCurrentUserId();
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var result = await _appointmentService.UpdateMyAsync(id, userId.Value, request);
+            return Ok(result);
+        }
+        catch (NotFoundException)
+        {
+            return NotFound();
+        }
     }
 
     [HttpPut("{id}")]
@@ -59,5 +140,12 @@ public class AppointmentController : ControllerBase
     {
         await _appointmentService.DeleteAsync(id);
         return NoContent();
+    }
+
+    private int? GetCurrentUserId()
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        return int.TryParse(userIdClaim, out var userId) ? userId : null;
     }
 }
