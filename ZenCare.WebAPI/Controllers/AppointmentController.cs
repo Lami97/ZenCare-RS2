@@ -85,8 +85,15 @@ public class AppointmentController : ControllerBase
             return Unauthorized();
         }
 
-        var result = await _appointmentService.InsertMyAsync(userId.Value, request);
-        return result;
+        try
+        {
+            var result = await _appointmentService.InsertMyAsync(userId.Value, request);
+            return result;
+        }
+        catch (BusinessException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpPost]
@@ -94,8 +101,15 @@ public class AppointmentController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<AppointmentResponse>> Create([FromBody] AppointmentInsertRequest request)
     {
-        var result = await _appointmentService.InsertAsync(request);
-        return result;
+        try
+        {
+            var result = await _appointmentService.InsertAsync(request);
+            return result;
+        }
+        catch (BusinessException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpPut("My/{id}")]
@@ -121,6 +135,10 @@ public class AppointmentController : ControllerBase
         {
             return NotFound();
         }
+        catch (BusinessException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpPut("{id}")]
@@ -129,8 +147,15 @@ public class AppointmentController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<AppointmentResponse>> Update(int id, [FromBody] AppointmentUpdateRequest request)
     {
-        var result = await _appointmentService.UpdateAsync(id, request);
-        return Ok(result);
+        try
+        {
+            var result = await _appointmentService.UpdateAsync(id, request);
+            return Ok(result);
+        }
+        catch (BusinessException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpDelete("{id}")]

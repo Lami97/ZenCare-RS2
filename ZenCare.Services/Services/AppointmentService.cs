@@ -1,5 +1,6 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using ZenCare.Model.Enums;
 using ZenCare.Model.Exceptions;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
@@ -12,6 +13,33 @@ namespace ZenCare.Services.Services
     {
         public AppointmentService(ZenCareDbContext dbContext, IMapper mapper) : base(dbContext, mapper)
         {
+        }
+
+        public override async Task<AppointmentResponse> InsertAsync(AppointmentInsertRequest request)
+        {
+            ValidateAppointmentStatus(request.Status, request.CancellationReason);
+
+            return await base.InsertAsync(request);
+        }
+
+        public override async Task<AppointmentResponse> UpdateAsync(int id, AppointmentUpdateRequest request)
+        {
+            var entity = await DbContext.Appointments.FindAsync(id);
+
+            if (entity == null)
+            {
+                throw new NotFoundException(nameof(Database.Appointment), id);
+            }
+
+            ValidateStatusTransition(entity.Status, request.Status);
+            ValidateAppointmentStatus(request.Status, request.CancellationReason);
+
+            Mapper.Map(request, entity);
+            SetUpdatedAt(entity);
+
+            await DbContext.SaveChangesAsync();
+
+            return await GetByIdAsync(id);
         }
 
         public async Task<PagedResult<AppointmentResponse>> GetMyAsync(int userId, AppointmentSearchObject? search)
@@ -132,6 +160,46 @@ namespace ZenCare.Services.Services
             if (!exists)
             {
                 throw new NotFoundException(nameof(Database.Appointment), id);
+            }
+        }
+
+        private static void ValidateStatusTransition(AppointmentStatus currentStatus, AppointmentStatus newStatus)
+        {
+            if (currentStatus == newStatus)
+            {
+                return;
+            }
+
+            if (!IsValidTransition(currentStatus, newStatus))
+            {
+                throw new BusinessException($"Appointment status cannot be changed from {currentStatus} to {newStatus}.");
+            }
+        }
+
+        private static bool IsValidTransition(AppointmentStatus currentStatus, AppointmentStatus newStatus)
+        {
+            return currentStatus switch
+            {
+                AppointmentStatus.Pending => newStatus is AppointmentStatus.Confirmed or AppointmentStatus.Cancelled,
+                AppointmentStatus.Confirmed => newStatus is AppointmentStatus.Paid or AppointmentStatus.Completed or AppointmentStatus.Cancelled or AppointmentStatus.NoShow,
+                AppointmentStatus.Paid => newStatus is AppointmentStatus.Completed or AppointmentStatus.Cancelled,
+                AppointmentStatus.Completed => false,
+                AppointmentStatus.Cancelled => false,
+                AppointmentStatus.NoShow => false,
+                _ => false
+            };
+        }
+
+        private static void ValidateAppointmentStatus(AppointmentStatus status, string? cancellationReason)
+        {
+            if (!Enum.IsDefined(typeof(AppointmentStatus), status))
+            {
+                throw new BusinessException("Appointment status is not valid.");
+            }
+
+            if (status == AppointmentStatus.Cancelled && string.IsNullOrWhiteSpace(cancellationReason))
+            {
+                throw new BusinessException("Cancellation reason is required when cancelling an appointment.");
             }
         }
     }
