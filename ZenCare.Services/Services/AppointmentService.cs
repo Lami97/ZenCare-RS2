@@ -17,6 +17,13 @@ namespace ZenCare.Services.Services
 
         public override async Task<AppointmentResponse> InsertAsync(AppointmentInsertRequest request)
         {
+            await ValidateAppointmentRequestAsync(
+                request.UserId,
+                request.EmployeeId,
+                request.WellnessServiceId,
+                request.AppointmentDate,
+                request.StartTime,
+                request.EndTime);
             ValidateAppointmentStatus(request.Status, request.CancellationReason);
 
             return await base.InsertAsync(request);
@@ -31,6 +38,14 @@ namespace ZenCare.Services.Services
                 throw new NotFoundException(nameof(Database.Appointment), id);
             }
 
+            await ValidateAppointmentRequestAsync(
+                request.UserId,
+                request.EmployeeId,
+                request.WellnessServiceId,
+                request.AppointmentDate,
+                request.StartTime,
+                request.EndTime,
+                id);
             ValidateStatusTransition(entity.Status, request.Status);
             ValidateAppointmentStatus(request.Status, request.CancellationReason);
 
@@ -160,6 +175,61 @@ namespace ZenCare.Services.Services
             if (!exists)
             {
                 throw new NotFoundException(nameof(Database.Appointment), id);
+            }
+        }
+
+        private async Task ValidateAppointmentRequestAsync(
+            int userId,
+            int employeeId,
+            int wellnessServiceId,
+            DateTime appointmentDate,
+            TimeSpan startTime,
+            TimeSpan endTime,
+            int? currentAppointmentId = null)
+        {
+            if (endTime <= startTime)
+            {
+                throw new BusinessException("End time must be after start time.");
+            }
+
+            var userExists = await DbContext.Users.AnyAsync(u => u.Id == userId);
+
+            if (!userExists)
+            {
+                throw new BusinessException("User was not found.");
+            }
+
+            var employee = await DbContext.Employees.FindAsync(employeeId);
+
+            if (employee == null)
+            {
+                throw new BusinessException("Employee was not found.");
+            }
+
+            if (!employee.IsAvailable)
+            {
+                throw new BusinessException("The selected employee is not available.");
+            }
+
+            var wellnessServiceExists = await DbContext.WellnessServices.AnyAsync(s => s.Id == wellnessServiceId);
+
+            if (!wellnessServiceExists)
+            {
+                throw new BusinessException("Wellness service was not found.");
+            }
+
+            var hasOverlap = await DbContext.Appointments
+                .AnyAsync(a =>
+                    a.EmployeeId == employeeId &&
+                    a.Status != AppointmentStatus.Cancelled &&
+                    (!currentAppointmentId.HasValue || a.Id != currentAppointmentId.Value) &&
+                    a.AppointmentDate.Date == appointmentDate.Date &&
+                    startTime < a.EndTime &&
+                    endTime > a.StartTime);
+
+            if (hasOverlap)
+            {
+                throw new BusinessException("The selected employee already has an appointment during this time.");
             }
         }
 
