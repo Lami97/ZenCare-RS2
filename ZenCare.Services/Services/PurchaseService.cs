@@ -14,6 +14,52 @@ namespace ZenCare.Services.Services
         {
         }
 
+        public async Task<PagedResult<PurchaseResponse>> GetMyAsync(int userId, PurchaseSearchObject? search)
+        {
+            search ??= new PurchaseSearchObject();
+            search.UserId = userId;
+
+            return await GetAllAsync(search);
+        }
+
+        public async Task<PurchaseResponse> GetMyByIdAsync(int id, int userId)
+        {
+            var entity = await GetClientPurchaseEntityAsync(id, userId);
+
+            return Mapper.Map<PurchaseResponse>(entity);
+        }
+
+        public async Task<PurchaseResponse> InsertMyAsync(int userId, PurchaseInsertRequest request)
+        {
+            request.UserId = userId;
+
+            return await InsertAsync(request);
+        }
+
+        public async Task<PurchaseResponse> UpdateMyAsync(int id, int userId, PurchaseUpdateRequest request)
+        {
+            await EnsureClientPurchaseExistsAsync(id, userId);
+
+            request.Id = id;
+            request.UserId = userId;
+
+            return await UpdateAsync(id, request);
+        }
+
+        public async Task DeleteMyAsync(int id, int userId)
+        {
+            var entity = await DbContext.Purchases
+                .FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
+
+            if (entity == null)
+            {
+                throw new NotFoundException(nameof(Database.Purchase), id);
+            }
+
+            DbContext.Purchases.Remove(entity);
+            await DbContext.SaveChangesAsync();
+        }
+
         public override async Task<PurchaseResponse> GetByIdAsync(int id)
         {
             var entity = await DbContext.Purchases
@@ -61,6 +107,31 @@ namespace ZenCare.Services.Services
             query = query.Include(p => p.User);
 
             return Task.FromResult(query);
+        }
+
+        private async Task<Database.Purchase> GetClientPurchaseEntityAsync(int id, int userId)
+        {
+            var entity = await DbContext.Purchases
+                .Include(p => p.User)
+                .FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
+
+            if (entity == null)
+            {
+                throw new NotFoundException(nameof(Database.Purchase), id);
+            }
+
+            return entity;
+        }
+
+        private async Task EnsureClientPurchaseExistsAsync(int id, int userId)
+        {
+            var exists = await DbContext.Purchases
+                .AnyAsync(p => p.Id == id && p.UserId == userId);
+
+            if (!exists)
+            {
+                throw new NotFoundException(nameof(Database.Purchase), id);
+            }
         }
     }
 }
