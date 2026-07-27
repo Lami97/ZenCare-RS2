@@ -94,8 +94,15 @@ public class ReviewController : ControllerBase
             return Unauthorized();
         }
 
-        var result = await _reviewService.InsertMyAsync(userId.Value, request);
-        return result;
+        try
+        {
+            var result = await _reviewService.InsertMyAsync(userId.Value, request);
+            return result;
+        }
+        catch (BusinessException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpPut("{id}")]
@@ -130,6 +137,10 @@ public class ReviewController : ControllerBase
         catch (NotFoundException)
         {
             return NotFound();
+        }
+        catch (BusinessException ex)
+        {
+            return BadRequest(ex.Message);
         }
     }
 

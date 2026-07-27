@@ -1,5 +1,6 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using ZenCare.Model.Enums;
 using ZenCare.Model.Exceptions;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
@@ -32,16 +33,19 @@ namespace ZenCare.Services.Services
         public async Task<ReviewResponse> InsertMyAsync(int userId, ReviewInsertRequest request)
         {
             request.UserId = userId;
+            await ValidateClientReviewCreateAsync(userId, request.AppointmentId, request.ProductId, request.Rating);
 
             return await InsertAsync(request);
         }
 
         public async Task<ReviewResponse> UpdateMyAsync(int id, int userId, ReviewUpdateRequest request)
         {
-            await EnsureClientReviewExistsAsync(id, userId);
+            var existingReview = await GetClientReviewEntityAsync(id, userId);
 
             request.Id = id;
             request.UserId = userId;
+
+            await ValidateClientReviewUpdateAsync(userId, existingReview, request.AppointmentId, request.ProductId, request.Rating);
 
             return await UpdateAsync(id, request);
         }
@@ -110,6 +114,123 @@ namespace ZenCare.Services.Services
                 .Include(r => r.Product);
 
             return Task.FromResult(query);
+        }
+
+        private async Task ValidateClientReviewCreateAsync(int userId, int? appointmentId, int? productId, int rating)
+        {
+            ValidateReviewRequest(appointmentId, productId, rating);
+
+            if (appointmentId.HasValue)
+            {
+                await ValidateAppointmentReviewCreateAsync(userId, appointmentId.Value);
+                return;
+            }
+
+            await ValidateProductReviewCreateAsync(userId, productId!.Value);
+        }
+
+        private async Task ValidateClientReviewUpdateAsync(int userId, Database.Review existingReview, int? appointmentId, int? productId, int rating)
+        {
+            ValidateReviewRequest(appointmentId, productId, rating);
+
+            if (existingReview.AppointmentId != appointmentId || existingReview.ProductId != productId)
+            {
+                throw new BusinessException("Review target cannot be changed.");
+            }
+
+            if (appointmentId.HasValue)
+            {
+                await ValidateAppointmentReviewEligibilityAsync(userId, appointmentId.Value);
+                return;
+            }
+
+            await ValidateProductReviewEligibilityAsync(userId, productId!.Value);
+        }
+
+        private async Task ValidateAppointmentReviewCreateAsync(int userId, int appointmentId)
+        {
+            await ValidateAppointmentReviewEligibilityAsync(userId, appointmentId);
+
+            var alreadyReviewed = await DbContext.Reviews
+                .AnyAsync(r => r.AppointmentId == appointmentId);
+
+            if (alreadyReviewed)
+            {
+                throw new BusinessException("This appointment has already been reviewed.");
+            }
+        }
+
+        private async Task ValidateAppointmentReviewEligibilityAsync(int userId, int appointmentId)
+        {
+            var appointment = await DbContext.Appointments
+                .FirstOrDefaultAsync(a => a.Id == appointmentId);
+
+            if (appointment == null || appointment.UserId != userId)
+            {
+                throw new BusinessException("You can review only your own appointment.");
+            }
+
+            if (appointment.Status != AppointmentStatus.Completed)
+            {
+                throw new BusinessException("The appointment must be completed before it can be reviewed.");
+            }
+        }
+
+        private async Task ValidateProductReviewCreateAsync(int userId, int productId)
+        {
+            await ValidateProductReviewEligibilityAsync(userId, productId);
+
+            var alreadyReviewed = await DbContext.Reviews
+                .AnyAsync(r => r.UserId == userId && r.ProductId == productId);
+
+            if (alreadyReviewed)
+            {
+                throw new BusinessException("You have already reviewed this product.");
+            }
+        }
+
+        private async Task ValidateProductReviewEligibilityAsync(int userId, int productId)
+        {
+            var productExists = await DbContext.Products
+                .AnyAsync(p => p.Id == productId);
+
+            if (!productExists)
+            {
+                throw new BusinessException("You can review only products you have purchased.");
+            }
+
+            var hasPurchasedProduct = await DbContext.PurchaseItems
+                .AnyAsync(pi => pi.ProductId == productId && pi.Purchase.UserId == userId);
+
+            if (!hasPurchasedProduct)
+            {
+                throw new BusinessException("You can review only products you have purchased.");
+            }
+
+            var hasCompletedPaidPurchase = await DbContext.PurchaseItems
+                .AnyAsync(pi =>
+                    pi.ProductId == productId &&
+                    pi.Purchase.UserId == userId &&
+                    pi.Purchase.Status == PurchaseStatus.Completed &&
+                    pi.Purchase.PaymentStatus == PaymentStatus.Succeeded);
+
+            if (!hasCompletedPaidPurchase)
+            {
+                throw new BusinessException("The purchase must be completed and paid before the product can be reviewed.");
+            }
+        }
+
+        private static void ValidateReviewRequest(int? appointmentId, int? productId, int rating)
+        {
+            if (appointmentId.HasValue == productId.HasValue)
+            {
+                throw new BusinessException("Select exactly one review target.");
+            }
+
+            if (rating < 1 || rating > 5)
+            {
+                throw new BusinessException("Rating must be between 1 and 5.");
+            }
         }
 
         private async Task<Database.Review> GetClientReviewEntityAsync(int id, int userId)
