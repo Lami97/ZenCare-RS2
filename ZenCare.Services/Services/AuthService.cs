@@ -1,9 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
 using ZenCare.Services.Interfaces;
@@ -67,30 +68,26 @@ namespace ZenCare.Services.Services
                 throw new InvalidOperationException("JWT SecretKey is not configured.");
             }
 
-            var header = new Dictionary<string, object>
+            var claims = new List<Claim>
             {
-                ["alg"] = "HS256",
-                ["typ"] = "JWT"
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Email, user.Email)
             };
 
-            var payload = new Dictionary<string, object?>
-            {
-                ["iss"] = issuer,
-                ["aud"] = audience,
-                ["exp"] = new DateTimeOffset(expiresAt).ToUnixTimeSeconds(),
-                ["iat"] = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-                [ClaimTypes.NameIdentifier] = user.Id.ToString(),
-                [ClaimTypes.Name] = user.Username,
-                [ClaimTypes.Email] = user.Email,
-                [ClaimTypes.Role] = roles
-            };
+            claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
-            var encodedHeader = Base64UrlEncode(JsonSerializer.SerializeToUtf8Bytes(header));
-            var encodedPayload = Base64UrlEncode(JsonSerializer.SerializeToUtf8Bytes(payload));
-            var unsignedToken = $"{encodedHeader}.{encodedPayload}";
-            var signature = CreateSignature(unsignedToken, secretKey);
+            var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+            var signingCredentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
 
-            return $"{unsignedToken}.{signature}";
+            var token = new JwtSecurityToken(
+                issuer: issuer,
+                audience: audience,
+                claims: claims,
+                expires: expiresAt,
+                signingCredentials: signingCredentials);
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
         private int GetTokenDurationInMinutes()
@@ -115,20 +112,5 @@ namespace ZenCare.Services.Services
             return Convert.ToBase64String(hash);
         }
 
-        private static string CreateSignature(string unsignedToken, string secretKey)
-        {
-            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(secretKey));
-            var signatureBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(unsignedToken));
-
-            return Base64UrlEncode(signatureBytes);
-        }
-
-        private static string Base64UrlEncode(byte[] bytes)
-        {
-            return Convert.ToBase64String(bytes)
-                .TrimEnd('=')
-                .Replace('+', '-')
-                .Replace('/', '_');
-        }
     }
 }
