@@ -77,8 +77,15 @@ public class PurchaseController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<PurchaseResponse>> Create([FromBody] PurchaseInsertRequest request)
     {
-        var result = await _purchaseService.InsertAsync(request);
-        return result;
+        try
+        {
+            var result = await _purchaseService.InsertAsync(request);
+            return result;
+        }
+        catch (BusinessException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpPost("My")]
@@ -94,8 +101,15 @@ public class PurchaseController : ControllerBase
             return Unauthorized();
         }
 
-        var result = await _purchaseService.InsertMyAsync(userId.Value, request);
-        return result;
+        try
+        {
+            var result = await _purchaseService.InsertMyAsync(userId.Value, request);
+            return result;
+        }
+        catch (BusinessException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpPut("{id}")]
@@ -104,8 +118,15 @@ public class PurchaseController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PurchaseResponse>> Update(int id, [FromBody] PurchaseUpdateRequest request)
     {
-        var result = await _purchaseService.UpdateAsync(id, request);
-        return Ok(result);
+        try
+        {
+            var result = await _purchaseService.UpdateAsync(id, request);
+            return Ok(result);
+        }
+        catch (BusinessException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpPut("My/{id}")]
@@ -130,6 +151,10 @@ public class PurchaseController : ControllerBase
         catch (NotFoundException)
         {
             return NotFound();
+        }
+        catch (BusinessException ex)
+        {
+            return BadRequest(ex.Message);
         }
     }
 

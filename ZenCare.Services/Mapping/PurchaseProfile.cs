@@ -11,7 +11,8 @@ namespace ZenCare.Services.Mapping
             CreateMap<Database.Purchase, PurchaseResponse>()
                 .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User.Username));
             CreateMap<PurchaseInsertRequest, Database.Purchase>();
-            CreateMap<PurchaseUpdateRequest, Database.Purchase>();
+            CreateMap<PurchaseUpdateRequest, Database.Purchase>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore());
         }
     }
 }

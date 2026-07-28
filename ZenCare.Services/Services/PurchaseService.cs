@@ -1,5 +1,6 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using ZenCare.Model.Enums;
 using ZenCare.Model.Exceptions;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
@@ -12,6 +13,28 @@ namespace ZenCare.Services.Services
     {
         public PurchaseService(ZenCareDbContext dbContext, IMapper mapper) : base(dbContext, mapper)
         {
+        }
+
+        public override async Task<PurchaseResponse> InsertAsync(PurchaseInsertRequest request)
+        {
+            ValidatePurchaseRequest(request.PurchaseNumber, request.TotalAmount, request.Status, request.PaymentStatus);
+
+            return await base.InsertAsync(request);
+        }
+
+        public override async Task<PurchaseResponse> UpdateAsync(int id, PurchaseUpdateRequest request)
+        {
+            var entity = await DbContext.Purchases.FindAsync(id);
+
+            if (entity == null)
+            {
+                throw new NotFoundException(nameof(Database.Purchase), id);
+            }
+
+            ValidatePurchaseRequest(request.PurchaseNumber, request.TotalAmount, request.Status, request.PaymentStatus);
+            ValidatePurchaseStatusTransition(entity.Status, request.Status);
+
+            return await base.UpdateAsync(id, request);
         }
 
         public async Task<PagedResult<PurchaseResponse>> GetMyAsync(int userId, PurchaseSearchObject? search)
@@ -131,6 +154,119 @@ namespace ZenCare.Services.Services
             if (!exists)
             {
                 throw new NotFoundException(nameof(Database.Purchase), id);
+            }
+        }
+
+        private static void ValidatePurchaseRequest(string? purchaseNumber, decimal totalAmount, PurchaseStatus status, PaymentStatus paymentStatus)
+        {
+            if (string.IsNullOrWhiteSpace(purchaseNumber))
+            {
+                throw new BusinessException("Purchase number is required.");
+            }
+
+            if (totalAmount < 0)
+            {
+                throw new BusinessException("Total amount must be greater than or equal to zero.");
+            }
+
+            if (!Enum.IsDefined(typeof(PurchaseStatus), status))
+            {
+                throw new BusinessException("Purchase status is not valid.");
+            }
+
+            if (!Enum.IsDefined(typeof(PaymentStatus), paymentStatus))
+            {
+                throw new BusinessException("Payment status is not valid.");
+            }
+
+            ValidatePaymentStatus(status, paymentStatus);
+        }
+
+        private static void ValidatePurchaseStatusTransition(PurchaseStatus currentStatus, PurchaseStatus newStatus)
+        {
+            if (currentStatus == newStatus)
+            {
+                if (IsTerminalStatus(currentStatus))
+                {
+                    throw new BusinessException(GetTerminalStatusMessage(currentStatus));
+                }
+
+                return;
+            }
+
+            if (IsTerminalStatus(currentStatus))
+            {
+                throw new BusinessException(GetTerminalStatusMessage(currentStatus));
+            }
+
+            if (!IsValidTransition(currentStatus, newStatus))
+            {
+                throw new BusinessException("Invalid purchase status transition.");
+            }
+        }
+
+        private static bool IsValidTransition(PurchaseStatus currentStatus, PurchaseStatus newStatus)
+        {
+            return currentStatus switch
+            {
+                PurchaseStatus.Draft => newStatus == PurchaseStatus.PendingPayment,
+                PurchaseStatus.PendingPayment => newStatus is PurchaseStatus.Paid or PurchaseStatus.Cancelled or PurchaseStatus.Failed,
+                PurchaseStatus.Paid => newStatus is PurchaseStatus.Processing or PurchaseStatus.Refunded,
+                PurchaseStatus.Processing => newStatus is PurchaseStatus.ReadyForPickup or PurchaseStatus.Shipped,
+                PurchaseStatus.ReadyForPickup => newStatus == PurchaseStatus.Completed,
+                PurchaseStatus.Shipped => newStatus == PurchaseStatus.Completed,
+                _ => false
+            };
+        }
+
+        private static bool IsTerminalStatus(PurchaseStatus status)
+        {
+            return status is PurchaseStatus.Completed or PurchaseStatus.Cancelled or PurchaseStatus.Refunded or PurchaseStatus.Failed;
+        }
+
+        private static string GetTerminalStatusMessage(PurchaseStatus status)
+        {
+            return status switch
+            {
+                PurchaseStatus.Completed => "Completed purchases cannot be modified.",
+                PurchaseStatus.Refunded => "Refunded purchases cannot be reactivated.",
+                PurchaseStatus.Cancelled => "Cancelled purchases cannot be modified.",
+                PurchaseStatus.Failed => "Failed purchases cannot be modified.",
+                _ => "Terminal purchases cannot be modified."
+            };
+        }
+
+        private static void ValidatePaymentStatus(PurchaseStatus status, PaymentStatus paymentStatus)
+        {
+            var isPaidWorkflowStatus = status is PurchaseStatus.Paid
+                or PurchaseStatus.Processing
+                or PurchaseStatus.ReadyForPickup
+                or PurchaseStatus.Shipped
+                or PurchaseStatus.Completed;
+
+            if (isPaidWorkflowStatus && paymentStatus != PaymentStatus.Succeeded)
+            {
+                throw new BusinessException("Payment status is not valid for the selected purchase status.");
+            }
+
+            if (status == PurchaseStatus.PendingPayment && paymentStatus == PaymentStatus.Succeeded)
+            {
+                throw new BusinessException("Payment status is not valid for the selected purchase status.");
+            }
+
+            if (status == PurchaseStatus.Refunded && paymentStatus != PaymentStatus.Refunded)
+            {
+                throw new BusinessException("Payment status is not valid for the selected purchase status.");
+            }
+
+            if (status == PurchaseStatus.Cancelled && paymentStatus == PaymentStatus.Succeeded)
+            {
+                throw new BusinessException("Payment status is not valid for the selected purchase status.");
+            }
+
+            if (status == PurchaseStatus.Failed && paymentStatus != PaymentStatus.Failed)
+            {
+                throw new BusinessException("Payment status is not valid for the selected purchase status.");
             }
         }
     }
