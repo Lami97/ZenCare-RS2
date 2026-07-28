@@ -112,6 +112,30 @@ public class PurchaseController : ControllerBase
         }
     }
 
+    [HttpPost("Checkout")]
+    [Authorize(Roles = "Client")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PurchaseResponse>> Checkout([FromBody] PurchaseCheckoutRequest request)
+    {
+        var userId = GetCurrentUserId();
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var result = await _purchaseService.CheckoutAsync(userId.Value, request);
+            return Ok(result);
+        }
+        catch (BusinessException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

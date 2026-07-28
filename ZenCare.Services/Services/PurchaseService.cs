@@ -83,10 +83,69 @@ namespace ZenCare.Services.Services
             await DbContext.SaveChangesAsync();
         }
 
+        public async Task<PurchaseResponse> CheckoutAsync(int userId, PurchaseCheckoutRequest request)
+        {
+            ValidateCheckoutRequest(request);
+
+            await using var transaction = await DbContext.Database.BeginTransactionAsync();
+
+            var requestedProductIds = request.Items.Select(i => i.ProductId).ToList();
+            var products = await DbContext.Products
+                .Where(p => requestedProductIds.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id);
+
+            var purchaseItems = new List<Database.PurchaseItem>();
+            var totalAmount = 0m;
+
+            foreach (var item in request.Items)
+            {
+                if (!products.TryGetValue(item.ProductId, out var product))
+                {
+                    throw new BusinessException("Product was not found.");
+                }
+
+                ValidateProductForCheckout(product, item.Quantity);
+
+                var unitPrice = product.Price;
+                var totalPrice = unitPrice * item.Quantity;
+
+                totalAmount += totalPrice;
+                product.StockQuantity -= item.Quantity;
+                product.UpdatedAt = DateTime.UtcNow;
+
+                purchaseItems.Add(new Database.PurchaseItem
+                {
+                    ProductId = product.Id,
+                    Quantity = item.Quantity,
+                    UnitPrice = unitPrice,
+                    TotalPrice = totalPrice
+                });
+            }
+
+            var purchase = new Database.Purchase
+            {
+                UserId = userId,
+                PurchaseNumber = await GeneratePurchaseNumberAsync(),
+                Status = PurchaseStatus.PendingPayment,
+                PaymentStatus = PaymentStatus.Pending,
+                TotalAmount = totalAmount,
+                CreatedAt = DateTime.UtcNow,
+                PurchaseItems = purchaseItems
+            };
+
+            DbContext.Purchases.Add(purchase);
+            await DbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return await GetByIdAsync(purchase.Id);
+        }
+
         public override async Task<PurchaseResponse> GetByIdAsync(int id)
         {
             var entity = await DbContext.Purchases
                 .Include(p => p.User)
+                .Include(p => p.PurchaseItems)
+                    .ThenInclude(pi => pi.Product)
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (entity == null)
@@ -127,7 +186,10 @@ namespace ZenCare.Services.Services
 
         protected override Task<IQueryable<Database.Purchase>> IncludeRelatedEntitiesAsync(IQueryable<Database.Purchase> query, PurchaseSearchObject? search)
         {
-            query = query.Include(p => p.User);
+            query = query
+                .Include(p => p.User)
+                .Include(p => p.PurchaseItems)
+                    .ThenInclude(pi => pi.Product);
 
             return Task.FromResult(query);
         }
@@ -136,6 +198,8 @@ namespace ZenCare.Services.Services
         {
             var entity = await DbContext.Purchases
                 .Include(p => p.User)
+                .Include(p => p.PurchaseItems)
+                    .ThenInclude(pi => pi.Product)
                 .FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
 
             if (entity == null)
@@ -155,6 +219,54 @@ namespace ZenCare.Services.Services
             {
                 throw new NotFoundException(nameof(Database.Purchase), id);
             }
+        }
+
+        private static void ValidateCheckoutRequest(PurchaseCheckoutRequest request)
+        {
+            if (request.Items.Count == 0)
+            {
+                throw new BusinessException("Checkout items are required.");
+            }
+
+            if (request.Items.Any(i => i.Quantity <= 0))
+            {
+                throw new BusinessException("Quantity must be greater than zero.");
+            }
+
+            var hasDuplicateProducts = request.Items
+                .GroupBy(i => i.ProductId)
+                .Any(g => g.Count() > 1);
+
+            if (hasDuplicateProducts)
+            {
+                throw new BusinessException("Duplicate products are not allowed in one checkout request.");
+            }
+        }
+
+        private static void ValidateProductForCheckout(Database.Product product, int quantity)
+        {
+            if (product.Status != ProductStatus.Active)
+            {
+                throw new BusinessException("Product must be active.");
+            }
+
+            if (product.StockQuantity < quantity)
+            {
+                throw new BusinessException("Not enough stock is available for the selected product.");
+            }
+        }
+
+        private async Task<string> GeneratePurchaseNumberAsync()
+        {
+            string purchaseNumber;
+
+            do
+            {
+                purchaseNumber = $"PC-{DateTime.UtcNow:yyyyMMddHHmmssfff}";
+            }
+            while (await DbContext.Purchases.AnyAsync(p => p.PurchaseNumber == purchaseNumber));
+
+            return purchaseNumber;
         }
 
         private static void ValidatePurchaseRequest(string? purchaseNumber, decimal totalAmount, PurchaseStatus status, PaymentStatus paymentStatus)

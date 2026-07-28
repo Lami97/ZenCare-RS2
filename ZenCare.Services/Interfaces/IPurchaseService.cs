@@ -11,5 +11,6 @@ namespace ZenCare.Services.Interfaces
         Task<PurchaseResponse> InsertMyAsync(int userId, PurchaseInsertRequest request);
         Task<PurchaseResponse> UpdateMyAsync(int id, int userId, PurchaseUpdateRequest request);
         Task DeleteMyAsync(int id, int userId);
+        Task<PurchaseResponse> CheckoutAsync(int userId, PurchaseCheckoutRequest request);
     }
 }
