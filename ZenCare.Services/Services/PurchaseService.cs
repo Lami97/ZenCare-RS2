@@ -1,7 +1,10 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using System.Text.Json;
 using ZenCare.Model.Enums;
 using ZenCare.Model.Exceptions;
+using ZenCare.Model.Messages;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
 using ZenCare.Model.SearchObjects;
@@ -11,8 +14,17 @@ namespace ZenCare.Services.Services
 {
     public class PurchaseService : BaseCRUDService<PurchaseResponse, Database.Purchase, PurchaseInsertRequest, PurchaseUpdateRequest, PurchaseSearchObject>, IPurchaseService
     {
-        public PurchaseService(ZenCareDbContext dbContext, IMapper mapper) : base(dbContext, mapper)
+        private readonly IRabbitMqService _rabbitMqService;
+        private readonly ILogger<PurchaseService> _logger;
+
+        public PurchaseService(
+            ZenCareDbContext dbContext,
+            IMapper mapper,
+            IRabbitMqService rabbitMqService,
+            ILogger<PurchaseService> logger) : base(dbContext, mapper)
         {
+            _rabbitMqService = rabbitMqService;
+            _logger = logger;
         }
 
         public override async Task<PurchaseResponse> InsertAsync(PurchaseInsertRequest request)
@@ -136,6 +148,8 @@ namespace ZenCare.Services.Services
             DbContext.Purchases.Add(purchase);
             await DbContext.SaveChangesAsync();
             await transaction.CommitAsync();
+
+            await PublishPurchaseCreatedMessageAsync(purchase);
 
             return await GetByIdAsync(purchase.Id);
         }
@@ -267,6 +281,28 @@ namespace ZenCare.Services.Services
             while (await DbContext.Purchases.AnyAsync(p => p.PurchaseNumber == purchaseNumber));
 
             return purchaseNumber;
+        }
+
+        private async Task PublishPurchaseCreatedMessageAsync(Database.Purchase purchase)
+        {
+            var message = new PurchaseCreatedMessage
+            {
+                PurchaseId = purchase.Id,
+                PurchaseNumber = purchase.PurchaseNumber,
+                UserId = purchase.UserId,
+                TotalAmount = purchase.TotalAmount,
+                CreatedAt = purchase.CreatedAt
+            };
+
+            try
+            {
+                var payload = JsonSerializer.Serialize(message);
+                await _rabbitMqService.PublishAsync("purchase", payload);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Purchase {PurchaseId} was created, but the purchase event could not be published.", purchase.Id);
+            }
         }
 
         private static void ValidatePurchaseRequest(string? purchaseNumber, decimal totalAmount, PurchaseStatus status, PaymentStatus paymentStatus)

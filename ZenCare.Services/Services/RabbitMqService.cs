@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
@@ -113,8 +114,29 @@ namespace ZenCare.Services.Services
             consumer.ReceivedAsync += async (_, eventArgs) =>
             {
                 var message = Encoding.UTF8.GetString(eventArgs.Body.ToArray());
-                await handler(message, cancellationToken);
-                await _channel.BasicAckAsync(eventArgs.DeliveryTag, multiple: false, cancellationToken);
+
+                try
+                {
+                    await handler(message, cancellationToken);
+                    await _channel.BasicAckAsync(eventArgs.DeliveryTag, multiple: false, cancellationToken);
+                }
+                catch (JsonException ex)
+                {
+                    _logger.LogWarning(ex, "RabbitMQ message on queue {QueueName} contains invalid JSON and will not be requeued.", queueName);
+                    await _channel.BasicRejectAsync(eventArgs.DeliveryTag, requeue: false, cancellationToken);
+                }
+                catch (InvalidDataException ex)
+                {
+                    _logger.LogWarning(ex, "RabbitMQ message on queue {QueueName} is invalid and will not be requeued.", queueName);
+                    await _channel.BasicRejectAsync(eventArgs.DeliveryTag, requeue: false, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    var shouldRequeue = !eventArgs.Redelivered;
+
+                    _logger.LogWarning(ex, "RabbitMQ message processing failed on queue {QueueName}. Requeue: {Requeue}", queueName, shouldRequeue);
+                    await _channel.BasicNackAsync(eventArgs.DeliveryTag, multiple: false, requeue: shouldRequeue, cancellationToken);
+                }
             };
 
             await _channel.BasicConsumeAsync(queueName, autoAck: false, consumer, cancellationToken);
