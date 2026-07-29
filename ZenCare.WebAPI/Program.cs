@@ -95,6 +95,8 @@ builder.Services.AddControllers();
 
 var app = builder.Build();
 
+await ApplyDatabaseMigrationsAsync(app);
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -129,6 +131,33 @@ app.MapGet("/weatherforecast", () =>
 app.MapControllers();
 
 app.Run();
+
+static async Task ApplyDatabaseMigrationsAsync(WebApplication app)
+{
+    const int maxAttempts = 12;
+    var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("DatabaseMigration");
+
+    for (var attempt = 1; attempt <= maxAttempts; attempt++)
+    {
+        try
+        {
+            using var scope = app.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ZenCareDbContext>();
+            await dbContext.Database.MigrateAsync();
+            logger.LogInformation("Database migrations applied successfully.");
+            return;
+        }
+        catch (Exception ex) when (attempt < maxAttempts)
+        {
+            logger.LogWarning(ex, "Database migration attempt {Attempt}/{MaxAttempts} failed. Retrying in 5 seconds.", attempt, maxAttempts);
+            await Task.Delay(TimeSpan.FromSeconds(5));
+        }
+    }
+
+    using var finalScope = app.Services.CreateScope();
+    var finalDbContext = finalScope.ServiceProvider.GetRequiredService<ZenCareDbContext>();
+    await finalDbContext.Database.MigrateAsync();
+}
 
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
