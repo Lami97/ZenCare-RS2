@@ -7,5 +7,7 @@ namespace ZenCare.Services.Interfaces
     public interface IPaymentService : ICRUDService<PaymentResponse, PaymentInsertRequest, PaymentUpdateRequest, PaymentSearchObject>
     {
         Task<PaymentIntentResponse> CreatePaymentIntentAsync(int purchaseId, int userId);
+
+        Task<PaymentConfirmResponse> ConfirmPaymentAsync(int purchaseId, int userId);
     }
 }

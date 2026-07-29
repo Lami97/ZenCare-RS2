@@ -128,6 +128,88 @@ namespace ZenCare.Services.Services
             return CreateResponse(purchase, payment, paymentIntent);
         }
 
+        public async Task<PaymentConfirmResponse> ConfirmPaymentAsync(int purchaseId, int userId)
+        {
+            var stripeSecretKey = GetStripeSecretKey();
+            var requestOptions = new RequestOptions { ApiKey = stripeSecretKey };
+            var paymentIntentService = new PaymentIntentService();
+
+            var purchase = await DbContext.Purchases
+                .Include(p => p.PurchaseItems)
+                .FirstOrDefaultAsync(p => p.Id == purchaseId);
+
+            ValidatePurchaseForConfirmation(purchase, purchaseId, userId);
+
+            var payment = await DbContext.Payments
+                .FirstOrDefaultAsync(p => p.PurchaseId == purchaseId && p.UserId == userId);
+
+            if (payment == null)
+            {
+                throw new BusinessException("Payment record was not found for this purchase.");
+            }
+
+            var paymentIntent = await GetPaymentIntentForConfirmationAsync(
+                paymentIntentService,
+                purchase!.StripePaymentIntentId!,
+                requestOptions);
+
+            if (IsIncompletePaymentIntent(paymentIntent))
+            {
+                throw new BusinessException("Payment is not yet complete.");
+            }
+
+            await using var transaction = await DbContext.Database.BeginTransactionAsync();
+
+            if (paymentIntent.Status == "succeeded")
+            {
+                var paidAt = DateTime.UtcNow;
+
+                purchase.Status = PurchaseStatus.Paid;
+                purchase.PaymentStatus = PaymentStatus.Succeeded;
+                purchase.PaidAt = paidAt;
+                purchase.UpdatedAt = paidAt;
+
+                payment.Status = PaymentStatus.Succeeded;
+                payment.PaidAt = paidAt;
+                payment.UpdatedAt = paidAt;
+                payment.StripeChargeId = paymentIntent.LatestChargeId;
+            }
+            else if (paymentIntent.Status == "canceled")
+            {
+                purchase.Status = PurchaseStatus.Cancelled;
+                purchase.PaymentStatus = PaymentStatus.Cancelled;
+                purchase.UpdatedAt = DateTime.UtcNow;
+
+                payment.Status = PaymentStatus.Cancelled;
+                payment.UpdatedAt = DateTime.UtcNow;
+            }
+            else if (paymentIntent.Status == "failed")
+            {
+                purchase.Status = PurchaseStatus.Failed;
+                purchase.PaymentStatus = PaymentStatus.Failed;
+                purchase.UpdatedAt = DateTime.UtcNow;
+
+                payment.Status = PaymentStatus.Failed;
+                payment.UpdatedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                throw new BusinessException("Stripe payment status cannot be confirmed yet.");
+            }
+
+            await DbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return new PaymentConfirmResponse
+            {
+                PurchaseId = purchase.Id,
+                PaymentId = payment.Id,
+                PurchaseStatus = purchase.Status,
+                PaymentStatus = purchase.PaymentStatus,
+                PaidAt = purchase.PaidAt
+            };
+        }
+
         public override async Task<PaymentResponse> GetByIdAsync(int id)
         {
             var entity = await DbContext.Payments
@@ -250,6 +332,53 @@ namespace ZenCare.Services.Services
             {
                 throw new BusinessException("Existing payment intent could not be retrieved from Stripe.");
             }
+        }
+
+        private async Task<PaymentIntent> GetPaymentIntentForConfirmationAsync(
+            PaymentIntentService paymentIntentService,
+            string paymentIntentId,
+            RequestOptions requestOptions)
+        {
+            try
+            {
+                return await paymentIntentService.GetAsync(paymentIntentId, requestOptions: requestOptions);
+            }
+            catch (StripeException)
+            {
+                throw new BusinessException("Stripe payment status could not be retrieved.");
+            }
+        }
+
+        private static void ValidatePurchaseForConfirmation(Database.Purchase? purchase, int purchaseId, int userId)
+        {
+            if (purchase == null)
+            {
+                throw new NotFoundException(nameof(Database.Purchase), purchaseId);
+            }
+
+            if (purchase.UserId != userId)
+            {
+                throw new NotFoundException(nameof(Database.Purchase), purchaseId);
+            }
+
+            if (purchase.Status != PurchaseStatus.PendingPayment || purchase.PaymentStatus != PaymentStatus.Pending)
+            {
+                throw new BusinessException("Payment can only be confirmed for a pending purchase.");
+            }
+
+            if (string.IsNullOrWhiteSpace(purchase.StripePaymentIntentId))
+            {
+                throw new BusinessException("Stripe payment intent was not created for this purchase.");
+            }
+        }
+
+        private static bool IsIncompletePaymentIntent(PaymentIntent paymentIntent)
+        {
+            return paymentIntent.Status is "requires_payment_method"
+                or "requires_confirmation"
+                or "requires_action"
+                or "processing"
+                or "requires_capture";
         }
 
         private async Task<Database.Payment> CreateLocalPaymentAsync(
