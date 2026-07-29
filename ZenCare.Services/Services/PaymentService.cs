@@ -210,6 +210,82 @@ namespace ZenCare.Services.Services
             };
         }
 
+        public async Task<PaymentRefundResponse> RefundPaymentAsync(int purchaseId, int userId)
+        {
+            var stripeSecretKey = GetStripeSecretKey();
+            var requestOptions = new RequestOptions { ApiKey = stripeSecretKey };
+            var paymentIntentService = new PaymentIntentService();
+            var refundService = new RefundService();
+
+            var purchase = await DbContext.Purchases
+                .FirstOrDefaultAsync(p => p.Id == purchaseId);
+
+            ValidatePurchaseForRefund(purchase, purchaseId, userId);
+            var purchaseEntity = purchase!;
+
+            var payment = await DbContext.Payments
+                .FirstOrDefaultAsync(p => p.PurchaseId == purchaseId && p.UserId == userId);
+
+            ValidatePaymentForRefund(payment);
+            var paymentEntity = payment!;
+
+            var paymentIntent = await GetPaymentIntentForConfirmationAsync(
+                paymentIntentService,
+                paymentEntity.StripePaymentIntentId!,
+                requestOptions);
+
+            var chargeId = paymentEntity.StripeChargeId ?? paymentIntent.LatestChargeId;
+
+            if (string.IsNullOrWhiteSpace(chargeId))
+            {
+                throw new BusinessException("Payment charge was not found for this purchase.");
+            }
+
+            Refund refund;
+
+            try
+            {
+                refund = await refundService.CreateAsync(
+                    new RefundCreateOptions
+                    {
+                        Charge = chargeId
+                    },
+                    requestOptions);
+            }
+            catch (StripeException)
+            {
+                throw new BusinessException("Stripe refund could not be created.");
+            }
+
+            if (refund.Status is "failed" or "canceled")
+            {
+                throw new BusinessException("Stripe refund was not successful.");
+            }
+
+            await using var transaction = await DbContext.Database.BeginTransactionAsync();
+
+            var refundedAt = DateTime.UtcNow;
+
+            purchaseEntity.Status = PurchaseStatus.Refunded;
+            purchaseEntity.PaymentStatus = PaymentStatus.Refunded;
+            purchaseEntity.UpdatedAt = refundedAt;
+
+            paymentEntity.Status = PaymentStatus.Refunded;
+            paymentEntity.UpdatedAt = refundedAt;
+
+            await DbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return new PaymentRefundResponse
+            {
+                PurchaseId = purchaseEntity.Id,
+                PaymentId = paymentEntity.Id,
+                PurchaseStatus = purchaseEntity.Status,
+                PaymentStatus = purchaseEntity.PaymentStatus,
+                RefundedAt = refundedAt
+            };
+        }
+
         public override async Task<PaymentResponse> GetByIdAsync(int id)
         {
             var entity = await DbContext.Payments
@@ -379,6 +455,52 @@ namespace ZenCare.Services.Services
                 or "requires_action"
                 or "processing"
                 or "requires_capture";
+        }
+
+        private static void ValidatePurchaseForRefund(Database.Purchase? purchase, int purchaseId, int userId)
+        {
+            if (purchase == null)
+            {
+                throw new NotFoundException(nameof(Database.Purchase), purchaseId);
+            }
+
+            if (purchase.UserId != userId)
+            {
+                throw new NotFoundException(nameof(Database.Purchase), purchaseId);
+            }
+
+            if (purchase.Status == PurchaseStatus.Refunded || purchase.PaymentStatus == PaymentStatus.Refunded)
+            {
+                throw new BusinessException("This payment has already been refunded.");
+            }
+
+            if (purchase.Status != PurchaseStatus.Paid || purchase.PaymentStatus != PaymentStatus.Succeeded)
+            {
+                throw new BusinessException("Only succeeded paid purchases can be refunded.");
+            }
+        }
+
+        private static void ValidatePaymentForRefund(Database.Payment? payment)
+        {
+            if (payment == null)
+            {
+                throw new BusinessException("Payment record was not found for this purchase.");
+            }
+
+            if (payment.Status == PaymentStatus.Refunded)
+            {
+                throw new BusinessException("This payment has already been refunded.");
+            }
+
+            if (payment.Status != PaymentStatus.Succeeded)
+            {
+                throw new BusinessException("Only succeeded payments can be refunded.");
+            }
+
+            if (string.IsNullOrWhiteSpace(payment.StripePaymentIntentId))
+            {
+                throw new BusinessException("Stripe payment intent was not found for this payment.");
+            }
         }
 
         private async Task<Database.Payment> CreateLocalPaymentAsync(

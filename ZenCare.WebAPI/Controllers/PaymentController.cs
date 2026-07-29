@@ -81,6 +81,36 @@ public class PaymentController : ControllerBase
         }
     }
 
+    [HttpPost("My/refund/{purchaseId}")]
+    [Authorize(Roles = "Client")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PaymentRefundResponse>> RefundPayment(int purchaseId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var result = await _paymentService.RefundPaymentAsync(purchaseId, userId.Value);
+            return Ok(result);
+        }
+        catch (NotFoundException)
+        {
+            return NotFound();
+        }
+        catch (BusinessException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
     [HttpGet]
     public async Task<ActionResult<PagedResult<PaymentResponse>>> GetAll([FromQuery] PaymentSearchObject? search)
     {

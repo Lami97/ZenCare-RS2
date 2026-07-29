@@ -9,5 +9,7 @@ namespace ZenCare.Services.Interfaces
         Task<PaymentIntentResponse> CreatePaymentIntentAsync(int purchaseId, int userId);
 
         Task<PaymentConfirmResponse> ConfirmPaymentAsync(int purchaseId, int userId);
+
+        Task<PaymentRefundResponse> RefundPaymentAsync(int purchaseId, int userId);
     }
 }
