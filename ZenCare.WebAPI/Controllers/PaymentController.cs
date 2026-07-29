@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using ZenCare.Model.Exceptions;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
 using ZenCare.Model.SearchObjects;
@@ -17,6 +19,36 @@ public class PaymentController : ControllerBase
     public PaymentController(IPaymentService paymentService)
     {
         _paymentService = paymentService;
+    }
+
+    [HttpPost("My/create-intent/{purchaseId}")]
+    [Authorize(Roles = "Client")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PaymentIntentResponse>> CreatePaymentIntent(int purchaseId)
+    {
+        var userId = GetCurrentUserId();
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var result = await _paymentService.CreatePaymentIntentAsync(purchaseId, userId.Value);
+            return Ok(result);
+        }
+        catch (NotFoundException)
+        {
+            return NotFound();
+        }
+        catch (BusinessException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpGet]
@@ -59,5 +91,12 @@ public class PaymentController : ControllerBase
     {
         await _paymentService.DeleteAsync(id);
         return NoContent();
+    }
+
+    private int? GetCurrentUserId()
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        return int.TryParse(userIdClaim, out var userId) ? userId : null;
     }
 }
