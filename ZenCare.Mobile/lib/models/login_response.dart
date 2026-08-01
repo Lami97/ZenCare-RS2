@@ -1,0 +1,33 @@
+class LoginResponse {
+  LoginResponse({
+    required this.userId,
+    required this.username,
+    required this.email,
+    required this.fullName,
+    required this.token,
+    required this.expiresAt,
+    required this.roles,
+  });
+
+  final int userId;
+  final String username;
+  final String email;
+  final String fullName;
+  final String token;
+  final DateTime expiresAt;
+  final List<String> roles;
+
+  factory LoginResponse.fromJson(Map<String, dynamic> json) {
+    return LoginResponse(
+      userId: json['userId'] as int,
+      username: json['username'] as String? ?? '',
+      email: json['email'] as String? ?? '',
+      fullName: json['fullName'] as String? ?? '',
+      token: json['token'] as String? ?? '',
+      expiresAt: DateTime.parse(json['expiresAt'] as String),
+      roles: (json['roles'] as List<dynamic>? ?? [])
+          .map((role) => role.toString())
+          .toList(),
+    );
+  }
+}

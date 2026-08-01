@@ -1,0 +1,39 @@
+class User {
+  User({
+    required this.id,
+    required this.username,
+    required this.email,
+    required this.fullName,
+    required this.roles,
+  });
+
+  final int id;
+  final String username;
+  final String email;
+  final String fullName;
+  final List<String> roles;
+
+  String get primaryRole => roles.isNotEmpty ? roles.first : 'User';
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'username': username,
+      'email': email,
+      'fullName': fullName,
+      'roles': roles,
+    };
+  }
+
+  factory User.fromJson(Map<String, dynamic> json) {
+    return User(
+      id: json['id'] as int,
+      username: json['username'] as String? ?? '',
+      email: json['email'] as String? ?? '',
+      fullName: json['fullName'] as String? ?? '',
+      roles: (json['roles'] as List<dynamic>? ?? [])
+          .map((role) => role.toString())
+          .toList(),
+    );
+  }
+}

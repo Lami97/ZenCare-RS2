@@ -1,0 +1,67 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import 'core/app_theme.dart';
+import 'providers/auth_provider.dart';
+import 'screens/auth/login_screen.dart';
+import 'screens/home/home_screen.dart';
+import 'screens/splash_screen.dart';
+import 'services/api_service.dart';
+import 'services/auth_service.dart';
+import 'services/product_service.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const ZenCareApp());
+}
+
+class ZenCareApp extends StatelessWidget {
+  const ZenCareApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        Provider<ApiService>(
+          create: (_) => ApiService(),
+          dispose: (_, service) => service.dispose(),
+        ),
+        ProxyProvider<ApiService, AuthService>(
+          update: (_, apiService, __) => AuthService(apiService),
+        ),
+        ProxyProvider<ApiService, ProductService>(
+          update: (_, apiService, __) => ProductService(apiService),
+        ),
+        ChangeNotifierProxyProvider2<AuthService, ApiService, AuthProvider>(
+          create: (_) => AuthProvider(),
+          update: (_, authService, apiService, authProvider) {
+            final provider = authProvider ?? AuthProvider();
+            provider.configure(authService, apiService);
+            return provider;
+          },
+        ),
+      ],
+      child: Consumer<AuthProvider>(
+        builder: (context, authProvider, _) {
+          return MaterialApp(
+            title: 'ZenCare',
+            debugShowCheckedModeBanner: false,
+            navigatorKey: navigatorKey,
+            theme: AppTheme.lightTheme,
+            home: _resolveHome(authProvider),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _resolveHome(AuthProvider authProvider) {
+    if (authProvider.isInitializing) {
+      return const SplashScreen();
+    }
+
+    return authProvider.isAuthenticated ? const HomeScreen() : const LoginScreen();
+  }
+}
