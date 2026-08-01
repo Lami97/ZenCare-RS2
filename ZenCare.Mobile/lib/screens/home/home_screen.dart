@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../appointments/appointments_placeholder_screen.dart';
-import '../products/products_placeholder_screen.dart';
+import '../products/products_screen.dart';
 import '../profile/profile_placeholder_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -20,7 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final screens = [
       const _HomeTab(),
-      const ProductsPlaceholderScreen(),
+      const ProductsScreen(),
       const AppointmentsPlaceholderScreen(),
       const ProfilePlaceholderScreen(),
     ];
@@ -107,3 +107,4 @@ class _HomeTab extends StatelessWidget {
     );
   }
 }
+
