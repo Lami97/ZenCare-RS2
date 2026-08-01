@@ -1,13 +1,13 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
 using ZenCare.Services.Interfaces;
+using ZenCare.Services.Security;
 
 namespace ZenCare.Services.Services
 {
@@ -99,18 +99,13 @@ namespace ZenCare.Services.Services
 
         private static bool VerifyPassword(string passwordHash, string passwordSalt, string password)
         {
-            var generatedHash = GenerateHash(password, passwordSalt);
+            var generatedHash = PasswordHasher.GenerateHash(password, passwordSalt);
 
             return passwordHash == generatedHash;
         }
 
-        private static string GenerateHash(string password, string salt)
-        {
-            using var pbkdf2 = new Rfc2898DeriveBytes(password, Encoding.UTF8.GetBytes(salt), 10000, HashAlgorithmName.SHA256);
-            var hash = pbkdf2.GetBytes(20);
-
-            return Convert.ToBase64String(hash);
-        }
 
     }
 }
+
+

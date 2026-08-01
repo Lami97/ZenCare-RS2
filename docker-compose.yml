@@ -1,4 +1,4 @@
-services:
+﻿services:
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-CU16-ubuntu-22.04
     container_name: zencare-sqlserver
@@ -63,6 +63,12 @@ services:
       JwtToken__Audience: ${JWT_AUDIENCE:?Set JWT_AUDIENCE}
       JwtToken__SecretKey: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY}
       JwtToken__DurationInMinutes: ${JWT_DURATION_IN_MINUTES:-480}
+      BootstrapAdmin__Enabled: ${BOOTSTRAP_ADMIN_ENABLED:-false}
+      BootstrapAdmin__FirstName: ${BOOTSTRAP_ADMIN_FIRST_NAME:-}
+      BootstrapAdmin__LastName: ${BOOTSTRAP_ADMIN_LAST_NAME:-}
+      BootstrapAdmin__Email: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      BootstrapAdmin__Username: ${BOOTSTRAP_ADMIN_USERNAME:-}
+      BootstrapAdmin__Password: ${BOOTSTRAP_ADMIN_PASSWORD:-}
     ports:
       - "5281:8080"
     networks:
@@ -97,3 +103,4 @@ networks:
 volumes:
   sqlserver-data:
   rabbitmq-data:
+

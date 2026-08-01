@@ -1,11 +1,10 @@
-using AutoMapper;
-using System.Security.Cryptography;
-using System.Text;
+﻿using AutoMapper;
 using ZenCare.Model.Exceptions;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
 using ZenCare.Model.SearchObjects;
 using ZenCare.Services.Interfaces;
+using ZenCare.Services.Security;
 
 namespace ZenCare.Services.Services
 {
@@ -18,10 +17,10 @@ namespace ZenCare.Services.Services
         public override async Task<UserResponse> InsertAsync(UserInsertRequest request)
         {
             var entity = Mapper.Map<Database.User>(request);
-            var salt = GenerateSalt();
+            var salt = PasswordHasher.GenerateSalt();
 
             entity.PasswordSalt = salt;
-            entity.PasswordHash = GenerateHash(request.Password, salt);
+            entity.PasswordHash = PasswordHasher.GenerateHash(request.Password, salt);
 
             SetCreatedAt(entity);
 
@@ -88,21 +87,7 @@ namespace ZenCare.Services.Services
             return query;
         }
 
-        private static string GenerateSalt()
-        {
-            using var rng = RandomNumberGenerator.Create();
-            var saltBytes = new byte[16];
-            rng.GetBytes(saltBytes);
-
-            return Convert.ToBase64String(saltBytes);
-        }
-
-        private static string GenerateHash(string password, string salt)
-        {
-            using var pbkdf2 = new Rfc2898DeriveBytes(password, Encoding.UTF8.GetBytes(salt), 10000, HashAlgorithmName.SHA256);
-            var hash = pbkdf2.GetBytes(20);
-
-            return Convert.ToBase64String(hash);
-        }
     }
 }
+
+

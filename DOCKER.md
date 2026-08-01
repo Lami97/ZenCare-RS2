@@ -1,4 +1,4 @@
-# ZenCare Docker
+﻿# ZenCare Docker
 
 This Docker Compose setup runs the ZenCare backend infrastructure:
 
@@ -99,6 +99,12 @@ JWT_ISSUER=ZenCare
 JWT_AUDIENCE=ZenCareUsers
 JWT_SECRET_KEY=CHANGE_ME_TO_A_LONG_RANDOM_SECRET
 JWT_DURATION_IN_MINUTES=60
+BOOTSTRAP_ADMIN_ENABLED=true
+BOOTSTRAP_ADMIN_FIRST_NAME=System
+BOOTSTRAP_ADMIN_LAST_NAME=Administrator
+BOOTSTRAP_ADMIN_EMAIL=admin@zencare.local
+BOOTSTRAP_ADMIN_USERNAME=admin
+BOOTSTRAP_ADMIN_PASSWORD=CHANGE_ME_TO_A_STRONG_PASSWORD
 ```
 
 ## SQL Server
@@ -142,3 +148,4 @@ Named Docker volumes:
 All services share:
 
 - `zencare-network`
+

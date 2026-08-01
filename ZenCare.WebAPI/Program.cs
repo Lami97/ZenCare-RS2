@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -45,6 +45,7 @@ builder.Services.AddScoped<IRecommendationService, RecommendationService>();
 builder.Services.AddScoped<IBusinessReportService, BusinessReportService>();
 builder.Services.AddScoped<ISupplierService, SupplierService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IBootstrapAdminService, BootstrapAdminService>();
 builder.Services.AddSingleton<IRabbitMqService, RabbitMqService>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -96,6 +97,7 @@ builder.Services.AddControllers();
 var app = builder.Build();
 
 await ApplyDatabaseMigrationsAsync(app);
+await BootstrapAdminAsync(app);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -132,6 +134,13 @@ app.MapControllers();
 
 app.Run();
 
+static async Task BootstrapAdminAsync(WebApplication app)
+{
+    using var scope = app.Services.CreateScope();
+    var bootstrapAdminService = scope.ServiceProvider.GetRequiredService<IBootstrapAdminService>();
+    await bootstrapAdminService.BootstrapAsync();
+}
+
 static async Task ApplyDatabaseMigrationsAsync(WebApplication app)
 {
     const int maxAttempts = 12;
@@ -163,3 +172,4 @@ record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
     public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
 }
+
