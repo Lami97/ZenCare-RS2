@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
@@ -33,6 +33,15 @@ public class UserController : ControllerBase
         return Ok(result);
     }
 
+
+    [HttpPost("Admin/create-client")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<AdminCreateClientResponse>> CreateClient([FromBody] AdminCreateClientRequest request)
+    {
+        var result = await _userService.CreateClientAsync(request);
+        return Ok(result);
+    }
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -61,3 +70,5 @@ public class UserController : ControllerBase
         return NoContent();
     }
 }
+
+

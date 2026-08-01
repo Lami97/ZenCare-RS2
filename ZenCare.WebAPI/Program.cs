@@ -8,6 +8,7 @@ using ZenCare.Services;
 using ZenCare.Services.Interfaces;
 using ZenCare.Services.Mapping;
 using ZenCare.Services.Services;
+using ZenCare.WebAPI.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -107,6 +108,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -172,4 +175,6 @@ record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
     public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
 }
+
+
 
