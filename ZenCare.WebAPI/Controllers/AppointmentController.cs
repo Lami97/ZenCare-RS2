@@ -58,6 +58,29 @@ public class AppointmentController : ControllerBase
         }
     }
 
+    [HttpGet("My/available-employees")]
+    [Authorize(Roles = "Client")]
+    public async Task<ActionResult<List<AppointmentEmployeeOptionResponse>>> GetAvailableEmployees(
+        [FromQuery] int wellnessServiceId,
+        [FromQuery] DateTime? appointmentDate,
+        [FromQuery] TimeSpan? startTime,
+        [FromQuery] TimeSpan? endTime)
+    {
+        try
+        {
+            var result = await _appointmentService.GetAvailableEmployeeOptionsAsync(
+                wellnessServiceId,
+                appointmentDate,
+                startTime,
+                endTime);
+
+            return Ok(result);
+        }
+        catch (BusinessException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
     [HttpGet]
     public async Task<ActionResult<PagedResult<AppointmentResponse>>> GetAll([FromQuery] AppointmentSearchObject? search)
     {

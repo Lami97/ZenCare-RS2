@@ -1,8 +1,8 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/appointment_create_request.dart';
-import '../../models/employee.dart';
+import '../../models/appointment_employee_option.dart';
 import '../../models/wellness_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/appointment_service.dart';
@@ -20,12 +20,14 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
   final _notesController = TextEditingController();
 
   bool _isLoadingLookups = true;
+  bool _isLoadingEmployees = false;
   bool _isSubmitting = false;
   String? _lookupError;
+  String? _employeeLookupMessage;
   String? _submitError;
-  List<Employee> _employees = [];
+  List<AppointmentEmployeeOption> _employees = [];
   List<WellnessService> _services = [];
-  Employee? _selectedEmployee;
+  AppointmentEmployeeOption? _selectedEmployee;
   WellnessService? _selectedService;
   DateTime? _selectedDate;
   TimeOfDay? _startTime;
@@ -47,25 +49,90 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
     setState(() {
       _isLoadingLookups = true;
       _lookupError = null;
+      _employeeLookupMessage = null;
+      _selectedEmployee = null;
+      _employees = [];
     });
 
     try {
       final service = context.read<AppointmentService>();
-      final employeesResult = await service.getAvailableEmployees();
       final servicesResult = await service.getActiveServices();
 
-      _employees = employeesResult.items.where((employee) => employee.isAvailable).toList();
       _services = servicesResult.items.where((wellnessService) => wellnessService.isActive).toList();
     } on ApiException catch (error) {
-      _lookupError = error.statusCode == 403
-          ? 'Employee selection is not available yet because the current API exposes employee lookup to Admin users only. A Client-accessible employee lookup endpoint is required to create appointments.'
-          : error.message;
+      _lookupError = error.message;
     } catch (_) {
       _lookupError = 'Unable to load appointment options.';
     } finally {
       if (mounted) {
         setState(() {
           _isLoadingLookups = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadEmployeesForSelectedService() async {
+    final selectedService = _selectedService;
+
+    if (selectedService == null) {
+      setState(() {
+        _employees = [];
+        _selectedEmployee = null;
+        _employeeLookupMessage = null;
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoadingEmployees = true;
+      _employeeLookupMessage = null;
+      _selectedEmployee = null;
+      _employees = [];
+    });
+
+    try {
+      final start = _startTime == null ? null : _toDuration(_startTime!);
+      final end = _endTime == null ? null : _toDuration(_endTime!);
+      final hasCompleteTimeFilter = _selectedDate != null && start != null && end != null;
+
+      final result = await context.read<AppointmentService>().getAvailableEmployees(
+            wellnessServiceId: selectedService.id,
+            appointmentDate: hasCompleteTimeFilter ? _selectedDate : null,
+            startTime: hasCompleteTimeFilter ? start : null,
+            endTime: hasCompleteTimeFilter ? end : null,
+          );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _employees = result.where((employee) => employee.isAvailable).toList();
+        _employeeLookupMessage = _employees.isEmpty ? 'No employees are available for the selected service.' : null;
+      });
+    } on ApiException catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _employeeLookupMessage = error.statusCode == 403
+            ? 'Employee lookup is not available for this account. Please contact an administrator.'
+            : error.message;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _employeeLookupMessage = 'Unable to load employees for the selected service.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingEmployees = false;
         });
       }
     }
@@ -84,6 +151,7 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
       setState(() {
         _selectedDate = picked;
       });
+      await _loadEmployeesForSelectedService();
     }
   }
 
@@ -100,6 +168,7 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
           _endTime = _addMinutes(picked, _selectedService!.durationMinutes);
         }
       });
+      await _loadEmployeesForSelectedService();
     }
   }
 
@@ -113,6 +182,7 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
       setState(() {
         _endTime = picked;
       });
+      await _loadEmployeesForSelectedService();
     }
   }
 
@@ -150,7 +220,7 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
       final notes = _notesController.text.trim();
       final request = AppointmentCreateRequest(
         userId: user.id,
-        employeeId: _selectedEmployee!.id,
+        employeeId: _selectedEmployee!.employeeId,
         wellnessServiceId: _selectedService!.id,
         appointmentDate: _selectedDate!,
         startTime: start,
@@ -193,21 +263,6 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
                   child: ListView(
                     padding: const EdgeInsets.all(20),
                     children: [
-                      DropdownButtonFormField<Employee>(
-                        initialValue: _selectedEmployee,
-                        decoration: const InputDecoration(labelText: 'Employee'),
-                        items: _employees
-                            .map(
-                              (employee) => DropdownMenuItem<Employee>(
-                                value: employee,
-                                child: Text(employee.displayName),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) => setState(() => _selectedEmployee = value),
-                        validator: (value) => value == null ? 'Employee is required.' : null,
-                      ),
-                      const SizedBox(height: 16),
                       DropdownButtonFormField<WellnessService>(
                         initialValue: _selectedService,
                         decoration: const InputDecoration(labelText: 'Service'),
@@ -219,16 +274,53 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
                               ),
                             )
                             .toList(),
-                        onChanged: (value) {
+                        onChanged: (value) async {
                           setState(() {
                             _selectedService = value;
                             if (_startTime != null && value != null) {
                               _endTime = _addMinutes(_startTime!, value.durationMinutes);
                             }
                           });
+                          await _loadEmployeesForSelectedService();
                         },
                         validator: (value) => value == null ? 'Service is required.' : null,
                       ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<AppointmentEmployeeOption>(
+                        initialValue: _selectedEmployee,
+                        decoration: InputDecoration(
+                          labelText: 'Employee',
+                          suffixIcon: _isLoadingEmployees
+                              ? const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  ),
+                                )
+                              : null,
+                        ),
+                        items: _employees
+                            .map(
+                              (employee) => DropdownMenuItem<AppointmentEmployeeOption>(
+                                value: employee,
+                                child: Text(employee.displayName),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: _selectedService == null || _isLoadingEmployees || _employees.isEmpty
+                            ? null
+                            : (value) => setState(() => _selectedEmployee = value),
+                        validator: (value) => value == null ? 'Employee is required.' : null,
+                      ),
+                      if (_employeeLookupMessage != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          _employeeLookupMessage!,
+                          style: TextStyle(color: Theme.of(context).colorScheme.error),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       _PickerTile(
                         label: 'Date',
@@ -360,5 +452,3 @@ String _formatDate(DateTime value) {
 String _formatTimeOfDay(TimeOfDay value) {
   return '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
 }
-
-

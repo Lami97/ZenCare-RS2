@@ -1,6 +1,6 @@
-﻿import '../models/appointment.dart';
+import '../models/appointment.dart';
 import '../models/appointment_create_request.dart';
-import '../models/employee.dart';
+import '../models/appointment_employee_option.dart';
 import '../models/paged_result.dart';
 import '../models/wellness_service.dart';
 import 'api_service.dart';
@@ -47,20 +47,33 @@ class AppointmentService {
     );
   }
 
-  Future<PagedResult<Employee>> getAvailableEmployees() {
-    return _apiService.get<PagedResult<Employee>>(
-      '/Employee',
+  Future<List<AppointmentEmployeeOption>> getAvailableEmployees({
+    required int wellnessServiceId,
+    DateTime? appointmentDate,
+    Duration? startTime,
+    Duration? endTime,
+  }) {
+    return _apiService.get<List<AppointmentEmployeeOption>>(
+      '/Appointment/My/available-employees',
       queryParameters: {
-        'IsAvailable': true,
-        'IncludeTotalCount': true,
+        'wellnessServiceId': wellnessServiceId,
+        if (appointmentDate != null) 'appointmentDate': DateTime.utc(appointmentDate.year, appointmentDate.month, appointmentDate.day).toIso8601String(),
+        if (startTime != null) 'startTime': _formatTime(startTime),
+        if (endTime != null) 'endTime': _formatTime(endTime),
       },
-      fromJson: (data) => PagedResult<Employee>.fromJson(
-        data as Map<String, dynamic>,
-        Employee.fromJson,
-      ),
+      fromJson: (data) => (data as List<dynamic>)
+          .map((item) => AppointmentEmployeeOption.fromJson(item as Map<String, dynamic>))
+          .toList(),
     );
   }
 
+  String _formatTime(Duration value) {
+    final hours = value.inHours.toString().padLeft(2, '0');
+    final minutes = value.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = value.inSeconds.remainder(60).toString().padLeft(2, '0');
+
+    return '$hours:$minutes:$seconds';
+  }
   Future<PagedResult<WellnessService>> getActiveServices() {
     return _apiService.get<PagedResult<WellnessService>>(
       '/Service',

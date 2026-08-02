@@ -89,6 +89,86 @@ namespace ZenCare.Services.Services
             return await UpdateAsync(id, request);
         }
 
+        public async Task<List<AppointmentEmployeeOptionResponse>> GetAvailableEmployeeOptionsAsync(
+            int wellnessServiceId,
+            DateTime? appointmentDate,
+            TimeSpan? startTime,
+            TimeSpan? endTime)
+        {
+            var serviceExists = await DbContext.WellnessServices
+                .AnyAsync(s => s.Id == wellnessServiceId);
+
+            if (!serviceExists)
+            {
+                throw new BusinessException("Wellness service was not found.");
+            }
+
+            var serviceIsActive = await DbContext.WellnessServices
+                .AnyAsync(s => s.Id == wellnessServiceId && s.Status == ServiceStatus.Active);
+
+            if (!serviceIsActive)
+            {
+                return new List<AppointmentEmployeeOptionResponse>();
+            }
+
+            if ((appointmentDate.HasValue || startTime.HasValue || endTime.HasValue) &&
+                !(appointmentDate.HasValue && startTime.HasValue && endTime.HasValue))
+            {
+                throw new BusinessException("Appointment date, start time and end time are required for availability filtering.");
+            }
+
+            if (startTime.HasValue && endTime.HasValue && endTime.Value <= startTime.Value)
+            {
+                throw new BusinessException("End time must be after start time.");
+            }
+
+            var query = DbContext.EmployeeServices
+                .AsNoTracking()
+                .Where(es =>
+                    es.WellnessServiceId == wellnessServiceId &&
+                    es.IsActive &&
+                    es.Employee.IsAvailable &&
+                    es.Employee.User.IsActive)
+                .Select(es => es.Employee)
+                .Distinct();
+
+            if (appointmentDate.HasValue && startTime.HasValue && endTime.HasValue)
+            {
+                var date = appointmentDate.Value.Date;
+                var requestedStart = startTime.Value;
+                var requestedEnd = endTime.Value;
+
+                query = query.Where(employee => !DbContext.Appointments.Any(a =>
+                    a.EmployeeId == employee.Id &&
+                    a.Status != AppointmentStatus.Cancelled &&
+                    a.AppointmentDate.Date == date &&
+                    requestedStart < a.EndTime &&
+                    requestedEnd > a.StartTime));
+            }
+
+            var employees = await query
+                .Select(employee => new
+                {
+                    employee.Id,
+                    employee.Specialization,
+                    employee.IsAvailable,
+                    employee.User.FirstName,
+                    employee.User.LastName,
+                    employee.User.Username
+                })
+                .ToListAsync();
+
+            return employees
+                .Select(employee => new AppointmentEmployeeOptionResponse
+                {
+                    EmployeeId = employee.Id,
+                    FullName = BuildEmployeeDisplayName(employee.FirstName, employee.LastName, employee.Username),
+                    Specialization = employee.Specialization,
+                    IsAvailable = employee.IsAvailable
+                })
+                .OrderBy(employee => employee.FullName)
+                .ToList();
+        }
         public override async Task<AppointmentResponse> GetByIdAsync(int id)
         {
             var entity = await DbContext.Appointments
@@ -150,6 +230,11 @@ namespace ZenCare.Services.Services
             return Task.FromResult(query);
         }
 
+        private static string BuildEmployeeDisplayName(string firstName, string lastName, string username)
+        {
+            var fullName = $"{firstName} {lastName}".Trim();
+            return string.IsNullOrWhiteSpace(fullName) ? username : fullName;
+        }
         private async Task<Database.Appointment> GetClientAppointmentEntityAsync(int id, int userId)
         {
             var entity = await DbContext.Appointments
