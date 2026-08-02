@@ -2,7 +2,7 @@
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
-import '../appointments/appointments_placeholder_screen.dart';
+import '../appointments/appointments_screen.dart';
 import '../products/products_screen.dart';
 import '../profile/profile_placeholder_screen.dart';
 
@@ -21,7 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final screens = [
       const _HomeTab(),
       const ProductsScreen(),
-      const AppointmentsPlaceholderScreen(),
+      const AppointmentsScreen(),
       const ProfilePlaceholderScreen(),
     ];
 
@@ -107,4 +107,5 @@ class _HomeTab extends StatelessWidget {
     );
   }
 }
+
 

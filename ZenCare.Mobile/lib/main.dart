@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'core/app_theme.dart';
@@ -7,6 +7,7 @@ import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/splash_screen.dart';
 import 'services/api_service.dart';
+import 'services/appointment_service.dart';
 import 'services/auth_service.dart';
 import 'services/product_service.dart';
 
@@ -33,6 +34,9 @@ class ZenCareApp extends StatelessWidget {
         ),
         ProxyProvider<ApiService, ProductService>(
           update: (_, apiService, __) => ProductService(apiService),
+        ),
+        ProxyProvider<ApiService, AppointmentService>(
+          update: (_, apiService, __) => AppointmentService(apiService),
         ),
         ChangeNotifierProxyProvider2<AuthService, ApiService, AuthProvider>(
           create: (_) => AuthProvider(),
@@ -65,3 +69,5 @@ class ZenCareApp extends StatelessWidget {
     return authProvider.isAuthenticated ? const HomeScreen() : const LoginScreen();
   }
 }
+
+
