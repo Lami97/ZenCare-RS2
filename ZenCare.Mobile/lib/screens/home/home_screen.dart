@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../appointments/appointments_screen.dart';
 import '../products/products_screen.dart';
-import '../profile/profile_placeholder_screen.dart';
+import '../profile/profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,7 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
       const _HomeTab(),
       const ProductsScreen(),
       const AppointmentsScreen(),
-      const ProfilePlaceholderScreen(),
+      const ProfileScreen(),
     ];
 
     return Scaffold(
@@ -107,5 +107,6 @@ class _HomeTab extends StatelessWidget {
     );
   }
 }
+
 
 

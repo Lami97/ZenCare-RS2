@@ -194,7 +194,7 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
                     padding: const EdgeInsets.all(20),
                     children: [
                       DropdownButtonFormField<Employee>(
-                        value: _selectedEmployee,
+                        initialValue: _selectedEmployee,
                         decoration: const InputDecoration(labelText: 'Employee'),
                         items: _employees
                             .map(
@@ -209,7 +209,7 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<WellnessService>(
-                        value: _selectedService,
+                        initialValue: _selectedService,
                         decoration: const InputDecoration(labelText: 'Service'),
                         items: _services
                             .map(
