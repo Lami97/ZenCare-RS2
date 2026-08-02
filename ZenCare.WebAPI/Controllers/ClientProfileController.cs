@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
 using ZenCare.Model.SearchObjects;
@@ -8,7 +9,6 @@ using ZenCare.Services.Interfaces;
 namespace ZenCare.WebAPI.Controllers;
 
 [ApiController]
-[Authorize(Roles = "Client,Admin")]
 [Route("[controller]")]
 public class ClientProfileController : ControllerBase
 {
@@ -19,6 +19,22 @@ public class ClientProfileController : ControllerBase
         _clientProfileService = clientProfileService;
     }
 
+    [Authorize(Roles = "Client")]
+    [HttpGet("My")]
+    public async Task<ActionResult<ClientProfileResponse>> GetMy()
+    {
+        var userId = GetCurrentUserId();
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        var result = await _clientProfileService.GetMyAsync(userId.Value);
+        return Ok(result);
+    }
+
+    [Authorize(Roles = "Admin")]
     [HttpGet]
     public async Task<ActionResult<PagedResult<ClientProfileResponse>>> GetAll([FromQuery] ClientProfileSearchObject? search)
     {
@@ -26,6 +42,7 @@ public class ClientProfileController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpGet("{id}")]
     public async Task<ActionResult<ClientProfileResponse>> GetById(int id)
     {
@@ -33,6 +50,7 @@ public class ClientProfileController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -42,6 +60,24 @@ public class ClientProfileController : ControllerBase
         return result;
     }
 
+    [Authorize(Roles = "Client")]
+    [HttpPut("My")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<ClientProfileResponse>> UpdateMy([FromBody] ClientProfileUpdateRequest request)
+    {
+        var userId = GetCurrentUserId();
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        var result = await _clientProfileService.UpdateMyAsync(userId.Value, request);
+        return Ok(result);
+    }
+
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -52,6 +88,7 @@ public class ClientProfileController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -59,5 +96,11 @@ public class ClientProfileController : ControllerBase
     {
         await _clientProfileService.DeleteAsync(id);
         return NoContent();
+    }
+
+    private int? GetCurrentUserId()
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return int.TryParse(userIdClaim, out var userId) ? userId : null;
     }
 }

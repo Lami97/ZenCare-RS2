@@ -10,7 +10,6 @@ using ZenCare.Services.Interfaces;
 namespace ZenCare.WebAPI.Controllers;
 
 [ApiController]
-[Authorize(Roles = "Client,Admin")]
 [Route("[controller]")]
 public class PurchaseController : ControllerBase
 {
@@ -58,6 +57,7 @@ public class PurchaseController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpGet]
     public async Task<ActionResult<PagedResult<PurchaseResponse>>> GetAll([FromQuery] PurchaseSearchObject? search)
     {
@@ -65,6 +65,7 @@ public class PurchaseController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpGet("{id}")]
     public async Task<ActionResult<PurchaseResponse>> GetById(int id)
     {
@@ -72,6 +73,7 @@ public class PurchaseController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -136,6 +138,7 @@ public class PurchaseController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -182,6 +185,7 @@ public class PurchaseController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

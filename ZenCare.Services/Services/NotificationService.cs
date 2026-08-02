@@ -14,6 +14,31 @@ namespace ZenCare.Services.Services
         {
         }
 
+        public async Task<PagedResult<NotificationResponse>> GetMyAsync(int userId, NotificationSearchObject? search)
+        {
+            var query = DbContext.Notifications
+                .Include(n => n.User)
+                .Where(n => n.UserId == userId);
+
+            query = ApplyFilters(query, search);
+
+            return await CreatePagedResultAsync(query, search);
+        }
+
+        public async Task<NotificationResponse> GetMyByIdAsync(int id, int userId)
+        {
+            var entity = await DbContext.Notifications
+                .Include(n => n.User)
+                .FirstOrDefaultAsync(n => n.Id == id && n.UserId == userId);
+
+            if (entity == null)
+            {
+                throw new BusinessException("Notification was not found.");
+            }
+
+            return Mapper.Map<NotificationResponse>(entity);
+        }
+
         public override async Task<NotificationResponse> GetByIdAsync(int id)
         {
             var entity = await DbContext.Notifications
@@ -56,6 +81,24 @@ namespace ZenCare.Services.Services
             query = query.Include(n => n.User);
 
             return Task.FromResult(query);
+        }
+
+        private async Task<PagedResult<NotificationResponse>> CreatePagedResultAsync(IQueryable<Database.Notification> query, NotificationSearchObject? search)
+        {
+            int? totalCount = null;
+
+            if (search?.IncludeTotalCount == true)
+            {
+                totalCount = await query.CountAsync();
+            }
+
+            var entities = await query.ToListAsync();
+
+            return new PagedResult<NotificationResponse>
+            {
+                Items = Mapper.Map<List<NotificationResponse>>(entities),
+                TotalCount = totalCount
+            };
         }
     }
 }

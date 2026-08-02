@@ -14,6 +14,42 @@ namespace ZenCare.Services.Services
         {
         }
 
+        public async Task<CartResponse> GetMyAsync(int userId)
+        {
+            var entity = await DbContext.Carts
+                .Include(c => c.User)
+                .FirstOrDefaultAsync(c => c.UserId == userId);
+
+            if (entity == null)
+            {
+                throw new BusinessException("Cart was not found.");
+            }
+
+            return Mapper.Map<CartResponse>(entity);
+        }
+
+        public async Task<CartResponse> CreateMyAsync(int userId, CartInsertRequest request)
+        {
+            request.UserId = userId;
+            return await InsertAsync(request);
+        }
+
+        public async Task<CartResponse> UpdateMyAsync(int id, int userId, CartUpdateRequest request)
+        {
+            await EnsureCartBelongsToUserAsync(id, userId);
+
+            request.Id = id;
+            request.UserId = userId;
+
+            return await UpdateAsync(id, request);
+        }
+
+        public async Task DeleteMyAsync(int id, int userId)
+        {
+            await EnsureCartBelongsToUserAsync(id, userId);
+            await DeleteAsync(id);
+        }
+
         public override async Task<CartResponse> GetByIdAsync(int id)
         {
             var entity = await DbContext.Carts
@@ -46,6 +82,16 @@ namespace ZenCare.Services.Services
             query = query.Include(c => c.User);
 
             return Task.FromResult(query);
+        }
+
+        private async Task EnsureCartBelongsToUserAsync(int id, int userId)
+        {
+            var exists = await DbContext.Carts.AnyAsync(c => c.Id == id && c.UserId == userId);
+
+            if (!exists)
+            {
+                throw new BusinessException("Cart was not found.");
+            }
         }
     }
 }

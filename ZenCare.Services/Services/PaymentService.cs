@@ -20,6 +20,31 @@ namespace ZenCare.Services.Services
             _configuration = configuration;
         }
 
+        public async Task<PagedResult<PaymentResponse>> GetMyAsync(int userId, PaymentSearchObject? search)
+        {
+            var query = DbContext.Payments
+                .Include(p => p.User)
+                .Where(p => p.UserId == userId);
+
+            query = ApplyFilters(query, search);
+
+            return await CreatePagedResultAsync(query, search);
+        }
+
+        public async Task<PaymentResponse> GetMyByIdAsync(int id, int userId)
+        {
+            var entity = await DbContext.Payments
+                .Include(p => p.User)
+                .FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
+
+            if (entity == null)
+            {
+                throw new BusinessException("Payment was not found.");
+            }
+
+            return Mapper.Map<PaymentResponse>(entity);
+        }
+
         public async Task<PaymentIntentResponse> CreatePaymentIntentAsync(int purchaseId, int userId)
         {
             var stripeSecretKey = GetStripeSecretKey();
@@ -333,6 +358,24 @@ namespace ZenCare.Services.Services
             query = query.Include(p => p.User);
 
             return Task.FromResult(query);
+        }
+
+        private async Task<PagedResult<PaymentResponse>> CreatePagedResultAsync(IQueryable<Database.Payment> query, PaymentSearchObject? search)
+        {
+            int? totalCount = null;
+
+            if (search?.IncludeTotalCount == true)
+            {
+                totalCount = await query.CountAsync();
+            }
+
+            var entities = await query.ToListAsync();
+
+            return new PagedResult<PaymentResponse>
+            {
+                Items = Mapper.Map<List<PaymentResponse>>(entities),
+                TotalCount = totalCount
+            };
         }
 
         private string GetStripeSecretKey()

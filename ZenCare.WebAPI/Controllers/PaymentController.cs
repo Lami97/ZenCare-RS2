@@ -10,7 +10,6 @@ using ZenCare.Services.Interfaces;
 namespace ZenCare.WebAPI.Controllers;
 
 [ApiController]
-[Authorize(Roles = "Client,Admin")]
 [Route("[controller]")]
 public class PaymentController : ControllerBase
 {
@@ -111,6 +110,37 @@ public class PaymentController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "Client")]
+    [HttpGet("My")]
+    public async Task<ActionResult<PagedResult<PaymentResponse>>> GetMy([FromQuery] PaymentSearchObject? search)
+    {
+        var userId = GetCurrentUserId();
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        var result = await _paymentService.GetMyAsync(userId.Value, search);
+        return Ok(result);
+    }
+
+    [Authorize(Roles = "Client")]
+    [HttpGet("My/{id}")]
+    public async Task<ActionResult<PaymentResponse>> GetMyById(int id)
+    {
+        var userId = GetCurrentUserId();
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        var result = await _paymentService.GetMyByIdAsync(id, userId.Value);
+        return Ok(result);
+    }
+
+    [Authorize(Roles = "Admin")]
     [HttpGet]
     public async Task<ActionResult<PagedResult<PaymentResponse>>> GetAll([FromQuery] PaymentSearchObject? search)
     {
@@ -118,6 +148,7 @@ public class PaymentController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpGet("{id}")]
     public async Task<ActionResult<PaymentResponse>> GetById(int id)
     {
@@ -125,6 +156,7 @@ public class PaymentController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -134,6 +166,7 @@ public class PaymentController : ControllerBase
         return result;
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -144,6 +177,7 @@ public class PaymentController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -156,7 +190,6 @@ public class PaymentController : ControllerBase
     private int? GetCurrentUserId()
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
         return int.TryParse(userIdClaim, out var userId) ? userId : null;
     }
 }

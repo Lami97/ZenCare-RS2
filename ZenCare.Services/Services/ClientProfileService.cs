@@ -14,6 +14,36 @@ namespace ZenCare.Services.Services
         {
         }
 
+        public async Task<ClientProfileResponse> GetMyAsync(int userId)
+        {
+            var entity = await DbContext.ClientProfiles
+                .Include(cp => cp.User)
+                .FirstOrDefaultAsync(cp => cp.UserId == userId);
+
+            if (entity == null)
+            {
+                throw new BusinessException("Client profile was not found.");
+            }
+
+            return Mapper.Map<ClientProfileResponse>(entity);
+        }
+
+        public async Task<ClientProfileResponse> UpdateMyAsync(int userId, ClientProfileUpdateRequest request)
+        {
+            var entity = await DbContext.ClientProfiles
+                .FirstOrDefaultAsync(cp => cp.UserId == userId);
+
+            if (entity == null)
+            {
+                throw new BusinessException("Client profile was not found.");
+            }
+
+            request.Id = entity.Id;
+            request.UserId = userId;
+
+            return await UpdateAsync(entity.Id, request);
+        }
+
         public override async Task<ClientProfileResponse> GetByIdAsync(int id)
         {
             var entity = await DbContext.ClientProfiles

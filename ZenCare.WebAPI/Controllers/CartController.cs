@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
 using ZenCare.Model.SearchObjects;
@@ -8,7 +9,6 @@ using ZenCare.Services.Interfaces;
 namespace ZenCare.WebAPI.Controllers;
 
 [ApiController]
-[Authorize(Roles = "Client,Admin")]
 [Route("[controller]")]
 public class CartController : ControllerBase
 {
@@ -19,6 +19,22 @@ public class CartController : ControllerBase
         _cartService = cartService;
     }
 
+    [Authorize(Roles = "Client")]
+    [HttpGet("My")]
+    public async Task<ActionResult<CartResponse>> GetMy()
+    {
+        var userId = GetCurrentUserId();
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        var result = await _cartService.GetMyAsync(userId.Value);
+        return Ok(result);
+    }
+
+    [Authorize(Roles = "Admin")]
     [HttpGet]
     public async Task<ActionResult<PagedResult<CartResponse>>> GetAll([FromQuery] CartSearchObject? search)
     {
@@ -26,6 +42,7 @@ public class CartController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpGet("{id}")]
     public async Task<ActionResult<CartResponse>> GetById(int id)
     {
@@ -33,6 +50,24 @@ public class CartController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Client")]
+    [HttpPost("My")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<CartResponse>> CreateMy([FromBody] CartInsertRequest request)
+    {
+        var userId = GetCurrentUserId();
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        var result = await _cartService.CreateMyAsync(userId.Value, request);
+        return result;
+    }
+
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -42,6 +77,24 @@ public class CartController : ControllerBase
         return result;
     }
 
+    [Authorize(Roles = "Client")]
+    [HttpPut("My/{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<CartResponse>> UpdateMy(int id, [FromBody] CartUpdateRequest request)
+    {
+        var userId = GetCurrentUserId();
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        var result = await _cartService.UpdateMyAsync(id, userId.Value, request);
+        return Ok(result);
+    }
+
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -52,6 +105,23 @@ public class CartController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Client")]
+    [HttpDelete("My/{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> DeleteMy(int id)
+    {
+        var userId = GetCurrentUserId();
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        await _cartService.DeleteMyAsync(id, userId.Value);
+        return NoContent();
+    }
+
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -59,5 +129,11 @@ public class CartController : ControllerBase
     {
         await _cartService.DeleteAsync(id);
         return NoContent();
+    }
+
+    private int? GetCurrentUserId()
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return int.TryParse(userIdClaim, out var userId) ? userId : null;
     }
 }

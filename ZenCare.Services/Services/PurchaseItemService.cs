@@ -14,6 +14,27 @@ namespace ZenCare.Services.Services
         {
         }
 
+        public async Task<PagedResult<PurchaseItemResponse>> GetMyAsync(int userId, PurchaseItemSearchObject? search)
+        {
+            var query = GetOwnedPurchaseItemQuery(userId);
+            query = ApplyFilters(query, search);
+
+            return await CreatePagedResultAsync(query, search);
+        }
+
+        public async Task<PurchaseItemResponse> GetMyByIdAsync(int id, int userId)
+        {
+            var entity = await GetOwnedPurchaseItemQuery(userId)
+                .FirstOrDefaultAsync(pi => pi.Id == id);
+
+            if (entity == null)
+            {
+                throw new BusinessException("Purchase item was not found.");
+            }
+
+            return Mapper.Map<PurchaseItemResponse>(entity);
+        }
+
         public override async Task<PurchaseItemResponse> GetByIdAsync(int id)
         {
             var entity = await DbContext.PurchaseItems
@@ -54,6 +75,32 @@ namespace ZenCare.Services.Services
                 .Include(pi => pi.Product);
 
             return Task.FromResult(query);
+        }
+
+        private IQueryable<Database.PurchaseItem> GetOwnedPurchaseItemQuery(int userId)
+        {
+            return DbContext.PurchaseItems
+                .Include(pi => pi.Purchase)
+                .Include(pi => pi.Product)
+                .Where(pi => pi.Purchase.UserId == userId);
+        }
+
+        private async Task<PagedResult<PurchaseItemResponse>> CreatePagedResultAsync(IQueryable<Database.PurchaseItem> query, PurchaseItemSearchObject? search)
+        {
+            int? totalCount = null;
+
+            if (search?.IncludeTotalCount == true)
+            {
+                totalCount = await query.CountAsync();
+            }
+
+            var entities = await query.ToListAsync();
+
+            return new PagedResult<PurchaseItemResponse>
+            {
+                Items = Mapper.Map<List<PurchaseItemResponse>>(entities),
+                TotalCount = totalCount
+            };
         }
     }
 }
