@@ -14,7 +14,9 @@ import 'services/cart_service.dart';
 import 'services/auth_service.dart';
 import 'services/product_service.dart';
 import 'services/purchase_service.dart';
+import 'services/recommendation_service.dart';
 import 'services/review_service.dart';
+import 'services/wellness_service_service.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -51,6 +53,12 @@ class ZenCareApp extends StatelessWidget {
         ),
         ProxyProvider<ApiService, ReviewService>(
           update: (_, apiService, __) => ReviewService(apiService),
+        ),
+        ProxyProvider<ApiService, RecommendationService>(
+          update: (_, apiService, __) => RecommendationService(apiService),
+        ),
+        ProxyProvider<ApiService, WellnessServiceService>(
+          update: (_, apiService, __) => WellnessServiceService(apiService),
         ),
         ChangeNotifierProxyProvider2<CartService, ProductService, CartProvider>(
           create: (context) => CartProvider(

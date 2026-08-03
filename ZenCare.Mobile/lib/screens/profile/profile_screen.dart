@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
+import '../recommendations/recommendations_screen.dart';
 import '../reviews/reviews_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -78,6 +79,16 @@ class _ProfileView extends StatelessWidget {
                     },
                     icon: const Icon(Icons.rate_review_outlined),
                     label: const Text('My reviews'),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(builder: (_) => const RecommendationsScreen()),
+                      );
+                    },
+                    icon: const Icon(Icons.auto_awesome_outlined),
+                    label: const Text('Recommendations'),
                   ),
                   const SizedBox(height: 12),
                   FilledButton.icon(
