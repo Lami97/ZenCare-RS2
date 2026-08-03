@@ -1,15 +1,19 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'core/app_theme.dart';
 import 'providers/auth_provider.dart';
+import 'providers/cart_provider.dart';
+import 'providers/purchase_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/splash_screen.dart';
 import 'services/api_service.dart';
 import 'services/appointment_service.dart';
+import 'services/cart_service.dart';
 import 'services/auth_service.dart';
 import 'services/product_service.dart';
+import 'services/purchase_service.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -37,6 +41,24 @@ class ZenCareApp extends StatelessWidget {
         ),
         ProxyProvider<ApiService, AppointmentService>(
           update: (_, apiService, __) => AppointmentService(apiService),
+        ),
+        ProxyProvider<ApiService, CartService>(
+          update: (_, apiService, __) => CartService(apiService),
+        ),
+        ProxyProvider<ApiService, PurchaseService>(
+          update: (_, apiService, __) => PurchaseService(apiService),
+        ),
+        ChangeNotifierProxyProvider2<CartService, ProductService, CartProvider>(
+          create: (context) => CartProvider(
+            context.read<CartService>(),
+            context.read<ProductService>(),
+          ),
+          update: (_, cartService, productService, cartProvider) =>
+              cartProvider ?? CartProvider(cartService, productService),
+        ),
+        ChangeNotifierProxyProvider<PurchaseService, PurchaseProvider>(
+          create: (context) => PurchaseProvider(context.read<PurchaseService>()),
+          update: (_, purchaseService, purchaseProvider) => purchaseProvider ?? PurchaseProvider(purchaseService),
         ),
         ChangeNotifierProxyProvider2<AuthService, ApiService, AuthProvider>(
           create: (_) => AuthProvider(),

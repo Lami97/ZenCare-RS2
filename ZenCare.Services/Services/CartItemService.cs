@@ -37,7 +37,29 @@ namespace ZenCare.Services.Services
 
         public async Task<CartItemResponse> CreateMyAsync(int userId, CartItemInsertRequest request)
         {
+            if (request.Quantity <= 0)
+            {
+                throw new BusinessException("Quantity must be greater than zero.");
+            }
+
             await EnsureCartBelongsToUserAsync(request.CartId, userId);
+
+            var existingItem = await DbContext.CartItems
+                .Include(ci => ci.Cart)
+                    .ThenInclude(c => c.User)
+                .Include(ci => ci.Product)
+                .FirstOrDefaultAsync(ci => ci.CartId == request.CartId && ci.ProductId == request.ProductId);
+
+            if (existingItem != null)
+            {
+                existingItem.Quantity += request.Quantity;
+                existingItem.UpdatedAt = DateTime.UtcNow;
+
+                await DbContext.SaveChangesAsync();
+
+                return Mapper.Map<CartItemResponse>(existingItem);
+            }
+
             return await InsertAsync(request);
         }
 

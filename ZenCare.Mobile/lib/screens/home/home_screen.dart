@@ -1,8 +1,9 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../appointments/appointments_screen.dart';
+import '../cart/cart_screen.dart';
 import '../products/products_screen.dart';
 import '../profile/profile_screen.dart';
 
@@ -21,6 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final screens = [
       const _HomeTab(),
       const ProductsScreen(),
+      const CartScreen(),
       const AppointmentsScreen(),
       const ProfileScreen(),
     ];
@@ -54,6 +56,11 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.spa_outlined),
             selectedIcon: Icon(Icons.spa),
             label: 'Products',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.shopping_cart_outlined),
+            selectedIcon: Icon(Icons.shopping_cart),
+            label: 'Cart',
           ),
           NavigationDestination(
             icon: Icon(Icons.calendar_month_outlined),

@@ -1,14 +1,16 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/product.dart';
+import '../../providers/cart_provider.dart';
 import '../../services/product_service.dart';
 import '../../utils/api_exception.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
-  const ProductDetailsScreen({super.key, required this.product});
+  const ProductDetailsScreen({super.key, required this.product, this.onBack});
 
   final Product product;
+  final VoidCallback? onBack;
 
   @override
   State<ProductDetailsScreen> createState() => _ProductDetailsScreenState();
@@ -36,7 +38,16 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Product details')),
+      appBar: AppBar(
+        title: const Text('Product details'),
+        leading: widget.onBack == null
+            ? null
+            : IconButton(
+                tooltip: 'Back to products',
+                onPressed: widget.onBack,
+                icon: const Icon(Icons.arrow_back),
+              ),
+      ),
       body: FutureBuilder<Product>(
         future: _productFuture,
         builder: (context, snapshot) {
@@ -59,14 +70,53 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   }
 }
 
-class _ProductDetailsContent extends StatelessWidget {
+class _ProductDetailsContent extends StatefulWidget {
   const _ProductDetailsContent({required this.product});
 
   final Product product;
 
   @override
+  State<_ProductDetailsContent> createState() => _ProductDetailsContentState();
+}
+
+class _ProductDetailsContentState extends State<_ProductDetailsContent> {
+  bool _isAddingToCart = false;
+
+  Product get product => widget.product;
+
+  Future<void> _addToCart() async {
+    setState(() {
+      _isAddingToCart = true;
+    });
+
+    try {
+      await context.read<CartProvider>().addProduct(product);
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${product.name} added to cart.')),
+      );
+    } on ApiException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message)),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isAddingToCart = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final canAddToCart = product.isActive && product.stockQuantity > 0;
 
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -110,6 +160,21 @@ class _ProductDetailsContent extends StatelessWidget {
             ),
             _DetailsRow(label: 'Status', value: product.isActive ? 'Active' : 'Inactive'),
           ],
+        ),
+        const SizedBox(height: 20),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            onPressed: canAddToCart && !_isAddingToCart ? _addToCart : null,
+            icon: _isAddingToCart
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.add_shopping_cart),
+            label: Text(canAddToCart ? 'Add to cart' : 'Out of stock'),
+          ),
         ),
       ],
     );

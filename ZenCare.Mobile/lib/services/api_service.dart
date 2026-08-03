@@ -75,6 +75,32 @@ class ApiService {
     }
   }
 
+  Future<T> put<T>(
+    String path, {
+    Object? data,
+    required T Function(dynamic data) fromJson,
+  }) async {
+    try {
+      final response = await _dio.put<dynamic>(path, data: data);
+      return fromJson(response.data);
+    } on DioException catch (error) {
+      throw _toApiException(error);
+    }
+  }
+
+  Future<T> delete<T>(
+    String path, {
+    Object? data,
+    required T Function(dynamic data) fromJson,
+  }) async {
+    try {
+      final response = await _dio.delete<dynamic>(path, data: data);
+      return fromJson(response.data);
+    } on DioException catch (error) {
+      throw _toApiException(error);
+    }
+  }
+
   ApiException _toApiException(DioException error) {
     final statusCode = error.response?.statusCode;
     final data = error.response?.data;

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/category.dart';
@@ -7,20 +7,61 @@ import '../../providers/product_provider.dart';
 import '../../services/product_service.dart';
 import 'product_details_screen.dart';
 
-class ProductsScreen extends StatelessWidget {
+class ProductsScreen extends StatefulWidget {
   const ProductsScreen({super.key});
+
+  @override
+  State<ProductsScreen> createState() => _ProductsScreenState();
+}
+
+class _ProductsScreenState extends State<ProductsScreen> {
+  Product? _selectedProduct;
+
+  void _openDetails(Product product) {
+    setState(() {
+      _selectedProduct = product;
+    });
+  }
+
+  void _closeDetails() {
+    setState(() {
+      _selectedProduct = null;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<ProductProvider>(
       create: (context) => ProductProvider(context.read<ProductService>())..loadInitial(),
-      child: const _ProductsView(),
+      child: PopScope(
+        canPop: _selectedProduct == null,
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop && _selectedProduct != null) {
+            _closeDetails();
+          }
+        },
+        child: IndexedStack(
+          index: _selectedProduct == null ? 0 : 1,
+          children: [
+            _ProductsView(onProductSelected: _openDetails),
+            if (_selectedProduct == null)
+              const SizedBox.shrink()
+            else
+              ProductDetailsScreen(
+                product: _selectedProduct!,
+                onBack: _closeDetails,
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
 
 class _ProductsView extends StatefulWidget {
-  const _ProductsView();
+  const _ProductsView({required this.onProductSelected});
+
+  final ValueChanged<Product> onProductSelected;
 
   @override
   State<_ProductsView> createState() => _ProductsViewState();
@@ -150,7 +191,10 @@ class _ProductsViewState extends State<_ProductsView> {
                 itemCount: provider.products.length,
                 itemBuilder: (context, index) {
                   final product = provider.products[index];
-                  return _ProductCard(product: product);
+                  return _ProductCard(
+                    product: product,
+                    onTap: () => widget.onProductSelected(product),
+                  );
                 },
               ),
             ),
@@ -221,9 +265,10 @@ class _CategoryFilter extends StatelessWidget {
 }
 
 class _ProductCard extends StatelessWidget {
-  const _ProductCard({required this.product});
+  const _ProductCard({required this.product, required this.onTap});
 
   final Product product;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -232,13 +277,7 @@ class _ProductCard extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => ProductDetailsScreen(product: product),
-            ),
-          );
-        },
+        onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
