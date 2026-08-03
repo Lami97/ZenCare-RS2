@@ -1,8 +1,9 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
+import '../reviews/reviews_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -69,6 +70,16 @@ class _ProfileView extends StatelessWidget {
                 delegate: SliverChildListDelegate([
                   _ProfileCard(profile: provider.profile!),
                   const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(builder: (_) => const ReviewsScreen()),
+                      );
+                    },
+                    icon: const Icon(Icons.rate_review_outlined),
+                    label: const Text('My reviews'),
+                  ),
+                  const SizedBox(height: 12),
                   FilledButton.icon(
                     onPressed: () => context.read<AuthProvider>().logout(),
                     icon: const Icon(Icons.logout),

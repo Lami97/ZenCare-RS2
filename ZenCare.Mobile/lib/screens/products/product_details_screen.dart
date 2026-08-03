@@ -5,6 +5,7 @@ import '../../models/product.dart';
 import '../../providers/cart_provider.dart';
 import '../../services/product_service.dart';
 import '../../utils/api_exception.dart';
+import '../reviews/create_review_screen.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
   const ProductDetailsScreen({super.key, required this.product, this.onBack});
@@ -174,6 +175,24 @@ class _ProductDetailsContentState extends State<_ProductDetailsContent> {
                   )
                 : const Icon(Icons.add_shopping_cart),
             label: Text(canAddToCart ? 'Add to cart' : 'Out of stock'),
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<bool>(
+                  builder: (_) => CreateReviewScreen(
+                    productId: product.id,
+                    targetName: product.name,
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.rate_review_outlined),
+            label: const Text('Review product'),
           ),
         ),
       ],

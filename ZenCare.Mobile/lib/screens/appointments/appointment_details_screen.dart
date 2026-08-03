@@ -1,9 +1,11 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/appointment.dart';
+import '../../models/appointment_status.dart';
 import '../../services/appointment_service.dart';
 import '../../utils/api_exception.dart';
+import '../reviews/create_review_screen.dart';
 
 class AppointmentDetailsScreen extends StatefulWidget {
   const AppointmentDetailsScreen({super.key, required this.appointmentId});
@@ -94,6 +96,30 @@ class _DetailsContent extends StatelessWidget {
                 _DetailsRow(label: 'Notes', value: appointment.notes ?? '-'),
                 _DetailsRow(label: 'Cancellation reason', value: appointment.cancellationReason ?? '-'),
               ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: appointment.status == AppointmentStatus.completed
+                ? () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<bool>(
+                        builder: (_) => CreateReviewScreen(
+                          appointmentId: appointment.id,
+                          targetName: appointment.serviceName,
+                        ),
+                      ),
+                    );
+                  }
+                : null,
+            icon: const Icon(Icons.rate_review_outlined),
+            label: Text(
+              appointment.status == AppointmentStatus.completed
+                  ? 'Review appointment'
+                  : 'Review available after completion',
             ),
           ),
         ),
