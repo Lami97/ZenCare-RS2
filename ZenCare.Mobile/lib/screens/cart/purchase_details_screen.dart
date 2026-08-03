@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_stripe/flutter_stripe.dart' hide Card;
 import 'package:provider/provider.dart';
 
 import '../../models/purchase.dart';
 import '../../models/purchase_item.dart';
+import '../../services/payment_service.dart';
 import '../../services/purchase_service.dart';
 import '../../utils/api_exception.dart';
 
@@ -22,6 +24,8 @@ class PurchaseDetailsScreen extends StatefulWidget {
 
 class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
   late Future<Purchase> _purchaseFuture;
+  bool _isPaying = false;
+  bool _isRefunding = false;
 
   @override
   void initState() {
@@ -37,6 +41,137 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
     setState(() {
       _purchaseFuture = _loadPurchase();
     });
+  }
+
+  void _reloadPurchase() {
+    setState(() {
+      _purchaseFuture = _loadPurchase();
+    });
+  }
+
+  Future<void> _pay(Purchase purchase) async {
+    final paymentService = context.read<PaymentService>();
+    final messenger = ScaffoldMessenger.of(context);
+
+    setState(() {
+      _isPaying = true;
+    });
+
+    try {
+      final intent = await paymentService.createPaymentIntent(purchase.id);
+
+      await Stripe.instance.initPaymentSheet(
+        paymentSheetParameters: SetupPaymentSheetParameters(
+          paymentIntentClientSecret: intent.clientSecret,
+          merchantDisplayName: 'ZenCare',
+        ),
+      );
+
+      await Stripe.instance.presentPaymentSheet();
+      await paymentService.confirmPayment(purchase.id);
+
+      if (!mounted) {
+        return;
+      }
+
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Payment completed successfully.')),
+      );
+      _reloadPurchase();
+    } on StripeException catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      final message = error.error.code == FailureCode.Canceled
+          ? 'Payment was cancelled.'
+          : 'Payment could not be completed.';
+      messenger.showSnackBar(SnackBar(content: Text(message)));
+    } on ApiException catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      messenger.showSnackBar(SnackBar(content: Text(error.message)));
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Payment could not be completed.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPaying = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _refund(Purchase purchase) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Refund payment'),
+        content: const Text('Do you want to refund this payment?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Refund'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted || confirmed != true) {
+      return;
+    }
+
+    final paymentService = context.read<PaymentService>();
+    final messenger = ScaffoldMessenger.of(context);
+
+    setState(() {
+      _isRefunding = true;
+    });
+
+    try {
+      await paymentService.refundPayment(purchase.id);
+
+      if (!mounted) {
+        return;
+      }
+
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Payment refunded successfully.')),
+      );
+      _reloadPurchase();
+    } on ApiException catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      messenger.showSnackBar(SnackBar(content: Text(error.message)));
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Refund could not be completed.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRefunding = false;
+        });
+      }
+    }
   }
 
   @override
@@ -60,7 +195,13 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
           }
 
           final purchase = snapshot.data ?? widget.initialPurchase!;
-          return _PurchaseDetailsContent(purchase: purchase);
+          return _PurchaseDetailsContent(
+            purchase: purchase,
+            isPaying: _isPaying,
+            isRefunding: _isRefunding,
+            onPay: _isPaying || _isRefunding ? null : () => _pay(purchase),
+            onRefund: _isPaying || _isRefunding ? null : () => _refund(purchase),
+          );
         },
       ),
     );
@@ -68,9 +209,19 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
 }
 
 class _PurchaseDetailsContent extends StatelessWidget {
-  const _PurchaseDetailsContent({required this.purchase});
+  const _PurchaseDetailsContent({
+    required this.purchase,
+    required this.isPaying,
+    required this.isRefunding,
+    this.onPay,
+    this.onRefund,
+  });
 
   final Purchase purchase;
+  final bool isPaying;
+  final bool isRefunding;
+  final VoidCallback? onPay;
+  final VoidCallback? onRefund;
 
   @override
   Widget build(BuildContext context) {
@@ -99,6 +250,39 @@ class _PurchaseDetailsContent extends StatelessWidget {
             ),
           ),
         ),
+        if (purchase.canPay) ...[
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: onPay,
+              icon: isPaying
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.payment),
+              label: const Text('Pay now'),
+            ),
+          ),
+        ] else if (purchase.canRefund) ...[
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: onRefund,
+              icon: isRefunding
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.undo),
+              label: const Text('Refund payment'),
+            ),
+          ),
+        ],
         const SizedBox(height: 16),
         Text(
           'Items',

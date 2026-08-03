@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:provider/provider.dart';
 
+import 'core/app_config.dart';
 import 'core/app_theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/cart_provider.dart';
@@ -12,6 +14,7 @@ import 'services/api_service.dart';
 import 'services/appointment_service.dart';
 import 'services/cart_service.dart';
 import 'services/auth_service.dart';
+import 'services/payment_service.dart';
 import 'services/product_service.dart';
 import 'services/purchase_service.dart';
 import 'services/recommendation_service.dart';
@@ -20,8 +23,10 @@ import 'services/wellness_service_service.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  Stripe.publishableKey = AppConfig.stripePublishableKey;
+  await Stripe.instance.applySettings();
   runApp(const ZenCareApp());
 }
 
@@ -50,6 +55,9 @@ class ZenCareApp extends StatelessWidget {
         ),
         ProxyProvider<ApiService, PurchaseService>(
           update: (_, apiService, __) => PurchaseService(apiService),
+        ),
+        ProxyProvider<ApiService, PaymentService>(
+          update: (_, apiService, __) => PaymentService(apiService),
         ),
         ProxyProvider<ApiService, ReviewService>(
           update: (_, apiService, __) => ReviewService(apiService),
