@@ -77,16 +77,23 @@ public partial class ProductCategoryForm : Form
     {
         var search = new ProductCategorySearchObject
         {
-            Name = string.IsNullOrWhiteSpace(txtName.Text) ? null : txtName.Text
+            Name = string.IsNullOrWhiteSpace(txtName.Text) ? null : txtName.Text,
+            IsActive = chkIsActive.Checked ? true : null
         };
 
-        var endpoint = "ProductCategory";
+        var query = new List<string>();
 
         if (!string.IsNullOrWhiteSpace(search.Name))
         {
-            endpoint += $"?Name={Uri.EscapeDataString(search.Name)}";
+            query.Add($"Name={Uri.EscapeDataString(search.Name)}");
         }
 
+        if (search.IsActive.HasValue)
+        {
+            query.Add($"IsActive={search.IsActive.Value}");
+        }
+
+        var endpoint = query.Count == 0 ? "ProductCategory" : $"ProductCategory?{string.Join("&", query)}";
         var result = await _apiService.Get<PagedResult<ProductCategoryResponse>>(endpoint);
         dgvProductCategories.DataSource = result?.Items ?? new List<ProductCategoryResponse>();
     }
