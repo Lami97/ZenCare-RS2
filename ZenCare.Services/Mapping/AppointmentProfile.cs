@@ -11,7 +11,8 @@ namespace ZenCare.Services.Mapping
             CreateMap<Database.Appointment, AppointmentResponse>()
                 .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User.Username))
                 .ForMember(dest => dest.EmployeeName, opt => opt.MapFrom(src => src.Employee.User.Username))
-                .ForMember(dest => dest.ServiceName, opt => opt.MapFrom(src => src.WellnessService.Name));
+                .ForMember(dest => dest.ServiceName, opt => opt.MapFrom(src => src.WellnessService.Name))
+                .ForMember(dest => dest.ServiceCategoryName, opt => opt.MapFrom(src => src.WellnessService.ServiceCategory.Name));
             CreateMap<AppointmentInsertRequest, Database.Appointment>();
             CreateMap<AppointmentUpdateRequest, Database.Appointment>();
         }

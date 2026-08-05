@@ -176,6 +176,7 @@ namespace ZenCare.Services.Services
                 .Include(a => a.Employee)
                     .ThenInclude(e => e.User)
                 .Include(a => a.WellnessService)
+                    .ThenInclude(s => s.ServiceCategory)
                 .FirstOrDefaultAsync(a => a.Id == id);
 
             if (entity == null)
@@ -225,7 +226,8 @@ namespace ZenCare.Services.Services
                 .Include(a => a.User)
                 .Include(a => a.Employee)
                     .ThenInclude(e => e.User)
-                .Include(a => a.WellnessService);
+                .Include(a => a.WellnessService)
+                    .ThenInclude(s => s.ServiceCategory);
 
             return Task.FromResult(query);
         }
@@ -242,6 +244,7 @@ namespace ZenCare.Services.Services
                 .Include(a => a.Employee)
                     .ThenInclude(e => e.User)
                 .Include(a => a.WellnessService)
+                    .ThenInclude(s => s.ServiceCategory)
                 .FirstOrDefaultAsync(a => a.Id == id && a.UserId == userId);
 
             if (entity == null)

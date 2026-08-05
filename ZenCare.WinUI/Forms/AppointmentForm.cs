@@ -197,6 +197,7 @@ public partial class AppointmentForm : Form
             items = items
                 .Where(x => x.UserName.Contains(txtSearch.Text, StringComparison.OrdinalIgnoreCase)
                     || x.EmployeeName.Contains(txtSearch.Text, StringComparison.OrdinalIgnoreCase)
+                    || x.ServiceCategoryName.Contains(txtSearch.Text, StringComparison.OrdinalIgnoreCase)
                     || x.ServiceName.Contains(txtSearch.Text, StringComparison.OrdinalIgnoreCase)
                     || x.Status.ToString().Contains(txtSearch.Text, StringComparison.OrdinalIgnoreCase)
                     || (!string.IsNullOrWhiteSpace(x.Notes) && x.Notes.Contains(txtSearch.Text, StringComparison.OrdinalIgnoreCase)))

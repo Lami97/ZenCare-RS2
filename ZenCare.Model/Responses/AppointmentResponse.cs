@@ -11,6 +11,7 @@ namespace ZenCare.Model.Responses
         public string EmployeeName { get; set; } = string.Empty;
         public int WellnessServiceId { get; set; }
         public string ServiceName { get; set; } = string.Empty;
+        public string ServiceCategoryName { get; set; } = string.Empty;
         public DateTime AppointmentDate { get; set; }
         public TimeSpan StartTime { get; set; }
         public TimeSpan EndTime { get; set; }

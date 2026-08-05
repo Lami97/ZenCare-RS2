@@ -41,6 +41,7 @@ partial class AppointmentForm
         dgvAppointments = new DataGridView();
         colUserName = new DataGridViewTextBoxColumn();
         colEmployeeName = new DataGridViewTextBoxColumn();
+        colServiceCategoryName = new DataGridViewTextBoxColumn();
         colServiceName = new DataGridViewTextBoxColumn();
         colAppointmentDate = new DataGridViewTextBoxColumn();
         colStartTime = new DataGridViewTextBoxColumn();
@@ -201,9 +202,9 @@ partial class AppointmentForm
         lblUser.AutoSize = true;
         lblUser.Location = new Point(24, 66);
         lblUser.Name = "lblUser";
-        lblUser.Size = new Size(30, 15);
+        lblUser.Size = new Size(38, 15);
         lblUser.TabIndex = 5;
-        lblUser.Text = "User";
+        lblUser.Text = "Client";
         // 
         // btnRefresh
         // 
@@ -262,7 +263,7 @@ partial class AppointmentForm
         dgvAppointments.AutoGenerateColumns = false;
         dgvAppointments.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         dgvAppointments.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-        dgvAppointments.Columns.AddRange(new DataGridViewColumn[] { colUserName, colEmployeeName, colServiceName, colAppointmentDate, colStartTime, colEndTime, colStatus, colNotes, colCancellationReason });
+        dgvAppointments.Columns.AddRange(new DataGridViewColumn[] { colUserName, colEmployeeName, colServiceCategoryName, colServiceName, colAppointmentDate, colStartTime, colEndTime, colStatus, colNotes, colCancellationReason });
         dgvAppointments.Dock = DockStyle.Fill;
         dgvAppointments.Location = new Point(0, 148);
         dgvAppointments.MultiSelect = false;
@@ -283,6 +284,10 @@ partial class AppointmentForm
         colEmployeeName.HeaderText = "Employee";
         colEmployeeName.Name = "colEmployeeName";
         colEmployeeName.ReadOnly = true;
+        colServiceCategoryName.DataPropertyName = "ServiceCategoryName";
+        colServiceCategoryName.HeaderText = "Service category";
+        colServiceCategoryName.Name = "colServiceCategoryName";
+        colServiceCategoryName.ReadOnly = true;
         colServiceName.DataPropertyName = "ServiceName";
         colServiceName.HeaderText = "Service";
         colServiceName.Name = "colServiceName";
@@ -354,6 +359,7 @@ partial class AppointmentForm
     private DataGridView dgvAppointments;
     private DataGridViewTextBoxColumn colUserName;
     private DataGridViewTextBoxColumn colEmployeeName;
+    private DataGridViewTextBoxColumn colServiceCategoryName;
     private DataGridViewTextBoxColumn colServiceName;
     private DataGridViewTextBoxColumn colAppointmentDate;
     private DataGridViewTextBoxColumn colStartTime;
