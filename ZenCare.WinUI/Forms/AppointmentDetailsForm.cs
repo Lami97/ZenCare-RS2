@@ -116,7 +116,7 @@ public partial class AppointmentDetailsForm : Form
         SelectLookupItem(cmbService, appointment.WellnessServiceId);
 
         SelectStatus(appointment.Status);
-        dtpAppointmentDate.Value = appointment.AppointmentDate.Date;
+        dtpAppointmentDate.Value = GetAppointmentDateOnly(appointment.AppointmentDate);
         dtpStartTime.Value = DateTime.Today.Add(appointment.StartTime);
         dtpEndTime.Value = DateTime.Today.Add(appointment.EndTime);
         txtNotes.Text = appointment.Notes;
@@ -147,7 +147,7 @@ public partial class AppointmentDetailsForm : Form
             UserId = GetSelectedLookupId(cmbUser),
             EmployeeId = GetSelectedLookupId(cmbEmployee),
             WellnessServiceId = GetSelectedLookupId(cmbService),
-            AppointmentDate = dtpAppointmentDate.Value.Date,
+            AppointmentDate = GetSelectedAppointmentDate(),
             StartTime = dtpStartTime.Value.TimeOfDay,
             EndTime = dtpEndTime.Value.TimeOfDay,
             Status = GetSelectedStatus(),
@@ -176,7 +176,7 @@ public partial class AppointmentDetailsForm : Form
             UserId = GetSelectedLookupId(cmbUser),
             EmployeeId = GetSelectedLookupId(cmbEmployee),
             WellnessServiceId = GetSelectedLookupId(cmbService),
-            AppointmentDate = dtpAppointmentDate.Value.Date,
+            AppointmentDate = GetSelectedAppointmentDate(),
             StartTime = dtpStartTime.Value.TimeOfDay,
             EndTime = dtpEndTime.Value.TimeOfDay,
             Status = GetSelectedStatus(),
@@ -302,6 +302,16 @@ public partial class AppointmentDetailsForm : Form
         return cmbStatus.SelectedItem is StatusLookupItem item
             ? item.Status
             : AppointmentStatus.Pending;
+    }
+
+    private DateTime GetSelectedAppointmentDate()
+    {
+        return GetAppointmentDateOnly(dtpAppointmentDate.Value);
+    }
+
+    private static DateTime GetAppointmentDateOnly(DateTime value)
+    {
+        return DateTime.SpecifyKind(value.Date, DateTimeKind.Unspecified);
     }
 
     private static void SelectLookupItem(ComboBox comboBox, int id)

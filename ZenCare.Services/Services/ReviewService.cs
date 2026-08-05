@@ -98,6 +98,11 @@ namespace ZenCare.Services.Services
                     query = query.Where(r => r.ProductId == search.ProductId.Value);
                 }
 
+                if (search.Rating.HasValue)
+                {
+                    query = query.Where(r => r.Rating == search.Rating.Value);
+                }
+
                 if (search.Status.HasValue)
                 {
                     query = query.Where(r => r.Status == search.Status.Value);

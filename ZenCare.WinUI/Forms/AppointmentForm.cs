@@ -150,7 +150,7 @@ public partial class AppointmentForm : Form
             EmployeeId = GetSelectedLookupId(cmbEmployee),
             WellnessServiceId = GetSelectedLookupId(cmbService),
             Status = GetSelectedStatus(),
-            AppointmentDate = chkAppointmentDate.Checked ? dtpAppointmentDate.Value.Date : null
+            AppointmentDate = chkAppointmentDate.Checked ? GetAppointmentDateOnly(dtpAppointmentDate.Value) : null
         };
 
         var query = new List<string>();
@@ -177,7 +177,7 @@ public partial class AppointmentForm : Form
 
         if (search.AppointmentDate.HasValue)
         {
-            query.Add($"AppointmentDate={Uri.EscapeDataString(search.AppointmentDate.Value.ToString("O"))}");
+            query.Add($"AppointmentDate={Uri.EscapeDataString(search.AppointmentDate.Value.ToString("yyyy-MM-dd"))}");
         }
 
         var endpoint = query.Count == 0 ? "Appointment" : $"Appointment?{string.Join("&", query)}";
@@ -219,6 +219,11 @@ public partial class AppointmentForm : Form
         }
 
         dgvAppointments.DataSource = items;
+    }
+
+    private static DateTime GetAppointmentDateOnly(DateTime value)
+    {
+        return DateTime.SpecifyKind(value.Date, DateTimeKind.Unspecified);
     }
 
     private void cmbServiceCategory_SelectedIndexChanged(object sender, EventArgs e)
