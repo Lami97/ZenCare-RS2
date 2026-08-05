@@ -11,7 +11,8 @@ namespace ZenCare.Services.Mapping
             CreateMap<Database.FAQ, FAQResponse>()
                 .ForMember(dest => dest.FAQCategoryName, opt => opt.MapFrom(src => src.FAQCategory.Name));
             CreateMap<FAQInsertRequest, Database.FAQ>();
-            CreateMap<FAQUpdateRequest, Database.FAQ>();
+            CreateMap<FAQUpdateRequest, Database.FAQ>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore());
         }
     }
 }

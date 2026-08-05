@@ -8,6 +8,7 @@ public partial class PurchaseItemDetailsForm : Form
 {
     private readonly APIService _apiService = new APIService();
     private readonly int? _purchaseItemId;
+    private List<ProductLookupItem> _products = new();
     private bool _isLoading;
 
     public PurchaseItemDetailsForm()
@@ -45,9 +46,8 @@ public partial class PurchaseItemDetailsForm : Form
         cmbPurchase.ValueMember = "Id";
 
         var products = await _apiService.Get<PagedResult<ProductResponse>>("Product");
-        cmbProduct.DataSource = PurchaseItemForm.CreateLookupItems(
-            products?.Items.Select(x => new PurchaseItemForm.LookupItem(x.Id, x.Name)),
-            "Select product");
+        _products = CreateProductLookupItems(products?.Items);
+        cmbProduct.DataSource = _products;
         cmbProduct.DisplayMember = "Name";
         cmbProduct.ValueMember = "Id";
     }
@@ -140,12 +140,24 @@ public partial class PurchaseItemDetailsForm : Form
         }
     }
 
-    private void nudUnitPrice_ValueChanged(object sender, EventArgs e)
+    private void cmbProduct_SelectedIndexChanged(object sender, EventArgs e)
     {
         if (!_isLoading)
         {
+            ApplySelectedProductPrice();
             UpdateTotalPrice();
         }
+    }
+
+    private void ApplySelectedProductPrice()
+    {
+        if (cmbProduct.SelectedItem is ProductLookupItem { Id: > 0 } product)
+        {
+            nudUnitPrice.Value = product.Price;
+            return;
+        }
+
+        nudUnitPrice.Value = 0;
     }
 
     private void UpdateTotalPrice()
@@ -191,5 +203,17 @@ public partial class PurchaseItemDetailsForm : Form
     private string GetApiErrorMessage(string fallback)
     {
         return string.IsNullOrWhiteSpace(_apiService.LastErrorMessage) ? fallback : _apiService.LastErrorMessage;
+    }
+
+    private static List<ProductLookupItem> CreateProductLookupItems(IEnumerable<ProductResponse>? products)
+    {
+        var lookupItems = new List<ProductLookupItem> { new ProductLookupItem(0, "Select product", 0) };
+        lookupItems.AddRange(products?.Select(x => new ProductLookupItem(x.Id, x.Name, x.Price)) ?? Enumerable.Empty<ProductLookupItem>());
+        return lookupItems;
+    }
+
+    private sealed record ProductLookupItem(int Id, string Name, decimal Price)
+    {
+        public override string ToString() => Name;
     }
 }

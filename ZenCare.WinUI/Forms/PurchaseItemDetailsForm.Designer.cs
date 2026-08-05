@@ -68,6 +68,7 @@ partial class PurchaseItemDetailsForm
         cmbProduct.Name = "cmbProduct";
         cmbProduct.Size = new Size(416, 23);
         cmbProduct.TabIndex = 3;
+        cmbProduct.SelectedIndexChanged += cmbProduct_SelectedIndexChanged;
         // 
         // lblQuantity
         // 
@@ -104,9 +105,9 @@ partial class PurchaseItemDetailsForm
         nudUnitPrice.Location = new Point(244, 170);
         nudUnitPrice.Maximum = new decimal(new int[] { 1000000, 0, 0, 0 });
         nudUnitPrice.Name = "nudUnitPrice";
+        nudUnitPrice.ReadOnly = true;
         nudUnitPrice.Size = new Size(196, 23);
         nudUnitPrice.TabIndex = 7;
-        nudUnitPrice.ValueChanged += nudUnitPrice_ValueChanged;
         // 
         // lblTotalPrice
         // 
@@ -123,6 +124,7 @@ partial class PurchaseItemDetailsForm
         nudTotalPrice.Location = new Point(24, 232);
         nudTotalPrice.Maximum = new decimal(new int[] { 1000000, 0, 0, 0 });
         nudTotalPrice.Name = "nudTotalPrice";
+        nudTotalPrice.ReadOnly = true;
         nudTotalPrice.Size = new Size(196, 23);
         nudTotalPrice.TabIndex = 9;
         // 

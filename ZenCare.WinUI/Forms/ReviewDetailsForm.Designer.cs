@@ -52,6 +52,7 @@ partial class ReviewDetailsForm
         cmbUser.Name = "cmbUser";
         cmbUser.Size = new Size(416, 23);
         cmbUser.TabIndex = 1;
+        cmbUser.SelectedIndexChanged += cmbUser_SelectedIndexChanged;
         // 
         // lblAppointment
         // 

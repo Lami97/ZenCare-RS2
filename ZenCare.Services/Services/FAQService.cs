@@ -53,7 +53,10 @@ namespace ZenCare.Services.Services
 
         protected override Task<IQueryable<Database.FAQ>> IncludeRelatedEntitiesAsync(IQueryable<Database.FAQ> query, FAQSearchObject? search)
         {
-            query = query.Include(f => f.FAQCategory);
+            query = query
+                .Include(f => f.FAQCategory)
+                .OrderBy(f => f.DisplayOrder)
+                .ThenBy(f => f.Question);
 
             return Task.FromResult(query);
         }

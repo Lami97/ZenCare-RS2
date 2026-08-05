@@ -9,6 +9,9 @@ public partial class ReviewDetailsForm : Form
 {
     private readonly APIService _apiService = new APIService();
     private readonly int? _reviewId;
+    private List<AppointmentResponse> _appointments = new();
+    private List<ReviewResponse> _reviews = new();
+    private ReviewResponse? _currentReview;
 
     public ReviewDetailsForm()
     {
@@ -45,7 +48,17 @@ public partial class ReviewDetailsForm : Form
         cmbUser.DataSource = ReviewForm.CreateLookupItems(users?.Items.Select(x => new ReviewForm.LookupItem(x.Id, ReviewForm.GetUserDisplayName(x))), "Select");
 
         var appointments = await _apiService.Get<PagedResult<AppointmentResponse>>("Appointment");
-        cmbAppointment.DataSource = ReviewForm.CreateLookupItems(appointments?.Items.Select(x => new ReviewForm.LookupItem(x.Id, ReviewForm.GetAppointmentDisplayName(x))), "None");
+        _appointments = appointments?.Items ?? new List<AppointmentResponse>();
+
+        var reviews = await _apiService.Get<PagedResult<ReviewResponse>>("Review");
+        _reviews = reviews?.Items ?? new List<ReviewResponse>();
+
+        if (_reviewId.HasValue)
+        {
+            _currentReview = await _apiService.Get<ReviewResponse>($"Review/{_reviewId.Value}");
+        }
+
+        PopulateAppointments();
 
         var products = await _apiService.Get<PagedResult<ProductResponse>>("Product");
         cmbProduct.DataSource = ReviewForm.CreateLookupItems(products?.Items.Select(x => new ReviewForm.LookupItem(x.Id, x.Name)), "None");
@@ -71,6 +84,7 @@ public partial class ReviewDetailsForm : Form
         }
 
         SelectLookupItem(cmbUser, review.UserId);
+        PopulateAppointments();
         SelectLookupItem(cmbAppointment, review.AppointmentId ?? 0);
         SelectLookupItem(cmbProduct, review.ProductId ?? 0);
         nudRating.Value = review.Rating;
@@ -169,7 +183,49 @@ public partial class ReviewDetailsForm : Form
             return false;
         }
 
+        if (GetSelectedNullableLookupId(cmbAppointment).HasValue == GetSelectedNullableLookupId(cmbProduct).HasValue)
+        {
+            MessageBox.Show("Select exactly one review target.");
+            return false;
+        }
+
         return true;
+    }
+
+    private void cmbUser_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        PopulateAppointments();
+    }
+
+    private void PopulateAppointments()
+    {
+        var selectedAppointmentId = GetSelectedLookupId(cmbAppointment);
+        var selectedUserId = GetSelectedLookupId(cmbUser);
+        var currentAppointmentId = _currentReview?.AppointmentId;
+        var reviewedAppointmentIds = _reviews
+            .Where(x => x.AppointmentId.HasValue
+                && (!_reviewId.HasValue || x.Id != _reviewId.Value))
+            .Select(x => x.AppointmentId!.Value)
+            .ToHashSet();
+
+        var appointments = _appointments
+            .Where(x => x.Status == AppointmentStatus.Completed)
+            .Where(x => GetAppointmentEndDateTime(x) <= DateTime.Now)
+            .Where(x => selectedUserId <= 0 || x.UserId == selectedUserId)
+            .Where(x => !reviewedAppointmentIds.Contains(x.Id) || x.Id == currentAppointmentId)
+            .Select(x => new ReviewForm.LookupItem(x.Id, ReviewForm.GetAppointmentDisplayName(x)));
+
+        cmbAppointment.DataSource = ReviewForm.CreateLookupItems(appointments, "None");
+
+        if (selectedAppointmentId > 0)
+        {
+            SelectLookupItem(cmbAppointment, selectedAppointmentId);
+        }
+    }
+
+    private static DateTime GetAppointmentEndDateTime(AppointmentResponse appointment)
+    {
+        return DateTime.SpecifyKind(appointment.AppointmentDate.Date.Add(appointment.EndTime), DateTimeKind.Unspecified);
     }
 
     private static int GetSelectedLookupId(ComboBox comboBox)

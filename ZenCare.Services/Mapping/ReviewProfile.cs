@@ -12,7 +12,8 @@ namespace ZenCare.Services.Mapping
                 .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User.Username))
                 .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product != null ? src.Product.Name : null));
             CreateMap<ReviewInsertRequest, Database.Review>();
-            CreateMap<ReviewUpdateRequest, Database.Review>();
+            CreateMap<ReviewUpdateRequest, Database.Review>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore());
         }
     }
 }
