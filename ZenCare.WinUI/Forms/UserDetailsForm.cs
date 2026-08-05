@@ -95,7 +95,7 @@ public partial class UserDetailsForm : Form
             return;
         }
 
-        MessageBox.Show("Korisnik je uspjesno dodan.");
+        MessageBox.Show("User was added successfully.");
         DialogResult = DialogResult.OK;
         Close();
     }
@@ -121,7 +121,7 @@ public partial class UserDetailsForm : Form
             return;
         }
 
-        MessageBox.Show("Podaci korisnika su uspjesno izmijenjeni.");
+        MessageBox.Show("User was updated successfully.");
         DialogResult = DialogResult.OK;
         Close();
     }

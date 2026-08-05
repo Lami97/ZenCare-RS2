@@ -111,7 +111,6 @@ partial class FAQCategoryForm
         chkIsActive.Size = new Size(68, 19);
         chkIsActive.TabIndex = 2;
         chkIsActive.Text = "IsActive";
-        chkIsActive.ThreeState = true;
         chkIsActive.UseVisualStyleBackColor = true;
         // 
         // txtName

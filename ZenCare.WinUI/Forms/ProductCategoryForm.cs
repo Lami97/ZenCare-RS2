@@ -62,7 +62,15 @@ public partial class ProductCategoryForm : Form
             return;
         }
 
-        await _apiService.Delete($"ProductCategory/{selectedId.Value}");
+        var deleted = await _apiService.Delete($"ProductCategory/{selectedId.Value}");
+
+        if (!deleted)
+        {
+            MessageBox.Show(string.IsNullOrWhiteSpace(_apiService.LastErrorMessage) ? "Unable to delete product category." : _apiService.LastErrorMessage);
+            return;
+        }
+
+        MessageBox.Show("Product category was deleted successfully.");
         await LoadProductCategories();
     }
 

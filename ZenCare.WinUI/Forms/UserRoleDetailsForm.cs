@@ -93,6 +93,7 @@ public partial class UserRoleDetailsForm : Form
             return;
         }
 
+        MessageBox.Show("Assigned role was added successfully.");
         DialogResult = DialogResult.OK;
         Close();
     }
@@ -114,6 +115,7 @@ public partial class UserRoleDetailsForm : Form
             return;
         }
 
+        MessageBox.Show("Assigned role was updated successfully.");
         DialogResult = DialogResult.OK;
         Close();
     }

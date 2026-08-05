@@ -74,6 +74,7 @@ public partial class AppointmentForm : Form
             return;
         }
 
+        MessageBox.Show("Appointment was deleted successfully.");
         await LoadAppointments();
     }
 

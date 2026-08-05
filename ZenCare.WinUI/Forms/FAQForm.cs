@@ -11,7 +11,7 @@ public partial class FAQForm : Form
     public FAQForm()
     {
         InitializeComponent();
-        chkIsActive.CheckState = CheckState.Indeterminate;
+        chkIsActive.Checked = false;
     }
 
     private async void FAQForm_Load(object sender, EventArgs e)
@@ -72,6 +72,7 @@ public partial class FAQForm : Form
             return;
         }
 
+        MessageBox.Show("FAQ was deleted successfully.");
         await LoadFAQs();
     }
 
@@ -79,7 +80,7 @@ public partial class FAQForm : Form
     {
         txtQuestion.Clear();
         cmbFAQCategory.SelectedIndex = 0;
-        chkIsActive.CheckState = CheckState.Indeterminate;
+        chkIsActive.Checked = false;
         await LoadFAQs();
     }
 
@@ -95,7 +96,7 @@ public partial class FAQForm : Form
         {
             Question = string.IsNullOrWhiteSpace(txtQuestion.Text) ? null : txtQuestion.Text,
             FAQCategoryId = GetSelectedLookupId(cmbFAQCategory),
-            IsActive = chkIsActive.CheckState == CheckState.Indeterminate ? null : chkIsActive.Checked
+            IsActive = chkIsActive.Checked ? true : null
         };
 
         var query = new List<string>();

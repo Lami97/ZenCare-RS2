@@ -163,6 +163,7 @@ public partial class AppointmentDetailsForm : Form
             return;
         }
 
+        MessageBox.Show("Appointment was added successfully.");
         DialogResult = DialogResult.OK;
         Close();
     }
@@ -191,6 +192,7 @@ public partial class AppointmentDetailsForm : Form
             return;
         }
 
+        MessageBox.Show("Appointment was updated successfully.");
         DialogResult = DialogResult.OK;
         Close();
     }

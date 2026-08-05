@@ -69,6 +69,8 @@ public partial class ProductCategoryDetailsForm : Form
                 MessageBox.Show("Unable to save product category.");
                 return;
             }
+
+            MessageBox.Show("Product category was updated successfully.");
         }
         else
         {
@@ -85,6 +87,8 @@ public partial class ProductCategoryDetailsForm : Form
                 MessageBox.Show("Unable to save product category.");
                 return;
             }
+
+            MessageBox.Show("Product category was added successfully.");
         }
 
         DialogResult = DialogResult.OK;

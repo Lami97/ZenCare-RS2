@@ -62,14 +62,22 @@ public partial class ServiceCategoryForm : Form
             return;
         }
 
-        await _apiService.Delete($"ServiceCategory/{selectedId.Value}");
+        var deleted = await _apiService.Delete($"ServiceCategory/{selectedId.Value}");
+
+        if (!deleted)
+        {
+            MessageBox.Show(string.IsNullOrWhiteSpace(_apiService.LastErrorMessage) ? "Unable to delete service category." : _apiService.LastErrorMessage);
+            return;
+        }
+
+        MessageBox.Show("Service category was deleted successfully.");
         await LoadServiceCategories();
     }
 
     private async void btnRefresh_Click(object sender, EventArgs e)
     {
         txtName.Clear();
-        chkIsActive.CheckState = CheckState.Indeterminate;
+        chkIsActive.Checked = false;
         await LoadServiceCategories();
     }
 
@@ -78,7 +86,7 @@ public partial class ServiceCategoryForm : Form
         var search = new ServiceCategorySearchObject
         {
             Name = string.IsNullOrWhiteSpace(txtName.Text) ? null : txtName.Text,
-            IsActive = chkIsActive.CheckState == CheckState.Indeterminate ? null : chkIsActive.Checked
+            IsActive = chkIsActive.Checked ? true : null
         };
 
         var query = new List<string>();

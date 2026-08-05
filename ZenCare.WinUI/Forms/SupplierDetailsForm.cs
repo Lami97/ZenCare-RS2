@@ -76,6 +76,8 @@ public partial class SupplierDetailsForm : Form
                 MessageBox.Show(GetApiErrorMessage("Unable to save supplier."));
                 return;
             }
+
+            MessageBox.Show("Supplier was updated successfully.");
         }
         else
         {
@@ -95,6 +97,8 @@ public partial class SupplierDetailsForm : Form
                 MessageBox.Show(GetApiErrorMessage("Unable to save supplier."));
                 return;
             }
+
+            MessageBox.Show("Supplier was added successfully.");
         }
 
         DialogResult = DialogResult.OK;

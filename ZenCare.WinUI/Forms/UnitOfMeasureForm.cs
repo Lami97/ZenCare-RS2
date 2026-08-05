@@ -62,13 +62,22 @@ public partial class UnitOfMeasureForm : Form
             return;
         }
 
-        await _apiService.Delete($"UnitOfMeasure/{selectedId.Value}");
+        var deleted = await _apiService.Delete($"UnitOfMeasure/{selectedId.Value}");
+
+        if (!deleted)
+        {
+            MessageBox.Show(string.IsNullOrWhiteSpace(_apiService.LastErrorMessage) ? "Unable to delete unit." : _apiService.LastErrorMessage);
+            return;
+        }
+
+        MessageBox.Show("Unit was deleted successfully.");
         await LoadUnits();
     }
 
     private async void btnRefresh_Click(object sender, EventArgs e)
     {
         txtName.Clear();
+        chkIsActive.Checked = false;
         await LoadUnits();
     }
 
@@ -76,16 +85,23 @@ public partial class UnitOfMeasureForm : Form
     {
         var search = new UnitOfMeasureSearchObject
         {
-            Name = string.IsNullOrWhiteSpace(txtName.Text) ? null : txtName.Text
+            Name = string.IsNullOrWhiteSpace(txtName.Text) ? null : txtName.Text,
+            IsActive = chkIsActive.Checked ? true : null
         };
 
-        var endpoint = "UnitOfMeasure";
+        var query = new List<string>();
 
         if (!string.IsNullOrWhiteSpace(search.Name))
         {
-            endpoint += $"?Name={Uri.EscapeDataString(search.Name)}";
+            query.Add($"Name={Uri.EscapeDataString(search.Name)}");
         }
 
+        if (search.IsActive.HasValue)
+        {
+            query.Add($"IsActive={search.IsActive.Value}");
+        }
+
+        var endpoint = query.Count == 0 ? "UnitOfMeasure" : $"UnitOfMeasure?{string.Join("&", query)}";
         var result = await _apiService.Get<PagedResult<UnitOfMeasureResponse>>(endpoint);
         dgvUnits.DataSource = result?.Items ?? new List<UnitOfMeasureResponse>();
     }

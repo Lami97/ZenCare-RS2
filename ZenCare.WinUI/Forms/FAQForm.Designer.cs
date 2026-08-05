@@ -116,7 +116,6 @@ partial class FAQForm
         chkIsActive.Size = new Size(68, 19);
         chkIsActive.TabIndex = 9;
         chkIsActive.Text = "IsActive";
-        chkIsActive.ThreeState = true;
         chkIsActive.UseVisualStyleBackColor = true;
         // 
         // cmbFAQCategory

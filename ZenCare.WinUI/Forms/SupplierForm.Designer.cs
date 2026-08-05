@@ -54,13 +54,11 @@ partial class SupplierForm
         // 
         // chkIsActive
         // 
-        chkIsActive.CheckState = CheckState.Indeterminate;
         chkIsActive.Location = new Point(860, 30);
         chkIsActive.Name = "chkIsActive";
         chkIsActive.Size = new Size(92, 24);
         chkIsActive.TabIndex = 7;
         chkIsActive.Text = "Active";
-        chkIsActive.ThreeState = true;
         chkIsActive.UseVisualStyleBackColor = true;
         // 
         // btnRefresh

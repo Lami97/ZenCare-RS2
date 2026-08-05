@@ -70,13 +70,14 @@ public partial class SupplierForm : Form
             return;
         }
 
+        MessageBox.Show("Supplier was deleted successfully.");
         await LoadSuppliers();
     }
 
     private async void btnRefresh_Click(object sender, EventArgs e)
     {
         txtName.Clear();
-        chkIsActive.CheckState = CheckState.Indeterminate;
+        chkIsActive.Checked = false;
         await LoadSuppliers();
     }
 
@@ -85,7 +86,7 @@ public partial class SupplierForm : Form
         var search = new SupplierSearchObject
         {
             Name = string.IsNullOrWhiteSpace(txtName.Text) ? null : txtName.Text.Trim(),
-            IsActive = chkIsActive.CheckState == CheckState.Indeterminate ? null : chkIsActive.Checked
+            IsActive = chkIsActive.Checked ? true : null
         };
 
         var query = new List<string>();

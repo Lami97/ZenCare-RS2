@@ -63,7 +63,15 @@ public partial class ProductForm : Form
             return;
         }
 
-        await _apiService.Delete($"Product/{selectedId.Value}");
+        var deleted = await _apiService.Delete($"Product/{selectedId.Value}");
+
+        if (!deleted)
+        {
+            MessageBox.Show(string.IsNullOrWhiteSpace(_apiService.LastErrorMessage) ? "Unable to delete product." : _apiService.LastErrorMessage);
+            return;
+        }
+
+        MessageBox.Show("Product was deleted successfully.");
         await LoadProducts();
     }
 
@@ -72,7 +80,7 @@ public partial class ProductForm : Form
         txtName.Clear();
         cmbProductCategory.SelectedIndex = 0;
         cmbProductType.SelectedIndex = 0;
-        chkIsActive.CheckState = CheckState.Indeterminate;
+        chkIsActive.Checked = false;
         await LoadProducts();
     }
 
@@ -92,7 +100,7 @@ public partial class ProductForm : Form
             Name = string.IsNullOrWhiteSpace(txtName.Text) ? null : txtName.Text,
             ProductCategoryId = GetSelectedLookupId(cmbProductCategory),
             ProductTypeId = GetSelectedLookupId(cmbProductType),
-            IsActive = chkIsActive.CheckState == CheckState.Indeterminate ? null : chkIsActive.Checked
+            IsActive = chkIsActive.Checked ? true : null
         };
 
         var query = new List<string>();

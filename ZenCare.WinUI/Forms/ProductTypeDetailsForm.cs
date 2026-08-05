@@ -69,6 +69,8 @@ public partial class ProductTypeDetailsForm : Form
                 MessageBox.Show("Unable to save product type.");
                 return;
             }
+
+            MessageBox.Show("Product type was updated successfully.");
         }
         else
         {
@@ -85,6 +87,8 @@ public partial class ProductTypeDetailsForm : Form
                 MessageBox.Show("Unable to save product type.");
                 return;
             }
+
+            MessageBox.Show("Product type was added successfully.");
         }
 
         DialogResult = DialogResult.OK;

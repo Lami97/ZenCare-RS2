@@ -71,6 +71,8 @@ public partial class ServiceCategoryDetailsForm : Form
                 MessageBox.Show("Unable to save service category.");
                 return;
             }
+
+            MessageBox.Show("Service category was updated successfully.");
         }
         else
         {
@@ -88,6 +90,8 @@ public partial class ServiceCategoryDetailsForm : Form
                 MessageBox.Show("Unable to save service category.");
                 return;
             }
+
+            MessageBox.Show("Service category was added successfully.");
         }
 
         DialogResult = DialogResult.OK;

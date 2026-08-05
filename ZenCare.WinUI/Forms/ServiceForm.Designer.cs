@@ -63,13 +63,11 @@ partial class ServiceForm
         // 
         // chkIsActive
         // 
-        chkIsActive.CheckState = CheckState.Indeterminate;
         chkIsActive.Location = new Point(432, 62);
         chkIsActive.Name = "chkIsActive";
         chkIsActive.Size = new Size(92, 24);
         chkIsActive.TabIndex = 9;
         chkIsActive.Text = "IsActive";
-        chkIsActive.ThreeState = true;
         chkIsActive.UseVisualStyleBackColor = true;
         // 
         // cmbServiceCategory

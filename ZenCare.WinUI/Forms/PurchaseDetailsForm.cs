@@ -112,6 +112,7 @@ public partial class PurchaseDetailsForm : Form
             return;
         }
 
+        MessageBox.Show("Purchase was added successfully.");
         DialogResult = DialogResult.OK;
         Close();
     }
@@ -138,6 +139,7 @@ public partial class PurchaseDetailsForm : Form
             return;
         }
 
+        MessageBox.Show("Purchase was updated successfully.");
         DialogResult = DialogResult.OK;
         Close();
     }

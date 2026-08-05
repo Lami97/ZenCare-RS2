@@ -101,6 +101,7 @@ public partial class FAQDetailsForm : Form
             return;
         }
 
+        MessageBox.Show("FAQ was added successfully.");
         DialogResult = DialogResult.OK;
         Close();
     }
@@ -125,6 +126,7 @@ public partial class FAQDetailsForm : Form
             return;
         }
 
+        MessageBox.Show("FAQ was updated successfully.");
         DialogResult = DialogResult.OK;
         Close();
     }

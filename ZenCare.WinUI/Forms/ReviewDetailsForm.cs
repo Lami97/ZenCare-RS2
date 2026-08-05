@@ -115,6 +115,7 @@ public partial class ReviewDetailsForm : Form
             return;
         }
 
+        MessageBox.Show("Review was added successfully.");
         DialogResult = DialogResult.OK;
         Close();
     }
@@ -140,6 +141,7 @@ public partial class ReviewDetailsForm : Form
             return;
         }
 
+        MessageBox.Show("Review was updated successfully.");
         DialogResult = DialogResult.OK;
         Close();
     }

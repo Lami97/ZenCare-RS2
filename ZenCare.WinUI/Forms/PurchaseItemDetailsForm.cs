@@ -106,6 +106,8 @@ public partial class PurchaseItemDetailsForm : Form
                 MessageBox.Show(GetApiErrorMessage("Unable to save purchase item."));
                 return;
             }
+
+            MessageBox.Show("Purchase item was updated successfully.");
         }
         else
         {
@@ -116,6 +118,8 @@ public partial class PurchaseItemDetailsForm : Form
                 MessageBox.Show(GetApiErrorMessage("Unable to save purchase item."));
                 return;
             }
+
+            MessageBox.Show("Purchase item was added successfully.");
         }
 
         DialogResult = DialogResult.OK;

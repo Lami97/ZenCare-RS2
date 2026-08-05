@@ -63,7 +63,15 @@ public partial class EmployeeForm : Form
             return;
         }
 
-        await _apiService.Delete($"Employee/{selectedId.Value}");
+        var deleted = await _apiService.Delete($"Employee/{selectedId.Value}");
+
+        if (!deleted)
+        {
+            MessageBox.Show(string.IsNullOrWhiteSpace(_apiService.LastErrorMessage) ? "Unable to delete employee." : _apiService.LastErrorMessage);
+            return;
+        }
+
+        MessageBox.Show("Employee was deleted successfully.");
         await LoadEmployees();
     }
 

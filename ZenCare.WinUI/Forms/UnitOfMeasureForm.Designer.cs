@@ -24,6 +24,7 @@ partial class UnitOfMeasureForm
         btnEdit = new Button();
         btnAdd = new Button();
         btnSearch = new Button();
+        chkIsActive = new CheckBox();
         txtName = new TextBox();
         lblName = new Label();
         dgvUnits = new DataGridView();
@@ -43,6 +44,7 @@ partial class UnitOfMeasureForm
         pnlTop.Controls.Add(btnEdit);
         pnlTop.Controls.Add(btnAdd);
         pnlTop.Controls.Add(btnSearch);
+        pnlTop.Controls.Add(chkIsActive);
         pnlTop.Controls.Add(txtName);
         pnlTop.Controls.Add(lblName);
         pnlTop.Dock = DockStyle.Top;
@@ -101,6 +103,16 @@ partial class UnitOfMeasureForm
         btnSearch.Text = "Search";
         btnSearch.UseVisualStyleBackColor = true;
         btnSearch.Click += btnSearch_Click;
+        // 
+        // chkIsActive
+        // 
+        chkIsActive.AutoSize = true;
+        chkIsActive.Location = new Point(860, 33);
+        chkIsActive.Name = "chkIsActive";
+        chkIsActive.Size = new Size(68, 19);
+        chkIsActive.TabIndex = 7;
+        chkIsActive.Text = "IsActive";
+        chkIsActive.UseVisualStyleBackColor = true;
         // 
         // txtName
         // 
@@ -195,6 +207,7 @@ partial class UnitOfMeasureForm
     private Button btnEdit;
     private Button btnAdd;
     private Button btnSearch;
+    private CheckBox chkIsActive;
     private TextBox txtName;
     private Label lblName;
     private DataGridView dgvUnits;

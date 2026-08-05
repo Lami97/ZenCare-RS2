@@ -84,6 +84,8 @@ public partial class ServiceDetailsForm : Form
                 MessageBox.Show("Unable to save service.");
                 return;
             }
+
+            MessageBox.Show("Service was updated successfully.");
         }
         else
         {
@@ -104,6 +106,8 @@ public partial class ServiceDetailsForm : Form
                 MessageBox.Show("Unable to save service.");
                 return;
             }
+
+            MessageBox.Show("Service was added successfully.");
         }
 
         DialogResult = DialogResult.OK;

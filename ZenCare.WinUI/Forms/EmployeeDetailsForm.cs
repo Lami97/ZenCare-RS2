@@ -100,6 +100,8 @@ public partial class EmployeeDetailsForm : Form
                 MessageBox.Show("Unable to save employee.");
                 return;
             }
+
+            MessageBox.Show("Employee was updated successfully.");
         }
         else
         {
@@ -119,6 +121,8 @@ public partial class EmployeeDetailsForm : Form
                 MessageBox.Show("Unable to save employee.");
                 return;
             }
+
+            MessageBox.Show("Employee was added successfully.");
         }
 
         DialogResult = DialogResult.OK;

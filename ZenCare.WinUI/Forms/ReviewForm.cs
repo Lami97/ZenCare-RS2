@@ -73,6 +73,7 @@ public partial class ReviewForm : Form
             return;
         }
 
+        MessageBox.Show("Review was deleted successfully.");
         await LoadReviews();
     }
 

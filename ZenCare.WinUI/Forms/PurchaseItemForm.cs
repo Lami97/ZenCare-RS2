@@ -67,6 +67,7 @@ public partial class PurchaseItemForm : Form
             return;
         }
 
+        MessageBox.Show("Purchase item was deleted successfully.");
         await LoadPurchaseItems();
     }
 

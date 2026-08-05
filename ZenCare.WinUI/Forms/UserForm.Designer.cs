@@ -75,13 +75,11 @@ partial class UserForm
         // 
         // chkIsActive
         // 
-        chkIsActive.CheckState = CheckState.Indeterminate;
         chkIsActive.Location = new Point(860, 30);
         chkIsActive.Name = "chkIsActive";
         chkIsActive.Size = new Size(92, 24);
         chkIsActive.TabIndex = 6;
         chkIsActive.Text = "Active";
-        chkIsActive.ThreeState = true;
         chkIsActive.UseVisualStyleBackColor = true;
         // 
         // btnSearch

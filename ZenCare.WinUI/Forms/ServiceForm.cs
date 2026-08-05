@@ -63,7 +63,15 @@ public partial class ServiceForm : Form
             return;
         }
 
-        await _apiService.Delete($"Service/{selectedId.Value}");
+        var deleted = await _apiService.Delete($"Service/{selectedId.Value}");
+
+        if (!deleted)
+        {
+            MessageBox.Show(string.IsNullOrWhiteSpace(_apiService.LastErrorMessage) ? "Unable to delete service." : _apiService.LastErrorMessage);
+            return;
+        }
+
+        MessageBox.Show("Service was deleted successfully.");
         await LoadServices();
     }
 
@@ -71,7 +79,7 @@ public partial class ServiceForm : Form
     {
         txtName.Clear();
         cmbServiceCategory.SelectedIndex = 0;
-        chkIsActive.CheckState = CheckState.Indeterminate;
+        chkIsActive.Checked = false;
         await LoadServices();
     }
 
@@ -87,7 +95,7 @@ public partial class ServiceForm : Form
         {
             Name = string.IsNullOrWhiteSpace(txtName.Text) ? null : txtName.Text,
             ServiceCategoryId = GetSelectedLookupId(cmbServiceCategory),
-            IsActive = chkIsActive.CheckState == CheckState.Indeterminate ? null : chkIsActive.Checked
+            IsActive = chkIsActive.Checked ? true : null
         };
 
         var query = new List<string>();

@@ -94,6 +94,8 @@ public partial class ProductDetailsForm : Form
                 MessageBox.Show("Unable to save product.");
                 return;
             }
+
+            MessageBox.Show("Product was updated successfully.");
         }
         else
         {
@@ -116,6 +118,8 @@ public partial class ProductDetailsForm : Form
                 MessageBox.Show("Unable to save product.");
                 return;
             }
+
+            MessageBox.Show("Product was added successfully.");
         }
 
         DialogResult = DialogResult.OK;

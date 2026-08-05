@@ -11,7 +11,7 @@ public partial class FAQCategoryForm : Form
     public FAQCategoryForm()
     {
         InitializeComponent();
-        chkIsActive.CheckState = CheckState.Indeterminate;
+        chkIsActive.Checked = false;
     }
 
     private async void FAQCategoryForm_Load(object sender, EventArgs e)
@@ -71,13 +71,14 @@ public partial class FAQCategoryForm : Form
             return;
         }
 
+        MessageBox.Show("FAQ category was deleted successfully.");
         await LoadFAQCategories();
     }
 
     private async void btnRefresh_Click(object sender, EventArgs e)
     {
         txtName.Clear();
-        chkIsActive.CheckState = CheckState.Indeterminate;
+        chkIsActive.Checked = false;
         await LoadFAQCategories();
     }
 
@@ -86,7 +87,7 @@ public partial class FAQCategoryForm : Form
         var search = new FAQCategorySearchObject
         {
             Name = string.IsNullOrWhiteSpace(txtName.Text) ? null : txtName.Text,
-            IsActive = chkIsActive.CheckState == CheckState.Indeterminate ? null : chkIsActive.Checked
+            IsActive = chkIsActive.Checked ? true : null
         };
 
         var query = new List<string>();

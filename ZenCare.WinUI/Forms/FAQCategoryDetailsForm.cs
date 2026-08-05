@@ -85,6 +85,7 @@ public partial class FAQCategoryDetailsForm : Form
             return;
         }
 
+        MessageBox.Show("FAQ category was added successfully.");
         DialogResult = DialogResult.OK;
         Close();
     }
@@ -107,6 +108,7 @@ public partial class FAQCategoryDetailsForm : Form
             return;
         }
 
+        MessageBox.Show("FAQ category was updated successfully.");
         DialogResult = DialogResult.OK;
         Close();
     }

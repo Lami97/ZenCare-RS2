@@ -62,13 +62,22 @@ public partial class ProductTypeForm : Form
             return;
         }
 
-        await _apiService.Delete($"ProductType/{selectedId.Value}");
+        var deleted = await _apiService.Delete($"ProductType/{selectedId.Value}");
+
+        if (!deleted)
+        {
+            MessageBox.Show(string.IsNullOrWhiteSpace(_apiService.LastErrorMessage) ? "Unable to delete product type." : _apiService.LastErrorMessage);
+            return;
+        }
+
+        MessageBox.Show("Product type was deleted successfully.");
         await LoadProductTypes();
     }
 
     private async void btnRefresh_Click(object sender, EventArgs e)
     {
         txtName.Clear();
+        chkIsActive.Checked = false;
         await LoadProductTypes();
     }
 
@@ -76,16 +85,23 @@ public partial class ProductTypeForm : Form
     {
         var search = new ProductTypeSearchObject
         {
-            Name = string.IsNullOrWhiteSpace(txtName.Text) ? null : txtName.Text
+            Name = string.IsNullOrWhiteSpace(txtName.Text) ? null : txtName.Text,
+            IsActive = chkIsActive.Checked ? true : null
         };
 
-        var endpoint = "ProductType";
+        var query = new List<string>();
 
         if (!string.IsNullOrWhiteSpace(search.Name))
         {
-            endpoint += $"?Name={Uri.EscapeDataString(search.Name)}";
+            query.Add($"Name={Uri.EscapeDataString(search.Name)}");
         }
 
+        if (search.IsActive.HasValue)
+        {
+            query.Add($"IsActive={search.IsActive.Value}");
+        }
+
+        var endpoint = query.Count == 0 ? "ProductType" : $"ProductType?{string.Join("&", query)}";
         var result = await _apiService.Get<PagedResult<ProductTypeResponse>>(endpoint);
         dgvProductTypes.DataSource = result?.Items ?? new List<ProductTypeResponse>();
     }

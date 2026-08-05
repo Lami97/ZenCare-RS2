@@ -77,7 +77,7 @@ public partial class UserForm : Form
     private async void btnRefresh_Click(object sender, EventArgs e)
     {
         txtSearch.Clear();
-        chkIsActive.CheckState = CheckState.Indeterminate;
+        chkIsActive.Checked = false;
         await LoadUsers();
     }
 
@@ -86,7 +86,7 @@ public partial class UserForm : Form
         var search = new UserSearchObject
         {
             Username = string.IsNullOrWhiteSpace(txtSearch.Text) ? null : txtSearch.Text,
-            IsActive = chkIsActive.CheckState == CheckState.Indeterminate ? null : chkIsActive.Checked
+            IsActive = chkIsActive.Checked ? true : null
         };
 
         var query = new List<string>();

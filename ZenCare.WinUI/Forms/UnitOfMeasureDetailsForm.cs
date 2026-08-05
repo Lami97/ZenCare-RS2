@@ -71,6 +71,8 @@ public partial class UnitOfMeasureDetailsForm : Form
                 MessageBox.Show("Unable to save unit.");
                 return;
             }
+
+            MessageBox.Show("Unit was updated successfully.");
         }
         else
         {
@@ -88,6 +90,8 @@ public partial class UnitOfMeasureDetailsForm : Form
                 MessageBox.Show("Unable to save unit.");
                 return;
             }
+
+            MessageBox.Show("Unit was added successfully.");
         }
 
         DialogResult = DialogResult.OK;
