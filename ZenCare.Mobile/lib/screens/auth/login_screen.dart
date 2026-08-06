@@ -5,6 +5,7 @@ import '../../providers/auth_provider.dart';
 import '../../utils/api_exception.dart';
 import '../../widgets/error_dialog.dart';
 import '../../widgets/loading_button.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -126,6 +127,25 @@ class _LoginScreenState extends State<LoginScreen> {
                       isLoading: isLoading,
                       onPressed: _submit,
                       child: const Text('Login'),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text("Don't have an account?"),
+                        TextButton(
+                          onPressed: isLoading
+                              ? null
+                              : () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) => const RegisterScreen(),
+                                    ),
+                                  );
+                                },
+                          child: const Text('Create account'),
+                        ),
+                      ],
                     ),
                   ],
                 ),

@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/login_request.dart';
 import '../models/login_response.dart';
+import '../models/register_request.dart';
+import '../models/register_response.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
@@ -19,11 +21,13 @@ class AuthProvider extends ChangeNotifier {
   bool _configured = false;
   bool _isInitializing = true;
   bool _isLoading = false;
+  bool _isRegistering = false;
   String? _token;
   User? _user;
 
   bool get isInitializing => _isInitializing;
   bool get isLoading => _isLoading;
+  bool get isRegistering => _isRegistering;
   bool get isAuthenticated => _token != null && _user != null;
   User? get user => _user;
   String? get token => _token;
@@ -49,6 +53,16 @@ class AuthProvider extends ChangeNotifier {
       await _saveSession(response);
     } finally {
       _setLoading(false);
+    }
+  }
+
+  Future<RegisterResponse> register(RegisterRequest request) async {
+    _setRegistering(true);
+
+    try {
+      return await _authService!.register(request);
+    } finally {
+      _setRegistering(false);
     }
   }
 
@@ -92,6 +106,8 @@ class AuthProvider extends ChangeNotifier {
       username: response.username,
       email: response.email,
       fullName: response.fullName,
+      phoneNumber: response.phoneNumber,
+      isActive: response.isActive,
       roles: response.roles,
     );
 
@@ -108,6 +124,11 @@ class AuthProvider extends ChangeNotifier {
 
   void _setLoading(bool value) {
     _isLoading = value;
+    notifyListeners();
+  }
+
+  void _setRegistering(bool value) {
+    _isRegistering = value;
     notifyListeners();
   }
 }

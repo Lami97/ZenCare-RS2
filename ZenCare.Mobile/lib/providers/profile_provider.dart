@@ -34,6 +34,8 @@ class ProfileProvider extends ChangeNotifier {
         email: _user.email,
         role: _user.primaryRole,
         roles: _user.roles,
+        phoneNumber: _user.phoneNumber,
+        isActive: _user.isActive,
       );
     } catch (_) {
       _profile = null;

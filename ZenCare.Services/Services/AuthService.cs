@@ -15,11 +15,13 @@ namespace ZenCare.Services.Services
     {
         private readonly ZenCareDbContext _dbContext;
         private readonly IConfiguration _configuration;
+        private readonly IUserService _userService;
 
-        public AuthService(ZenCareDbContext dbContext, IConfiguration configuration)
+        public AuthService(ZenCareDbContext dbContext, IConfiguration configuration, IUserService userService)
         {
             _dbContext = dbContext;
             _configuration = configuration;
+            _userService = userService;
         }
 
         public async Task<LoginResponse?> LoginAsync(LoginRequest request)
@@ -51,9 +53,38 @@ namespace ZenCare.Services.Services
                 Username = user.Username,
                 Email = user.Email,
                 FullName = $"{user.FirstName} {user.LastName}".Trim(),
+                PhoneNumber = user.PhoneNumber,
+                IsActive = user.IsActive,
                 Token = token,
                 ExpiresAt = expiresAt,
                 Roles = roles
+            };
+        }
+
+        public async Task<RegisterResponse> RegisterAsync(RegisterRequest request)
+        {
+            var createdClient = await _userService.CreateClientAsync(new AdminCreateClientRequest
+            {
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                Email = request.Email,
+                Username = request.Username,
+                PhoneNumber = request.PhoneNumber,
+                Password = request.Password,
+                PasswordConfirm = request.PasswordConfirm,
+                IsActive = true
+            });
+
+            return new RegisterResponse
+            {
+                UserId = createdClient.UserId,
+                ClientProfileId = createdClient.ClientProfileId,
+                Username = createdClient.Username,
+                Email = createdClient.Email,
+                Role = createdClient.Role,
+                IsActive = createdClient.IsActive,
+                CreatedAt = createdClient.CreatedAt,
+                Message = "Account created successfully. Please sign in."
             };
         }
 

@@ -4,6 +4,8 @@ class LoginResponse {
     required this.username,
     required this.email,
     required this.fullName,
+    this.phoneNumber,
+    required this.isActive,
     required this.token,
     required this.expiresAt,
     required this.roles,
@@ -13,6 +15,8 @@ class LoginResponse {
   final String username;
   final String email;
   final String fullName;
+  final String? phoneNumber;
+  final bool isActive;
   final String token;
   final DateTime expiresAt;
   final List<String> roles;
@@ -23,6 +27,8 @@ class LoginResponse {
       username: json['username'] as String? ?? '',
       email: json['email'] as String? ?? '',
       fullName: json['fullName'] as String? ?? '',
+      phoneNumber: json['phoneNumber'] as String?,
+      isActive: json['isActive'] as bool? ?? true,
       token: json['token'] as String? ?? '',
       expiresAt: DateTime.parse(json['expiresAt'] as String),
       roles: (json['roles'] as List<dynamic>? ?? [])

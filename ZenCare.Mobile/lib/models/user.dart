@@ -4,6 +4,8 @@ class User {
     required this.username,
     required this.email,
     required this.fullName,
+    this.phoneNumber,
+    required this.isActive,
     required this.roles,
   });
 
@@ -11,6 +13,8 @@ class User {
   final String username;
   final String email;
   final String fullName;
+  final String? phoneNumber;
+  final bool isActive;
   final List<String> roles;
 
   String get primaryRole => roles.isNotEmpty ? roles.first : 'User';
@@ -21,6 +25,8 @@ class User {
       'username': username,
       'email': email,
       'fullName': fullName,
+      'phoneNumber': phoneNumber,
+      'isActive': isActive,
       'roles': roles,
     };
   }
@@ -31,6 +37,8 @@ class User {
       username: json['username'] as String? ?? '',
       email: json['email'] as String? ?? '',
       fullName: json['fullName'] as String? ?? '',
+      phoneNumber: json['phoneNumber'] as String?,
+      isActive: json['isActive'] as bool? ?? true,
       roles: (json['roles'] as List<dynamic>? ?? [])
           .map((role) => role.toString())
           .toList(),
