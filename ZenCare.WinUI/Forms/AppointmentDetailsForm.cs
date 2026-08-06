@@ -10,6 +10,9 @@ public partial class AppointmentDetailsForm : Form
     private readonly APIService _apiService = new APIService();
     private readonly int? _appointmentId;
     private List<ServiceResponse> _services = new();
+    private DateTime? _originalAppointmentDate;
+    private TimeSpan? _originalStartTime;
+    private TimeSpan? _originalEndTime;
     private bool _lookupsLoaded;
 
     public AppointmentDetailsForm()
@@ -119,6 +122,9 @@ public partial class AppointmentDetailsForm : Form
         dtpAppointmentDate.Value = GetAppointmentDateOnly(appointment.AppointmentDate);
         dtpStartTime.Value = DateTime.Today.Add(appointment.StartTime);
         dtpEndTime.Value = DateTime.Today.Add(appointment.EndTime);
+        _originalAppointmentDate = GetAppointmentDateOnly(appointment.AppointmentDate);
+        _originalStartTime = appointment.StartTime;
+        _originalEndTime = appointment.EndTime;
         txtNotes.Text = appointment.Notes;
         txtCancellationReason.Text = appointment.CancellationReason;
     }
@@ -235,6 +241,11 @@ public partial class AppointmentDetailsForm : Form
             return false;
         }
 
+        if (ShouldValidateFutureSchedule() && !ValidateFutureSchedule())
+        {
+            return false;
+        }
+
         if (txtNotes.Text.Length > 1000)
         {
             MessageBox.Show("Notes can contain up to 1000 characters.");
@@ -246,6 +257,41 @@ public partial class AppointmentDetailsForm : Form
         {
             MessageBox.Show("Cancellation reason can contain up to 500 characters.");
             txtCancellationReason.Focus();
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool ShouldValidateFutureSchedule()
+    {
+        if (!_appointmentId.HasValue)
+        {
+            return true;
+        }
+
+        return _originalAppointmentDate != GetSelectedAppointmentDate()
+            || _originalStartTime != dtpStartTime.Value.TimeOfDay
+            || _originalEndTime != dtpEndTime.Value.TimeOfDay;
+    }
+
+    private bool ValidateFutureSchedule()
+    {
+        var now = DateTime.Now;
+        var appointmentDate = GetSelectedAppointmentDate();
+        var appointmentStart = DateTime.SpecifyKind(appointmentDate.Add(dtpStartTime.Value.TimeOfDay), DateTimeKind.Unspecified);
+
+        if (appointmentDate < now.Date)
+        {
+            MessageBox.Show("Appointment date cannot be in the past.");
+            dtpAppointmentDate.Focus();
+            return false;
+        }
+
+        if (appointmentStart <= now)
+        {
+            MessageBox.Show("Start time must be in the future.");
+            dtpStartTime.Focus();
             return false;
         }
 

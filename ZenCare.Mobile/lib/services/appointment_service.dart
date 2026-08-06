@@ -48,6 +48,19 @@ class AppointmentService {
     );
   }
 
+  Future<Appointment> cancelMyAppointment({
+    required int id,
+    required String cancellationReason,
+  }) {
+    return _apiService.post<Appointment>(
+      '/Appointment/My/cancel/$id',
+      data: {
+        'cancellationReason': cancellationReason,
+      },
+      fromJson: (data) => Appointment.fromJson(data as Map<String, dynamic>),
+    );
+  }
+
   Future<List<AppointmentEmployeeOption>> getAvailableEmployees({
     required int wellnessServiceId,
     DateTime? appointmentDate,

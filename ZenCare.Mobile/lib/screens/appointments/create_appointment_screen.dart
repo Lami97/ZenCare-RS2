@@ -229,6 +229,14 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
       return;
     }
 
+    final scheduleError = _validateFutureSchedule(_selectedDate!, _startTime!);
+    if (scheduleError != null) {
+      setState(() {
+        _submitError = scheduleError;
+      });
+      return;
+    }
+
     setState(() {
       _isSubmitting = true;
     });
@@ -507,4 +515,27 @@ String _formatDate(DateTime value) {
 
 String _formatTimeOfDay(TimeOfDay value) {
   return '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+}
+
+String? _validateFutureSchedule(DateTime selectedDate, TimeOfDay startTime) {
+  final now = DateTime.now();
+  final appointmentDate = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+
+  if (appointmentDate.isBefore(DateTime(now.year, now.month, now.day))) {
+    return 'Appointment date cannot be in the past.';
+  }
+
+  final appointmentStart = DateTime(
+    selectedDate.year,
+    selectedDate.month,
+    selectedDate.day,
+    startTime.hour,
+    startTime.minute,
+  );
+
+  if (!appointmentStart.isAfter(now)) {
+    return 'Start time must be in the future.';
+  }
+
+  return null;
 }

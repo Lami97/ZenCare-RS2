@@ -35,6 +35,22 @@ class Appointment {
   final DateTime createdAt;
   final DateTime? updatedAt;
 
+  bool get canCancel {
+    if (status != AppointmentStatus.pending && status != AppointmentStatus.confirmed) {
+      return false;
+    }
+
+    final start = DateTime(
+      appointmentDate.year,
+      appointmentDate.month,
+      appointmentDate.day,
+      startTime.inHours,
+      startTime.inMinutes.remainder(60),
+    );
+
+    return start.isAfter(DateTime.now());
+  }
+
   factory Appointment.fromJson(Map<String, dynamic> json) {
     return Appointment(
       id: json['id'] as int? ?? 0,

@@ -166,6 +166,36 @@ public class AppointmentController : ControllerBase
         }
     }
 
+    [HttpPost("My/cancel/{id}")]
+    [Authorize(Roles = "Client")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<AppointmentResponse>> CancelMy(int id, [FromBody] AppointmentCancelRequest request)
+    {
+        var userId = GetCurrentUserId();
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var result = await _appointmentService.CancelMyAsync(id, userId.Value, request);
+            return Ok(result);
+        }
+        catch (NotFoundException)
+        {
+            return NotFound();
+        }
+        catch (BusinessException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
     [Authorize(Roles = "Employee,Admin")]
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]

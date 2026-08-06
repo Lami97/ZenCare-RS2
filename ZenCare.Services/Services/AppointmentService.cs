@@ -23,7 +23,8 @@ namespace ZenCare.Services.Services
                 request.WellnessServiceId,
                 request.AppointmentDate,
                 request.StartTime,
-                request.EndTime);
+                request.EndTime,
+                enforceFutureSchedule: true);
             ValidateAppointmentStatus(request.Status, request.CancellationReason);
 
             return await base.InsertAsync(request);
@@ -38,6 +39,8 @@ namespace ZenCare.Services.Services
                 throw new NotFoundException(nameof(Database.Appointment), id);
             }
 
+            var isRescheduling = IsScheduleChanged(entity, request.AppointmentDate, request.StartTime, request.EndTime);
+
             await ValidateAppointmentRequestAsync(
                 request.UserId,
                 request.EmployeeId,
@@ -45,7 +48,8 @@ namespace ZenCare.Services.Services
                 request.AppointmentDate,
                 request.StartTime,
                 request.EndTime,
-                id);
+                id,
+                isRescheduling);
             ValidateStatusTransition(entity.Status, request.Status);
             ValidateAppointmentStatus(request.Status, request.CancellationReason);
 
@@ -87,6 +91,27 @@ namespace ZenCare.Services.Services
             request.UserId = userId;
 
             return await UpdateAsync(id, request);
+        }
+
+        public async Task<AppointmentResponse> CancelMyAsync(int id, int userId, AppointmentCancelRequest request)
+        {
+            var entity = await DbContext.Appointments
+                .FirstOrDefaultAsync(a => a.Id == id && a.UserId == userId);
+
+            if (entity == null)
+            {
+                throw new NotFoundException(nameof(Database.Appointment), id);
+            }
+
+            ValidateAppointmentCancellation(entity, request.CancellationReason);
+
+            entity.Status = AppointmentStatus.Cancelled;
+            entity.CancellationReason = request.CancellationReason.Trim();
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            await DbContext.SaveChangesAsync();
+
+            return await GetByIdAsync(entity.Id);
         }
 
         public async Task<List<AppointmentEmployeeOptionResponse>> GetAvailableEmployeeOptionsAsync(
@@ -273,11 +298,17 @@ namespace ZenCare.Services.Services
             DateTime appointmentDate,
             TimeSpan startTime,
             TimeSpan endTime,
-            int? currentAppointmentId = null)
+            int? currentAppointmentId = null,
+            bool enforceFutureSchedule = false)
         {
             if (endTime <= startTime)
             {
                 throw new BusinessException("End time must be after start time.");
+            }
+
+            if (enforceFutureSchedule)
+            {
+                ValidateFutureAppointmentTime(appointmentDate, startTime);
             }
 
             var userExists = await DbContext.Users.AnyAsync(u => u.Id == userId);
@@ -319,6 +350,64 @@ namespace ZenCare.Services.Services
             {
                 throw new BusinessException("The selected employee already has an appointment during this time.");
             }
+        }
+
+        private static void ValidateFutureAppointmentTime(DateTime appointmentDate, TimeSpan startTime)
+        {
+            var now = DateTime.Now;
+            var appointmentDay = appointmentDate.Date;
+
+            if (appointmentDay < now.Date)
+            {
+                throw new BusinessException("Appointment date cannot be in the past.");
+            }
+
+            var appointmentStart = DateTime.SpecifyKind(appointmentDay.Add(startTime), DateTimeKind.Unspecified);
+
+            if (appointmentStart <= now)
+            {
+                throw new BusinessException("Start time must be in the future.");
+            }
+        }
+
+        private static void ValidateAppointmentCancellation(Database.Appointment appointment, string? cancellationReason)
+        {
+            if (string.IsNullOrWhiteSpace(cancellationReason))
+            {
+                throw new BusinessException("Cancellation reason is required.");
+            }
+
+            if (appointment.Status == AppointmentStatus.Cancelled)
+            {
+                throw new BusinessException("Appointment was already cancelled.");
+            }
+
+            if (appointment.Status == AppointmentStatus.Completed)
+            {
+                throw new BusinessException("Completed appointments cannot be cancelled.");
+            }
+
+            if (appointment.Status is not (AppointmentStatus.Pending or AppointmentStatus.Confirmed))
+            {
+                throw new BusinessException("Only future pending or confirmed appointments can be cancelled.");
+            }
+
+            if (GetAppointmentStartDateTime(appointment.AppointmentDate, appointment.StartTime) <= DateTime.Now)
+            {
+                throw new BusinessException("Only future pending or confirmed appointments can be cancelled.");
+            }
+        }
+
+        private static DateTime GetAppointmentStartDateTime(DateTime appointmentDate, TimeSpan startTime)
+        {
+            return DateTime.SpecifyKind(appointmentDate.Date.Add(startTime), DateTimeKind.Unspecified);
+        }
+
+        private static bool IsScheduleChanged(Database.Appointment appointment, DateTime appointmentDate, TimeSpan startTime, TimeSpan endTime)
+        {
+            return appointment.AppointmentDate.Date != appointmentDate.Date
+                || appointment.StartTime != startTime
+                || appointment.EndTime != endTime;
         }
 
         private static void ValidateStatusTransition(AppointmentStatus currentStatus, AppointmentStatus newStatus)

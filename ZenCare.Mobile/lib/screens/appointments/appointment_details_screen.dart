@@ -18,6 +18,7 @@ class AppointmentDetailsScreen extends StatefulWidget {
 
 class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
   late Future<Appointment> _appointmentFuture;
+  bool _isCancelling = false;
 
   @override
   void initState() {
@@ -33,6 +34,66 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
     setState(() {
       _appointmentFuture = _loadAppointment();
     });
+  }
+
+  void _reloadAppointment() {
+    setState(() {
+      _appointmentFuture = _loadAppointment();
+    });
+  }
+
+  Future<void> _cancelAppointment(Appointment appointment) async {
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (context) => const _CancelAppointmentDialog(),
+    );
+
+    if (!mounted || reason == null) {
+      return;
+    }
+
+    final service = context.read<AppointmentService>();
+    final messenger = ScaffoldMessenger.of(context);
+
+    setState(() {
+      _isCancelling = true;
+    });
+
+    try {
+      await service.cancelMyAppointment(
+        id: appointment.id,
+        cancellationReason: reason,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Appointment was cancelled successfully.')),
+      );
+      _reloadAppointment();
+    } on ApiException catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      messenger.showSnackBar(SnackBar(content: Text(error.message)));
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Appointment could not be cancelled.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCancelling = false;
+        });
+      }
+    }
   }
 
   @override
@@ -53,7 +114,11 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
             return _DetailsError(message: message, onRetry: _retry);
           }
 
-          return _DetailsContent(appointment: snapshot.data!);
+          return _DetailsContent(
+            appointment: snapshot.data!,
+            isCancelling: _isCancelling,
+            onCancel: _isCancelling ? null : () => _cancelAppointment(snapshot.data!),
+          );
         },
       ),
     );
@@ -61,9 +126,15 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
 }
 
 class _DetailsContent extends StatelessWidget {
-  const _DetailsContent({required this.appointment});
+  const _DetailsContent({
+    required this.appointment,
+    required this.isCancelling,
+    this.onCancel,
+  });
 
   final Appointment appointment;
+  final bool isCancelling;
+  final VoidCallback? onCancel;
 
   @override
   Widget build(BuildContext context) {
@@ -100,6 +171,23 @@ class _DetailsContent extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
+        if (appointment.canCancel) ...[
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: onCancel,
+              icon: isCancelling
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.cancel_outlined),
+              label: const Text('Cancel appointment'),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
@@ -122,6 +210,67 @@ class _DetailsContent extends StatelessWidget {
                   : 'Review available after completion',
             ),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CancelAppointmentDialog extends StatefulWidget {
+  const _CancelAppointmentDialog();
+
+  @override
+  State<_CancelAppointmentDialog> createState() => _CancelAppointmentDialogState();
+}
+
+class _CancelAppointmentDialogState extends State<_CancelAppointmentDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _reasonController = TextEditingController();
+
+  @override
+  void dispose() {
+    _reasonController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Cancel appointment'),
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Are you sure you want to cancel this appointment?'),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _reasonController,
+              maxLength: 500,
+              maxLines: 3,
+              decoration: const InputDecoration(labelText: 'Cancellation reason'),
+              validator: (value) => value == null || value.trim().isEmpty
+                  ? 'Cancellation reason is required.'
+                  : null,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () {
+            if (!_formKey.currentState!.validate()) {
+              return;
+            }
+
+            Navigator.of(context).pop(_reasonController.text.trim());
+          },
+          child: const Text('Confirm cancellation'),
         ),
       ],
     );
