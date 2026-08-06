@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/appointment_create_request.dart';
 import '../../models/appointment_employee_option.dart';
+import '../../models/category.dart';
 import '../../models/wellness_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/appointment_service.dart';
@@ -26,7 +27,9 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
   String? _employeeLookupMessage;
   String? _submitError;
   List<AppointmentEmployeeOption> _employees = [];
+  List<Category> _serviceCategories = [];
   List<WellnessService> _services = [];
+  Category? _selectedServiceCategory;
   AppointmentEmployeeOption? _selectedEmployee;
   WellnessService? _selectedService;
   DateTime? _selectedDate;
@@ -50,14 +53,18 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
       _isLoadingLookups = true;
       _lookupError = null;
       _employeeLookupMessage = null;
+      _selectedServiceCategory = null;
+      _selectedService = null;
       _selectedEmployee = null;
       _employees = [];
     });
 
     try {
       final service = context.read<AppointmentService>();
+      final categoriesResult = await service.getActiveServiceCategories();
       final servicesResult = await service.getActiveServices();
 
+      _serviceCategories = categoriesResult.items.where((category) => category.isActive).toList();
       _services = servicesResult.items.where((wellnessService) => wellnessService.isActive).toList();
     } on ApiException catch (error) {
       _lookupError = error.message;
@@ -70,6 +77,16 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
         });
       }
     }
+  }
+
+  List<WellnessService> get _filteredServices {
+    final selectedCategory = _selectedServiceCategory;
+
+    if (selectedCategory == null) {
+      return [];
+    }
+
+    return _services.where((service) => service.serviceCategoryId == selectedCategory.id).toList();
   }
 
   Future<void> _loadEmployeesForSelectedService() async {
@@ -263,10 +280,36 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
                   child: ListView(
                     padding: const EdgeInsets.all(20),
                     children: [
+                      DropdownButtonFormField<Category>(
+                        initialValue: _selectedServiceCategory,
+                        decoration: const InputDecoration(labelText: 'Service category'),
+                        items: _serviceCategories
+                            .map(
+                              (category) => DropdownMenuItem<Category>(
+                                value: category,
+                                child: Text(category.name),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: _serviceCategories.isEmpty
+                            ? null
+                            : (value) {
+                                setState(() {
+                                  _selectedServiceCategory = value;
+                                  _selectedService = null;
+                                  _selectedEmployee = null;
+                                  _employees = [];
+                                  _employeeLookupMessage = null;
+                                });
+                              },
+                        validator: (value) => value == null ? 'Service category is required.' : null,
+                      ),
+                      const SizedBox(height: 16),
                       DropdownButtonFormField<WellnessService>(
+                        key: ValueKey<int?>(_selectedServiceCategory?.id),
                         initialValue: _selectedService,
                         decoration: const InputDecoration(labelText: 'Service'),
-                        items: _services
+                        items: _filteredServices
                             .map(
                               (service) => DropdownMenuItem<WellnessService>(
                                 value: service,
@@ -274,19 +317,32 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
                               ),
                             )
                             .toList(),
-                        onChanged: (value) async {
-                          setState(() {
-                            _selectedService = value;
-                            if (_startTime != null && value != null) {
-                              _endTime = _addMinutes(_startTime!, value.durationMinutes);
-                            }
-                          });
-                          await _loadEmployeesForSelectedService();
-                        },
+                        onChanged: _selectedServiceCategory == null || _filteredServices.isEmpty
+                            ? null
+                            : (value) async {
+                                setState(() {
+                                  _selectedService = value;
+                                  _selectedEmployee = null;
+                                  _employees = [];
+                                  _employeeLookupMessage = null;
+                                  if (_startTime != null && value != null) {
+                                    _endTime = _addMinutes(_startTime!, value.durationMinutes);
+                                  }
+                                });
+                                await _loadEmployeesForSelectedService();
+                              },
                         validator: (value) => value == null ? 'Service is required.' : null,
                       ),
+                      if (_selectedServiceCategory != null && _filteredServices.isEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'No services available in this category',
+                          style: TextStyle(color: Theme.of(context).colorScheme.error),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       DropdownButtonFormField<AppointmentEmployeeOption>(
+                        key: ValueKey<int?>(_selectedService?.id),
                         initialValue: _selectedEmployee,
                         decoration: InputDecoration(
                           labelText: 'Employee',

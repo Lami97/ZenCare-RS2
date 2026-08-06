@@ -1,6 +1,7 @@
 import '../models/appointment.dart';
 import '../models/appointment_create_request.dart';
 import '../models/appointment_employee_option.dart';
+import '../models/category.dart';
 import '../models/paged_result.dart';
 import '../models/wellness_service.dart';
 import 'api_service.dart';
@@ -74,6 +75,21 @@ class AppointmentService {
 
     return '$hours:$minutes:$seconds';
   }
+
+  Future<PagedResult<Category>> getActiveServiceCategories() {
+    return _apiService.get<PagedResult<Category>>(
+      '/ServiceCategory',
+      queryParameters: {
+        'IsActive': true,
+        'IncludeTotalCount': true,
+      },
+      fromJson: (data) => PagedResult<Category>.fromJson(
+        data as Map<String, dynamic>,
+        Category.fromJson,
+      ),
+    );
+  }
+
   Future<PagedResult<WellnessService>> getActiveServices() {
     return _apiService.get<PagedResult<WellnessService>>(
       '/Service',
