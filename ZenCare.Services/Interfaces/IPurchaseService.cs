@@ -12,5 +12,6 @@ namespace ZenCare.Services.Interfaces
         Task<PurchaseResponse> UpdateMyAsync(int id, int userId, PurchaseUpdateRequest request);
         Task DeleteMyAsync(int id, int userId);
         Task<PurchaseResponse> CheckoutAsync(int userId, PurchaseCheckoutRequest request);
+        Task<PurchaseResponse> CancelMyAsync(int id, int userId);
     }
 }

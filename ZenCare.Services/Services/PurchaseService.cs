@@ -1,6 +1,8 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Stripe;
 using System.Text.Json;
 using ZenCare.Model.Enums;
 using ZenCare.Model.Exceptions;
@@ -15,15 +17,18 @@ namespace ZenCare.Services.Services
     public class PurchaseService : BaseCRUDService<PurchaseResponse, Database.Purchase, PurchaseInsertRequest, PurchaseUpdateRequest, PurchaseSearchObject>, IPurchaseService
     {
         private readonly IRabbitMqService _rabbitMqService;
+        private readonly IConfiguration _configuration;
         private readonly ILogger<PurchaseService> _logger;
 
         public PurchaseService(
             ZenCareDbContext dbContext,
             IMapper mapper,
             IRabbitMqService rabbitMqService,
+            IConfiguration configuration,
             ILogger<PurchaseService> logger) : base(dbContext, mapper)
         {
             _rabbitMqService = rabbitMqService;
+            _configuration = configuration;
             _logger = logger;
         }
 
@@ -150,6 +155,52 @@ namespace ZenCare.Services.Services
             await transaction.CommitAsync();
 
             await PublishPurchaseCreatedMessageAsync(purchase);
+
+            return await GetByIdAsync(purchase.Id);
+        }
+
+        public async Task<PurchaseResponse> CancelMyAsync(int id, int userId)
+        {
+            var purchase = await DbContext.Purchases
+                .Include(p => p.PurchaseItems)
+                    .ThenInclude(pi => pi.Product)
+                .FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
+
+            if (purchase == null)
+            {
+                throw new NotFoundException(nameof(Database.Purchase), id);
+            }
+
+            ValidatePurchaseForCancellation(purchase);
+
+            var payment = await DbContext.Payments
+                .FirstOrDefaultAsync(p => p.PurchaseId == purchase.Id && p.UserId == userId);
+
+            ValidatePaymentForCancellation(payment);
+            await CancelStripePaymentIntentIfNeededAsync(purchase, payment);
+
+            await using var transaction = await DbContext.Database.BeginTransactionAsync();
+
+            var cancelledAt = DateTime.UtcNow;
+
+            foreach (var item in purchase.PurchaseItems)
+            {
+                item.Product.StockQuantity += item.Quantity;
+                item.Product.UpdatedAt = cancelledAt;
+            }
+
+            purchase.Status = PurchaseStatus.Cancelled;
+            purchase.PaymentStatus = PaymentStatus.Cancelled;
+            purchase.UpdatedAt = cancelledAt;
+
+            if (payment != null)
+            {
+                payment.Status = PaymentStatus.Cancelled;
+                payment.UpdatedAt = cancelledAt;
+            }
+
+            await DbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
 
             return await GetByIdAsync(purchase.Id);
         }
@@ -305,6 +356,75 @@ namespace ZenCare.Services.Services
             }
         }
 
+        private async Task CancelStripePaymentIntentIfNeededAsync(Database.Purchase purchase, Database.Payment? payment)
+        {
+            var paymentIntentId = purchase.StripePaymentIntentId ?? payment?.StripePaymentIntentId;
+
+            if (string.IsNullOrWhiteSpace(paymentIntentId))
+            {
+                return;
+            }
+
+            var paymentIntentService = new PaymentIntentService();
+            var requestOptions = new RequestOptions { ApiKey = GetStripeSecretKey() };
+
+            PaymentIntent paymentIntent;
+
+            try
+            {
+                paymentIntent = await paymentIntentService.GetAsync(paymentIntentId, requestOptions: requestOptions);
+            }
+            catch (StripeException)
+            {
+                throw new BusinessException("Stripe payment intent could not be retrieved for cancellation.");
+            }
+
+            if (paymentIntent.Status == "canceled")
+            {
+                return;
+            }
+
+            if (paymentIntent.Status == "succeeded")
+            {
+                throw new BusinessException("Paid purchases cannot be cancelled.");
+            }
+
+            if (!IsCancellablePaymentIntent(paymentIntent))
+            {
+                throw new BusinessException("Stripe payment intent cannot be cancelled in its current state.");
+            }
+
+            try
+            {
+                await paymentIntentService.CancelAsync(paymentIntentId, requestOptions: requestOptions);
+            }
+            catch (StripeException)
+            {
+                throw new BusinessException("Stripe payment intent could not be cancelled.");
+            }
+        }
+
+        private string GetStripeSecretKey()
+        {
+            var stripeSecretKey = _configuration["Stripe:SecretKey"];
+
+            if (string.IsNullOrWhiteSpace(stripeSecretKey))
+            {
+                throw new BusinessException("Stripe secret key is not configured.");
+            }
+
+            return stripeSecretKey;
+        }
+
+        private static bool IsCancellablePaymentIntent(PaymentIntent paymentIntent)
+        {
+            return paymentIntent.Status is "requires_payment_method"
+                or "requires_confirmation"
+                or "requires_action"
+                or "requires_capture"
+                or "processing";
+        }
+
         private static void ValidatePurchaseRequest(string? purchaseNumber, decimal totalAmount, PurchaseStatus status, PaymentStatus paymentStatus)
         {
             if (string.IsNullOrWhiteSpace(purchaseNumber))
@@ -328,6 +448,57 @@ namespace ZenCare.Services.Services
             }
 
             ValidatePaymentStatus(status, paymentStatus);
+        }
+
+        private static void ValidatePurchaseForCancellation(Database.Purchase purchase)
+        {
+            if (purchase.Status == PurchaseStatus.Paid || purchase.PaymentStatus == PaymentStatus.Succeeded)
+            {
+                throw new BusinessException("Paid purchases cannot be cancelled.");
+            }
+
+            if (purchase.Status == PurchaseStatus.Cancelled || purchase.PaymentStatus == PaymentStatus.Cancelled)
+            {
+                throw new BusinessException("This order has already been cancelled.");
+            }
+
+            if (purchase.Status == PurchaseStatus.Refunded || purchase.PaymentStatus == PaymentStatus.Refunded)
+            {
+                throw new BusinessException("Refunded purchases cannot be cancelled.");
+            }
+
+            if (purchase.Status != PurchaseStatus.PendingPayment || purchase.PaymentStatus != PaymentStatus.Pending)
+            {
+                throw new BusinessException("Only unpaid pending purchases can be cancelled.");
+            }
+        }
+
+        private static void ValidatePaymentForCancellation(Database.Payment? payment)
+        {
+            if (payment == null)
+            {
+                return;
+            }
+
+            if (payment.Status == PaymentStatus.Succeeded)
+            {
+                throw new BusinessException("Paid purchases cannot be cancelled.");
+            }
+
+            if (payment.Status == PaymentStatus.Refunded)
+            {
+                throw new BusinessException("Refunded purchases cannot be cancelled.");
+            }
+
+            if (payment.Status == PaymentStatus.Cancelled)
+            {
+                throw new BusinessException("This order has already been cancelled.");
+            }
+
+            if (payment.Status != PaymentStatus.Pending)
+            {
+                throw new BusinessException("Only unpaid pending purchases can be cancelled.");
+            }
         }
 
         private static void ValidatePurchaseStatusTransition(PurchaseStatus currentStatus, PurchaseStatus newStatus)

@@ -138,6 +138,36 @@ public class PurchaseController : ControllerBase
         }
     }
 
+    [HttpPost("My/cancel/{id}")]
+    [Authorize(Roles = "Client")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PurchaseResponse>> CancelMy(int id)
+    {
+        var userId = GetCurrentUserId();
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var result = await _purchaseService.CancelMyAsync(id, userId.Value);
+            return Ok(result);
+        }
+        catch (NotFoundException)
+        {
+            return NotFound();
+        }
+        catch (BusinessException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
     [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]

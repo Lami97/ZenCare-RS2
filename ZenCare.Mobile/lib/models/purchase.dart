@@ -35,6 +35,7 @@ class Purchase {
   String get statusText => _purchaseStatusName(status);
   String get paymentStatusText => _paymentStatusName(paymentStatus);
   bool get canPay => status == 2 && paymentStatus == 1;
+  bool get canCancel => status == 2 && paymentStatus == 1;
   bool get canRefund => status == 3 && paymentStatus == 2;
 
   factory Purchase.fromJson(Map<String, dynamic> json) {

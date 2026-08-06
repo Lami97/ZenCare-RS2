@@ -25,6 +25,7 @@ class PurchaseDetailsScreen extends StatefulWidget {
 class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
   late Future<Purchase> _purchaseFuture;
   bool _isPaying = false;
+  bool _isCancelling = false;
   bool _isRefunding = false;
 
   @override
@@ -84,9 +85,10 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
       }
 
       final message = error.error.code == FailureCode.Canceled
-          ? 'Payment was cancelled.'
+          ? 'Payment was cancelled. You were not charged. You can resume payment from this purchase later.'
           : 'Payment could not be completed.';
       messenger.showSnackBar(SnackBar(content: Text(message)));
+      _reloadPurchase();
     } on ApiException catch (error) {
       if (!mounted) {
         return;
@@ -174,6 +176,70 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
     }
   }
 
+  Future<void> _cancelOrder(Purchase purchase) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel order'),
+        content: const Text('Are you sure you want to cancel this order?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('No'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Cancel order'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted || confirmed != true) {
+      return;
+    }
+
+    final purchaseService = context.read<PurchaseService>();
+    final messenger = ScaffoldMessenger.of(context);
+
+    setState(() {
+      _isCancelling = true;
+    });
+
+    try {
+      await purchaseService.cancelMyPurchase(purchase.id);
+
+      if (!mounted) {
+        return;
+      }
+
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Order was cancelled successfully.')),
+      );
+      _reloadPurchase();
+    } on ApiException catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      messenger.showSnackBar(SnackBar(content: Text(error.message)));
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Order could not be cancelled.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCancelling = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -198,9 +264,11 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
           return _PurchaseDetailsContent(
             purchase: purchase,
             isPaying: _isPaying,
+            isCancelling: _isCancelling,
             isRefunding: _isRefunding,
-            onPay: _isPaying || _isRefunding ? null : () => _pay(purchase),
-            onRefund: _isPaying || _isRefunding ? null : () => _refund(purchase),
+            onPay: _isPaying || _isCancelling || _isRefunding ? null : () => _pay(purchase),
+            onCancel: _isPaying || _isCancelling || _isRefunding ? null : () => _cancelOrder(purchase),
+            onRefund: _isPaying || _isCancelling || _isRefunding ? null : () => _refund(purchase),
           );
         },
       ),
@@ -212,15 +280,19 @@ class _PurchaseDetailsContent extends StatelessWidget {
   const _PurchaseDetailsContent({
     required this.purchase,
     required this.isPaying,
+    required this.isCancelling,
     required this.isRefunding,
     this.onPay,
+    this.onCancel,
     this.onRefund,
   });
 
   final Purchase purchase;
   final bool isPaying;
+  final bool isCancelling;
   final bool isRefunding;
   final VoidCallback? onPay;
+  final VoidCallback? onCancel;
   final VoidCallback? onRefund;
 
   @override
@@ -252,6 +324,15 @@ class _PurchaseDetailsContent extends StatelessWidget {
         ),
         if (purchase.canPay) ...[
           const SizedBox(height: 16),
+          const Card(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'Payment is pending. You can safely resume payment for this purchase.',
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
@@ -264,6 +345,21 @@ class _PurchaseDetailsContent extends StatelessWidget {
                     )
                   : const Icon(Icons.payment),
               label: const Text('Pay now'),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: purchase.canCancel ? onCancel : null,
+              icon: isCancelling
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.cancel_outlined),
+              label: const Text('Cancel order'),
             ),
           ),
         ] else if (purchase.canRefund) ...[

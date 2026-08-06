@@ -26,4 +26,11 @@ class PurchaseService {
       fromJson: (data) => Purchase.fromJson(data as Map<String, dynamic>),
     );
   }
+
+  Future<Purchase> cancelMyPurchase(int id) {
+    return _apiService.post<Purchase>(
+      '/Purchase/My/cancel/$id',
+      fromJson: (data) => Purchase.fromJson(data as Map<String, dynamic>),
+    );
+  }
 }
