@@ -7,9 +7,12 @@ import '../models/login_request.dart';
 import '../models/login_response.dart';
 import '../models/register_request.dart';
 import '../models/register_response.dart';
+import '../models/update_profile_request.dart';
 import '../models/user.dart';
+import '../models/user_profile_response.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import '../utils/api_exception.dart';
 
 class AuthProvider extends ChangeNotifier {
   static const _tokenKey = 'auth_token';
@@ -66,6 +69,32 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> updateProfile(UpdateProfileRequest request) async {
+    final currentUser = _user;
+    if (currentUser == null) {
+      throw ApiException('Profile could not be updated. Please sign in again.');
+    }
+
+    _setLoading(true);
+
+    try {
+      final response = await _authService!.updateProfile(request);
+      await _saveUser(_mapProfileResponse(response, currentUser.roles));
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<void> refreshProfile() async {
+    final currentUser = _user;
+    if (currentUser == null) {
+      throw ApiException('Profile could not be loaded. Please sign in again.');
+    }
+
+    final response = await _authService!.getProfile();
+    await _saveUser(_mapProfileResponse(response, currentUser.roles));
+  }
+
   Future<void> logout() async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.remove(_tokenKey);
@@ -103,6 +132,8 @@ class AuthProvider extends ChangeNotifier {
   Future<void> _saveSession(LoginResponse response) async {
     final user = User(
       id: response.userId,
+      firstName: response.firstName,
+      lastName: response.lastName,
       username: response.username,
       email: response.email,
       fullName: response.fullName,
@@ -111,15 +142,37 @@ class AuthProvider extends ChangeNotifier {
       roles: response.roles,
     );
 
+    await _saveUser(user);
+
     final preferences = await SharedPreferences.getInstance();
     await preferences.setString(_tokenKey, response.token);
-    await preferences.setString(_userKey, jsonEncode(user.toJson()));
     await preferences.setString(_expiresAtKey, response.expiresAt.toUtc().toIso8601String());
 
     _token = response.token;
-    _user = user;
     _apiService?.setToken(response.token);
     notifyListeners();
+  }
+
+  Future<void> _saveUser(User user) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(_userKey, jsonEncode(user.toJson()));
+
+    _user = user;
+    notifyListeners();
+  }
+
+  User _mapProfileResponse(UserProfileResponse response, List<String> roles) {
+    return User(
+      id: response.id,
+      firstName: response.firstName,
+      lastName: response.lastName,
+      username: response.username,
+      email: response.email,
+      fullName: response.fullName,
+      phoneNumber: response.phoneNumber,
+      isActive: response.isActive,
+      roles: roles,
+    );
   }
 
   void _setLoading(bool value) {

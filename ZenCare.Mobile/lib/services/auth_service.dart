@@ -2,6 +2,8 @@ import '../models/login_request.dart';
 import '../models/login_response.dart';
 import '../models/register_request.dart';
 import '../models/register_response.dart';
+import '../models/update_profile_request.dart';
+import '../models/user_profile_response.dart';
 import 'api_service.dart';
 
 class AuthService {
@@ -22,6 +24,21 @@ class AuthService {
       '/Auth/Register',
       data: request.toJson(),
       fromJson: (data) => RegisterResponse.fromJson(data as Map<String, dynamic>),
+    );
+  }
+
+  Future<UserProfileResponse> updateProfile(UpdateProfileRequest request) {
+    return _apiService.put<UserProfileResponse>(
+      '/User/My/profile',
+      data: request.toJson(),
+      fromJson: (data) => UserProfileResponse.fromJson(data as Map<String, dynamic>),
+    );
+  }
+
+  Future<UserProfileResponse> getProfile() {
+    return _apiService.get<UserProfileResponse>(
+      '/User/My/profile',
+      fromJson: (data) => UserProfileResponse.fromJson(data as Map<String, dynamic>),
     );
   }
 }

@@ -1,11 +1,13 @@
 ﻿import 'package:flutter/foundation.dart';
 
 import '../models/user.dart';
+import 'auth_provider.dart';
 
 class ProfileProvider extends ChangeNotifier {
-  ProfileProvider({required User? user}) : _user = user;
+  ProfileProvider({required AuthProvider authProvider}) : _authProvider = authProvider;
 
-  final User? _user;
+  final AuthProvider _authProvider;
+  User? _user;
   bool _isLoading = false;
   String? _error;
   ProfileViewData? _profile;
@@ -21,21 +23,34 @@ class ProfileProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      if (_authProvider.user == null) {
+        _profile = null;
+        _error = 'Profile could not be loaded. Please sign in again.';
+        return;
+      }
+
+      await _authProvider.refreshProfile();
+      _user = _authProvider.user;
+
       if (_user == null) {
         _profile = null;
         _error = 'Profile could not be loaded. Please sign in again.';
         return;
       }
 
+      final user = _user!;
+
       _profile = ProfileViewData(
-        userId: _user.id,
-        fullName: _user.fullName,
-        username: _user.username,
-        email: _user.email,
-        role: _user.primaryRole,
-        roles: _user.roles,
-        phoneNumber: _user.phoneNumber,
-        isActive: _user.isActive,
+        userId: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        fullName: user.fullName,
+        username: user.username,
+        email: user.email,
+        role: user.primaryRole,
+        roles: user.roles,
+        phoneNumber: user.phoneNumber,
+        isActive: user.isActive,
       );
     } catch (_) {
       _profile = null;
@@ -49,11 +64,33 @@ class ProfileProvider extends ChangeNotifier {
   Future<void> refresh() => loadProfile();
 
   Future<void> retry() => loadProfile();
+
+  Future<void> updateUser(User? user) {
+    _user = user;
+    _profile = user == null
+        ? null
+        : ProfileViewData(
+            userId: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            fullName: user.fullName,
+            username: user.username,
+            email: user.email,
+            role: user.primaryRole,
+            roles: user.roles,
+            phoneNumber: user.phoneNumber,
+            isActive: user.isActive,
+          );
+    notifyListeners();
+    return Future.value();
+  }
 }
 
 class ProfileViewData {
   ProfileViewData({
     required this.userId,
+    required this.firstName,
+    required this.lastName,
     required this.fullName,
     required this.username,
     required this.email,
@@ -64,6 +101,8 @@ class ProfileViewData {
   });
 
   final int userId;
+  final String firstName;
+  final String lastName;
   final String fullName;
   final String username;
   final String email;

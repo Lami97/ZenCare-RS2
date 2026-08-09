@@ -50,6 +50,8 @@ namespace ZenCare.Services.Services
             return new LoginResponse
             {
                 UserId = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
                 Username = user.Username,
                 Email = user.Email,
                 FullName = $"{user.FirstName} {user.LastName}".Trim(),

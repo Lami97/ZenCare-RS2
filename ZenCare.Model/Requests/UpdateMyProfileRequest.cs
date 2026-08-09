@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ZenCare.Model.Requests;
 
-public class RegisterRequest
+public class UpdateMyProfileRequest
 {
     [Required(ErrorMessage = "First name is required.")]
     [MaxLength(50, ErrorMessage = "First name must not exceed 50 characters.")]
@@ -12,10 +12,6 @@ public class RegisterRequest
     [MaxLength(50, ErrorMessage = "Last name must not exceed 50 characters.")]
     public string LastName { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "Username is required.")]
-    [MaxLength(100, ErrorMessage = "Username must not exceed 100 characters.")]
-    public string Username { get; set; } = string.Empty;
-
     [Required(ErrorMessage = "Email is required.")]
     [MaxLength(100, ErrorMessage = "Email must not exceed 100 characters.")]
     [EmailAddress(ErrorMessage = "Email must be in the format: user@example.com.")]
@@ -24,12 +20,4 @@ public class RegisterRequest
     [MaxLength(10, ErrorMessage = "Phone number must contain 9 or 10 digits (numbers only).")]
     [RegularExpression(@"^\d{9,10}$", ErrorMessage = "Phone number must contain 9 or 10 digits (numbers only).")]
     public string? PhoneNumber { get; set; }
-
-    [Required(ErrorMessage = "Password is required.")]
-    [MinLength(6, ErrorMessage = "Password must contain at least 6 characters.")]
-    public string Password { get; set; } = string.Empty;
-
-    [Required(ErrorMessage = "Confirm password is required.")]
-    [Compare(nameof(Password), ErrorMessage = "Passwords do not match.")]
-    public string PasswordConfirm { get; set; } = string.Empty;
 }

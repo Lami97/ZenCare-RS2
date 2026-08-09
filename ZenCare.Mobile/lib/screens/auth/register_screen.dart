@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/register_request.dart';
 import '../../providers/auth_provider.dart';
+import '../../utils/account_validators.dart';
 import '../../utils/api_exception.dart';
 import '../../widgets/error_dialog.dart';
 import '../../widgets/loading_button.dart';
@@ -23,6 +25,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  String? _usernameServerError;
+  String? _emailServerError;
+  String? _phoneServerError;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
@@ -87,6 +92,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (!mounted) {
         return;
       }
+
+      if (_applyFieldError(error.message)) {
+        return;
+      }
+
       await showErrorDialog(context, error.message);
     } catch (_) {
       if (!mounted) {
@@ -141,7 +151,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         labelText: 'First name',
                         prefixIcon: Icon(Icons.badge_outlined),
                       ),
-                      validator: (value) => _required(value, 'First name'),
+                      validator: AccountValidators.firstName,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
@@ -151,7 +161,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         labelText: 'Last name',
                         prefixIcon: Icon(Icons.badge_outlined),
                       ),
-                      validator: (value) => _required(value, 'Last name'),
+                      validator: AccountValidators.lastName,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
@@ -161,7 +171,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         labelText: 'Username',
                         prefixIcon: Icon(Icons.person_outline),
                       ),
-                      validator: (value) => _required(value, 'Username'),
+                      onChanged: (_) => _clearUsernameServerError(),
+                      validator: (value) => _usernameServerError ?? AccountValidators.username(value),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
@@ -171,19 +182,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       decoration: const InputDecoration(
                         labelText: 'Email',
                         prefixIcon: Icon(Icons.email_outlined),
+                        helperText: AccountValidators.emailHelperText,
+                        helperMaxLines: 2,
+                        errorMaxLines: 2,
                       ),
-                      validator: _validateEmail,
+                      onChanged: (_) => _clearEmailServerError(),
+                      validator: (value) => _emailServerError ?? AccountValidators.email(value),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _phoneController,
-                      keyboardType: TextInputType.phone,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(AccountValidators.phoneMaxLength),
+                      ],
+                      maxLength: AccountValidators.phoneMaxLength,
                       textInputAction: TextInputAction.next,
                       decoration: const InputDecoration(
                         labelText: 'Phone number',
                         prefixIcon: Icon(Icons.phone_outlined),
+                        helperText: AccountValidators.phoneHelperText,
+                        helperMaxLines: 2,
+                        counterText: '',
+                        errorMaxLines: 2,
                       ),
-                      validator: _validatePhone,
+                      onChanged: (_) => _clearPhoneServerError(),
+                      validator: (value) => _phoneServerError ?? AccountValidators.phoneNumber(value),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
@@ -193,6 +218,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       decoration: InputDecoration(
                         labelText: 'Password',
                         prefixIcon: const Icon(Icons.lock_outline),
+                        helperText: AccountValidators.passwordHelperText,
+                        helperMaxLines: 2,
+                        errorMaxLines: 2,
                         suffixIcon: IconButton(
                           onPressed: () {
                             setState(() {
@@ -204,7 +232,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                         ),
                       ),
-                      validator: _validatePassword,
+                      validator: AccountValidators.password,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
@@ -214,6 +242,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       decoration: InputDecoration(
                         labelText: 'Confirm password',
                         prefixIcon: const Icon(Icons.lock_outline),
+                        helperText: AccountValidators.confirmPasswordHelperText,
+                        helperMaxLines: 2,
+                        errorMaxLines: 2,
                         suffixIcon: IconButton(
                           onPressed: () {
                             setState(() {
@@ -225,7 +256,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                         ),
                       ),
-                      validator: _validatePasswordConfirmation,
+                      validator: (value) => AccountValidators.confirmPassword(value, _passwordController.text),
                     ),
                     const SizedBox(height: 24),
                     LoadingButton(
@@ -248,63 +279,55 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  String? _required(String? value, String fieldName) {
-    if (value == null || value.trim().isEmpty) {
-      return '$fieldName is required.';
+  bool _applyFieldError(String message) {
+    if (message.toLowerCase().contains('username')) {
+      setState(() {
+        _usernameServerError = message;
+      });
+      _formKey.currentState?.validate();
+      return true;
     }
-    return null;
+
+    if (message.toLowerCase().contains('email')) {
+      setState(() {
+        _emailServerError = message;
+      });
+      _formKey.currentState?.validate();
+      return true;
+    }
+
+    if (message.toLowerCase().contains('phone number')) {
+      setState(() {
+        _phoneServerError = message;
+      });
+      _formKey.currentState?.validate();
+      return true;
+    }
+
+    return false;
   }
 
-  String? _validateEmail(String? value) {
-    final requiredMessage = _required(value, 'Email');
-    if (requiredMessage != null) {
-      return requiredMessage;
+  void _clearUsernameServerError() {
+    if (_usernameServerError != null) {
+      setState(() {
+        _usernameServerError = null;
+      });
     }
-
-    final email = value!.trim();
-    final emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
-    if (!emailPattern.hasMatch(email)) {
-      return 'Enter a valid email address.';
-    }
-
-    return null;
   }
 
-  String? _validatePhone(String? value) {
-    final phone = value?.trim() ?? '';
-    if (phone.isEmpty) {
-      return null;
+  void _clearEmailServerError() {
+    if (_emailServerError != null) {
+      setState(() {
+        _emailServerError = null;
+      });
     }
-
-    final phonePattern = RegExp(r'^[0-9+() -]+$');
-    if (phone.length > 20 || !phonePattern.hasMatch(phone)) {
-      return 'Enter a valid phone number.';
-    }
-
-    return null;
   }
 
-  String? _validatePassword(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Password is required.';
+  void _clearPhoneServerError() {
+    if (_phoneServerError != null) {
+      setState(() {
+        _phoneServerError = null;
+      });
     }
-
-    if (value.length < 6) {
-      return 'Password must be at least 6 characters.';
-    }
-
-    return null;
-  }
-
-  String? _validatePasswordConfirmation(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Confirm password is required.';
-    }
-
-    if (value != _passwordController.text) {
-      return 'Passwords do not match.';
-    }
-
-    return null;
   }
 }

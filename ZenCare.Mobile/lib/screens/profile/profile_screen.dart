@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
+import 'edit_profile_screen.dart';
 import '../recommendations/recommendations_screen.dart';
 import '../reviews/reviews_screen.dart';
 
@@ -12,7 +13,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<ProfileProvider>(
-      create: (context) => ProfileProvider(user: context.read<AuthProvider>().user)..loadProfile(),
+      create: (context) => ProfileProvider(authProvider: context.read<AuthProvider>())..loadProfile(),
       child: const _ProfileView(),
     );
   }
@@ -71,6 +72,29 @@ class _ProfileView extends StatelessWidget {
                 delegate: SliverChildListDelegate([
                   _ProfileCard(profile: provider.profile!),
                   const SizedBox(height: 16),
+                  FilledButton.icon(
+                    onPressed: () async {
+                      final authProvider = context.read<AuthProvider>();
+                      final user = authProvider.user;
+
+                      if (user == null) {
+                        return;
+                      }
+
+                      final updated = await Navigator.of(context).push<bool>(
+                        MaterialPageRoute<bool>(
+                          builder: (_) => EditProfileScreen(user: user),
+                        ),
+                      );
+
+                      if (updated == true && context.mounted) {
+                        await context.read<ProfileProvider>().updateUser(authProvider.user);
+                      }
+                    },
+                    icon: const Icon(Icons.edit_outlined),
+                    label: const Text('Edit profile'),
+                  ),
+                  const SizedBox(height: 12),
                   OutlinedButton.icon(
                     onPressed: () {
                       Navigator.of(context).push(
