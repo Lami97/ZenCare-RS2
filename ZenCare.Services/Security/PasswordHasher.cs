@@ -21,4 +21,11 @@ public static class PasswordHasher
 
         return Convert.ToBase64String(hash);
     }
+
+    public static bool Verify(string passwordHash, string passwordSalt, string password)
+    {
+        var generatedHash = GenerateHash(password, passwordSalt);
+
+        return passwordHash == generatedHash;
+    }
 }

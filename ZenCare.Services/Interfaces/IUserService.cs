@@ -9,6 +9,7 @@ namespace ZenCare.Services.Interfaces
         Task<AdminCreateClientResponse> CreateClientAsync(AdminCreateClientRequest request);
         Task<UserResponse> GetMyProfileAsync(int userId);
         Task<UserResponse> UpdateMyProfileAsync(int userId, UpdateMyProfileRequest request);
+        Task<ChangePasswordResponse> ChangeMyPasswordAsync(int userId, ChangePasswordRequest request);
     }
 }
 

@@ -55,6 +55,25 @@ public class ProfileController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Client")]
+    [HttpPut("/User/My/password")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ChangePasswordResponse>> ChangeMyPassword([FromBody] ChangePasswordRequest request)
+    {
+        var userId = GetCurrentUserId();
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        var result = await _userService.ChangeMyPasswordAsync(userId.Value, request);
+        return Ok(result);
+    }
+
     private int? GetCurrentUserId()
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);

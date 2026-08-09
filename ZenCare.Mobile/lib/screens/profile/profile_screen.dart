@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
+import 'change_password_screen.dart';
 import 'edit_profile_screen.dart';
 import '../recommendations/recommendations_screen.dart';
 import '../reviews/reviews_screen.dart';
@@ -93,6 +94,16 @@ class _ProfileView extends StatelessWidget {
                     },
                     icon: const Icon(Icons.edit_outlined),
                     label: const Text('Edit profile'),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(builder: (_) => const ChangePasswordScreen()),
+                      );
+                    },
+                    icon: const Icon(Icons.lock_reset_outlined),
+                    label: const Text('Change password'),
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton.icon(

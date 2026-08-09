@@ -10,6 +10,7 @@ class AccountValidators {
   static const phoneHelperText = 'Format: 9 or 10 digits, numbers only.';
   static const passwordHelperText = 'Minimum 6 characters.';
   static const confirmPasswordHelperText = 'Must match the password.';
+  static const confirmNewPasswordHelperText = 'Must match the new password.';
 
   static final _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
   static final _phonePattern = RegExp(r'^\d{9,10}$');
@@ -64,12 +65,44 @@ class AccountValidators {
     return null;
   }
 
+  static String? currentPassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Current password is required.';
+    }
+
+    return null;
+  }
+
+  static String? newPassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'New password is required.';
+    }
+
+    if (value.length < passwordMinLength) {
+      return 'New password must contain at least 6 characters.';
+    }
+
+    return null;
+  }
+
   static String? confirmPassword(String? value, String password) {
     if (value == null || value.isEmpty) {
       return 'Confirm password is required.';
     }
 
     if (value != password) {
+      return 'Passwords do not match.';
+    }
+
+    return null;
+  }
+
+  static String? confirmNewPassword(String? value, String newPassword) {
+    if (value == null || value.isEmpty) {
+      return 'Confirm new password is required.';
+    }
+
+    if (value != newPassword) {
       return 'Passwords do not match.';
     }
 

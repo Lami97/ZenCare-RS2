@@ -7,6 +7,7 @@ import '../models/login_request.dart';
 import '../models/login_response.dart';
 import '../models/register_request.dart';
 import '../models/register_response.dart';
+import '../models/change_password_request.dart';
 import '../models/update_profile_request.dart';
 import '../models/user.dart';
 import '../models/user_profile_response.dart';
@@ -93,6 +94,20 @@ class AuthProvider extends ChangeNotifier {
 
     final response = await _authService!.getProfile();
     await _saveUser(_mapProfileResponse(response, currentUser.roles));
+  }
+
+  Future<void> changePassword(ChangePasswordRequest request) async {
+    if (_user == null) {
+      throw ApiException('Password could not be changed. Please sign in again.');
+    }
+
+    _setLoading(true);
+
+    try {
+      await _authService!.changePassword(request);
+    } finally {
+      _setLoading(false);
+    }
   }
 
   Future<void> logout() async {

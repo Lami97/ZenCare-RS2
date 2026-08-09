@@ -31,7 +31,7 @@ namespace ZenCare.Services.Services
                     .ThenInclude(ur => ur.Role)
                 .FirstOrDefaultAsync(u => u.Username == request.Username);
 
-            if (user == null || !VerifyPassword(user.PasswordHash, user.PasswordSalt, request.Password))
+            if (user == null || !PasswordHasher.Verify(user.PasswordHash, user.PasswordSalt, request.Password))
             {
                 return null;
             }
@@ -129,14 +129,6 @@ namespace ZenCare.Services.Services
 
             return int.TryParse(configuredValue, out var durationInMinutes) ? durationInMinutes : 60;
         }
-
-        private static bool VerifyPassword(string passwordHash, string passwordSalt, string password)
-        {
-            var generatedHash = PasswordHasher.GenerateHash(password, passwordSalt);
-
-            return passwordHash == generatedHash;
-        }
-
 
     }
 }

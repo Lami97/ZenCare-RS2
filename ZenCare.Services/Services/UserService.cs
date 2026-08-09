@@ -210,6 +210,36 @@ namespace ZenCare.Services.Services
             return Mapper.Map<UserResponse>(entity);
         }
 
+        public async Task<ChangePasswordResponse> ChangeMyPasswordAsync(int userId, ChangePasswordRequest request)
+        {
+            var entity = await DbContext.Users.FindAsync(userId);
+
+            if (entity == null)
+            {
+                throw new NotFoundException(nameof(Database.User), userId);
+            }
+
+            ValidateChangePasswordRequest(request);
+
+            if (!PasswordHasher.Verify(entity.PasswordHash, entity.PasswordSalt, request.CurrentPassword))
+            {
+                throw new BusinessException("Current password is incorrect.");
+            }
+
+            var salt = PasswordHasher.GenerateSalt();
+            entity.PasswordSalt = salt;
+            entity.PasswordHash = PasswordHasher.GenerateHash(request.NewPassword, salt);
+
+            SetUpdatedAt(entity);
+
+            await DbContext.SaveChangesAsync();
+
+            return new ChangePasswordResponse
+            {
+                Message = "Password changed successfully."
+            };
+        }
+
         protected override IQueryable<Database.User> ApplyFilters(IQueryable<Database.User> query, UserSearchObject? search)
         {
             if (search != null)
@@ -287,6 +317,34 @@ namespace ZenCare.Services.Services
             }
 
             return phoneNumber;
+        }
+
+        private static void ValidateChangePasswordRequest(ChangePasswordRequest request)
+        {
+            if (string.IsNullOrEmpty(request.CurrentPassword))
+            {
+                throw new BusinessException("Current password is required.");
+            }
+
+            if (string.IsNullOrEmpty(request.NewPassword))
+            {
+                throw new BusinessException("New password is required.");
+            }
+
+            if (request.NewPassword.Length < PasswordMinLength)
+            {
+                throw new BusinessException("New password must contain at least 6 characters.");
+            }
+
+            if (string.IsNullOrEmpty(request.ConfirmNewPassword))
+            {
+                throw new BusinessException("Confirm new password is required.");
+            }
+
+            if (request.NewPassword != request.ConfirmNewPassword)
+            {
+                throw new BusinessException("Passwords do not match.");
+            }
         }
     }
 }

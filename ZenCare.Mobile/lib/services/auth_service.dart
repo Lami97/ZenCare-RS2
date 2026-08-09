@@ -2,6 +2,7 @@ import '../models/login_request.dart';
 import '../models/login_response.dart';
 import '../models/register_request.dart';
 import '../models/register_response.dart';
+import '../models/change_password_request.dart';
 import '../models/update_profile_request.dart';
 import '../models/user_profile_response.dart';
 import 'api_service.dart';
@@ -39,6 +40,14 @@ class AuthService {
     return _apiService.get<UserProfileResponse>(
       '/User/My/profile',
       fromJson: (data) => UserProfileResponse.fromJson(data as Map<String, dynamic>),
+    );
+  }
+
+  Future<void> changePassword(ChangePasswordRequest request) {
+    return _apiService.put<void>(
+      '/User/My/password',
+      data: request.toJson(),
+      fromJson: (_) {},
     );
   }
 }
