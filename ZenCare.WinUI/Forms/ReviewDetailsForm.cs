@@ -7,11 +7,11 @@ namespace ZenCare.WinUI.Forms;
 
 public partial class ReviewDetailsForm : Form
 {
+    private const int LookupPageSize = 100;
     private readonly APIService _apiService = new APIService();
     private readonly int? _reviewId;
-    private List<AppointmentResponse> _appointments = new();
-    private List<ReviewResponse> _reviews = new();
     private ReviewResponse? _currentReview;
+    private bool _isLoadingLookups;
 
     public ReviewDetailsForm()
     {
@@ -37,6 +37,7 @@ public partial class ReviewDetailsForm : Form
         else
         {
             Text = "New review";
+            await PopulateAppointments();
             SelectStatus(ReviewStatus.PendingApproval);
             nudRating.Value = 1;
         }
@@ -44,24 +45,25 @@ public partial class ReviewDetailsForm : Form
 
     private async Task LoadLookups()
     {
-        var users = await _apiService.Get<PagedResult<UserResponse>>("User");
-        cmbUser.DataSource = ReviewForm.CreateLookupItems(users?.Items.Select(x => new ReviewForm.LookupItem(x.Id, ReviewForm.GetUserDisplayName(x))), "Select");
+        _isLoadingLookups = true;
 
-        var appointments = await _apiService.Get<PagedResult<AppointmentResponse>>("Appointment");
-        _appointments = appointments?.Items ?? new List<AppointmentResponse>();
-
-        var reviews = await _apiService.Get<PagedResult<ReviewResponse>>("Review");
-        _reviews = reviews?.Items ?? new List<ReviewResponse>();
-
-        if (_reviewId.HasValue)
+        try
         {
-            _currentReview = await _apiService.Get<ReviewResponse>($"Review/{_reviewId.Value}");
+            var users = await _apiService.Get<PagedResult<UserResponse>>("User");
+            cmbUser.DataSource = ReviewForm.CreateLookupItems(users?.Items.Select(x => new ReviewForm.LookupItem(x.Id, ReviewForm.GetUserDisplayName(x))), "Select");
+
+            if (_reviewId.HasValue)
+            {
+                _currentReview = await _apiService.Get<ReviewResponse>($"Review/{_reviewId.Value}");
+            }
+
+            var products = await _apiService.Get<PagedResult<ProductResponse>>("Product");
+            cmbProduct.DataSource = ReviewForm.CreateLookupItems(products?.Items.Select(x => new ReviewForm.LookupItem(x.Id, x.Name)), "None");
         }
-
-        PopulateAppointments();
-
-        var products = await _apiService.Get<PagedResult<ProductResponse>>("Product");
-        cmbProduct.DataSource = ReviewForm.CreateLookupItems(products?.Items.Select(x => new ReviewForm.LookupItem(x.Id, x.Name)), "None");
+        finally
+        {
+            _isLoadingLookups = false;
+        }
     }
 
     private void LoadStatusLookup()
@@ -84,7 +86,7 @@ public partial class ReviewDetailsForm : Form
         }
 
         SelectLookupItem(cmbUser, review.UserId);
-        PopulateAppointments();
+        await PopulateAppointments();
         SelectLookupItem(cmbAppointment, review.AppointmentId ?? 0);
         SelectLookupItem(cmbProduct, review.ProductId ?? 0);
         nudRating.Value = review.Rating;
@@ -192,26 +194,36 @@ public partial class ReviewDetailsForm : Form
         return true;
     }
 
-    private void cmbUser_SelectedIndexChanged(object sender, EventArgs e)
+    private async void cmbUser_SelectedIndexChanged(object sender, EventArgs e)
     {
-        PopulateAppointments();
+        if (_isLoadingLookups)
+        {
+            return;
+        }
+
+        await PopulateAppointments();
     }
 
-    private void PopulateAppointments()
+    private async Task PopulateAppointments()
     {
         var selectedAppointmentId = GetSelectedLookupId(cmbAppointment);
         var selectedUserId = GetSelectedLookupId(cmbUser);
         var currentAppointmentId = _currentReview?.AppointmentId;
-        var reviewedAppointmentIds = _reviews
+
+        if (selectedUserId <= 0)
+        {
+            cmbAppointment.DataSource = ReviewForm.CreateLookupItems(null, "None");
+            return;
+        }
+
+        var reviews = await LoadReviewsForUser(selectedUserId);
+        var reviewedAppointmentIds = reviews
             .Where(x => x.AppointmentId.HasValue
                 && (!_reviewId.HasValue || x.Id != _reviewId.Value))
             .Select(x => x.AppointmentId!.Value)
             .ToHashSet();
 
-        var appointments = _appointments
-            .Where(x => x.Status == AppointmentStatus.Completed)
-            .Where(x => GetAppointmentEndDateTime(x) <= DateTime.Now)
-            .Where(x => selectedUserId <= 0 || x.UserId == selectedUserId)
+        var appointments = (await LoadCompletedAppointmentsForUser(selectedUserId))
             .Where(x => !reviewedAppointmentIds.Contains(x.Id) || x.Id == currentAppointmentId)
             .Select(x => new ReviewForm.LookupItem(x.Id, ReviewForm.GetAppointmentDisplayName(x)));
 
@@ -223,9 +235,54 @@ public partial class ReviewDetailsForm : Form
         }
     }
 
-    private static DateTime GetAppointmentEndDateTime(AppointmentResponse appointment)
+    private async Task<List<AppointmentResponse>> LoadCompletedAppointmentsForUser(int userId)
     {
-        return DateTime.SpecifyKind(appointment.AppointmentDate.Date.Add(appointment.EndTime), DateTimeKind.Unspecified);
+        var appointments = new List<AppointmentResponse>();
+
+        for (var page = 1; ; page++)
+        {
+            var endpoint = $"Appointment?UserId={userId}&Status={AppointmentStatus.Completed}&Page={page}&PageSize={LookupPageSize}";
+            var result = await _apiService.Get<PagedResult<AppointmentResponse>>(endpoint);
+
+            if (result?.Items == null || result.Items.Count == 0)
+            {
+                break;
+            }
+
+            appointments.AddRange(result.Items);
+
+            if (result.Items.Count < LookupPageSize)
+            {
+                break;
+            }
+        }
+
+        return appointments;
+    }
+
+    private async Task<List<ReviewResponse>> LoadReviewsForUser(int userId)
+    {
+        var reviews = new List<ReviewResponse>();
+
+        for (var page = 1; ; page++)
+        {
+            var endpoint = $"Review?UserId={userId}&Page={page}&PageSize={LookupPageSize}";
+            var result = await _apiService.Get<PagedResult<ReviewResponse>>(endpoint);
+
+            if (result?.Items == null || result.Items.Count == 0)
+            {
+                break;
+            }
+
+            reviews.AddRange(result.Items);
+
+            if (result.Items.Count < LookupPageSize)
+            {
+                break;
+            }
+        }
+
+        return reviews;
     }
 
     private static int GetSelectedLookupId(ComboBox comboBox)

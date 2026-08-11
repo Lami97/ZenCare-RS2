@@ -31,7 +31,7 @@ namespace ZenCare.Services.Services
                 throw new NotFoundException(nameof(Database.Review), id);
             }
 
-            await ValidateReviewUpdateAsync(request.UserId, request.AppointmentId, request.ProductId, request.Rating, id, false);
+            await ValidateReviewUpdateAsync(request.UserId, request.AppointmentId, request.ProductId, request.Rating, id);
 
             return await base.UpdateAsync(id, request);
         }
@@ -148,7 +148,7 @@ namespace ZenCare.Services.Services
 
             if (appointmentId.HasValue)
             {
-                await ValidateAppointmentReviewCreateAsync(userId, appointmentId.Value, null, enforceClientOwnershipAndPurchase);
+                await ValidateAppointmentReviewCreateAsync(userId, appointmentId.Value, null);
                 return;
             }
 
@@ -169,26 +169,26 @@ namespace ZenCare.Services.Services
 
             if (appointmentId.HasValue)
             {
-                await ValidateAppointmentReviewEligibilityAsync(userId, appointmentId.Value, true);
+                await ValidateAppointmentReviewEligibilityAsync(userId, appointmentId.Value);
                 return;
             }
 
             await ValidateProductReviewEligibilityAsync(userId, productId!.Value);
         }
 
-        private async Task ValidateReviewUpdateAsync(int userId, int? appointmentId, int? productId, int rating, int currentReviewId, bool enforceClientOwnership)
+        private async Task ValidateReviewUpdateAsync(int userId, int? appointmentId, int? productId, int rating, int currentReviewId)
         {
             ValidateReviewRequest(appointmentId, productId, rating);
 
             if (appointmentId.HasValue)
             {
-                await ValidateAppointmentReviewCreateAsync(userId, appointmentId.Value, currentReviewId, enforceClientOwnership);
+                await ValidateAppointmentReviewCreateAsync(userId, appointmentId.Value, currentReviewId);
             }
         }
 
-        private async Task ValidateAppointmentReviewCreateAsync(int userId, int appointmentId, int? currentReviewId, bool enforceClientOwnership)
+        private async Task ValidateAppointmentReviewCreateAsync(int userId, int appointmentId, int? currentReviewId)
         {
-            await ValidateAppointmentReviewEligibilityAsync(userId, appointmentId, enforceClientOwnership);
+            await ValidateAppointmentReviewEligibilityAsync(userId, appointmentId);
 
             var alreadyReviewed = await DbContext.Reviews
                 .AnyAsync(r => r.AppointmentId == appointmentId
@@ -200,7 +200,7 @@ namespace ZenCare.Services.Services
             }
         }
 
-        private async Task ValidateAppointmentReviewEligibilityAsync(int userId, int appointmentId, bool enforceOwnership)
+        private async Task ValidateAppointmentReviewEligibilityAsync(int userId, int appointmentId)
         {
             var appointment = await DbContext.Appointments
                 .FirstOrDefaultAsync(a => a.Id == appointmentId);
@@ -210,9 +210,9 @@ namespace ZenCare.Services.Services
                 throw new BusinessException("Only completed appointments can be reviewed.");
             }
 
-            if (enforceOwnership && appointment.UserId != userId)
+            if (appointment.UserId != userId)
             {
-                throw new BusinessException("You can review only your own appointment.");
+                throw new BusinessException("The selected appointment does not belong to the selected user.");
             }
 
             if (appointment.Status != AppointmentStatus.Completed)
@@ -220,10 +220,6 @@ namespace ZenCare.Services.Services
                 throw new BusinessException("Only completed appointments can be reviewed.");
             }
 
-            if (GetAppointmentEndDateTime(appointment) > DateTime.Now)
-            {
-                throw new BusinessException("Only completed appointments that have already finished can be reviewed.");
-            }
         }
 
         private async Task ValidateProductReviewCreateAsync(int userId, int productId)
@@ -281,11 +277,6 @@ namespace ZenCare.Services.Services
             {
                 throw new BusinessException("Rating must be between 1 and 5.");
             }
-        }
-
-        private static DateTime GetAppointmentEndDateTime(Database.Appointment appointment)
-        {
-            return DateTime.SpecifyKind(appointment.AppointmentDate.Date.Add(appointment.EndTime), DateTimeKind.Unspecified);
         }
 
         private async Task<Database.Review> GetClientReviewEntityAsync(int id, int userId)
