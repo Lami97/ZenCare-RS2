@@ -2,7 +2,7 @@ using ZenCare.Model.Enums;
 
 namespace ZenCare.Model.SearchObjects
 {
-    public class NotificationSearchObject : BaseSearchObject
+    public class NotificationSearchObject : PagedSearchObject
     {
         public int? UserId { get; set; }
 

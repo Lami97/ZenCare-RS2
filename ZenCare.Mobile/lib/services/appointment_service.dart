@@ -16,6 +16,8 @@ class AppointmentService {
     int? wellnessServiceId,
     int? status,
     DateTime? appointmentDate,
+    int page = 1,
+    int pageSize = 20,
   }) {
     return _apiService.get<PagedResult<Appointment>>(
       '/Appointment/My',
@@ -24,6 +26,8 @@ class AppointmentService {
         if (wellnessServiceId != null) 'WellnessServiceId': wellnessServiceId,
         if (status != null) 'Status': status,
         if (appointmentDate != null) 'AppointmentDate': DateTime.utc(appointmentDate.year, appointmentDate.month, appointmentDate.day).toIso8601String(),
+        'Page': page,
+        'PageSize': pageSize,
         'IncludeTotalCount': true,
       },
       fromJson: (data) => PagedResult<Appointment>.fromJson(
@@ -74,6 +78,8 @@ class AppointmentService {
         if (appointmentDate != null) 'appointmentDate': DateTime.utc(appointmentDate.year, appointmentDate.month, appointmentDate.day).toIso8601String(),
         if (startTime != null) 'startTime': _formatTime(startTime),
         if (endTime != null) 'endTime': _formatTime(endTime),
+        'page': 1,
+        'pageSize': 100,
       },
       fromJson: (data) => (data as List<dynamic>)
           .map((item) => AppointmentEmployeeOption.fromJson(item as Map<String, dynamic>))
@@ -94,6 +100,8 @@ class AppointmentService {
       '/ServiceCategory',
       queryParameters: {
         'IsActive': true,
+        'Page': 1,
+        'PageSize': 100,
         'IncludeTotalCount': true,
       },
       fromJson: (data) => PagedResult<Category>.fromJson(
@@ -108,6 +116,8 @@ class AppointmentService {
       '/Service',
       queryParameters: {
         'IsActive': true,
+        'Page': 1,
+        'PageSize': 100,
         'IncludeTotalCount': true,
       },
       fromJson: (data) => PagedResult<WellnessService>.fromJson(

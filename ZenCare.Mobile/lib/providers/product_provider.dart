@@ -122,6 +122,8 @@ class ProductProvider extends ChangeNotifier {
         name: _searchText,
         productCategoryId: _selectedCategoryId,
         isActive: true,
+        page: 1,
+        pageSize: 100,
       );
 
       if (requestVersion != _requestVersion) {

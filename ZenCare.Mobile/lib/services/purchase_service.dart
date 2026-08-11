@@ -7,10 +7,12 @@ class PurchaseService {
 
   final ApiService _apiService;
 
-  Future<PagedResult<Purchase>> getMyPurchases() {
+  Future<PagedResult<Purchase>> getMyPurchases({int page = 1, int pageSize = 20}) {
     return _apiService.get<PagedResult<Purchase>>(
       '/Purchase/My',
       queryParameters: {
+        'Page': page,
+        'PageSize': pageSize,
         'IncludeTotalCount': true,
       },
       fromJson: (data) => PagedResult<Purchase>.fromJson(

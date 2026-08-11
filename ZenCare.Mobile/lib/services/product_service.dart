@@ -13,6 +13,8 @@ class ProductService {
     int? productCategoryId,
     int? productTypeId,
     bool? isActive,
+    int page = 1,
+    int pageSize = 20,
   }) {
     return _apiService.get<PagedResult<Product>>(
       '/Product',
@@ -21,6 +23,8 @@ class ProductService {
         if (productCategoryId != null) 'ProductCategoryId': productCategoryId,
         if (productTypeId != null) 'ProductTypeId': productTypeId,
         if (isActive != null) 'IsActive': isActive,
+        'Page': page,
+        'PageSize': pageSize,
         'IncludeTotalCount': true,
       },
       fromJson: (data) => PagedResult<Product>.fromJson(
@@ -42,6 +46,8 @@ class ProductService {
       '/ProductCategory',
       queryParameters: {
         if (isActive != null) 'IsActive': isActive,
+        'Page': 1,
+        'PageSize': 100,
         'IncludeTotalCount': true,
       },
       fromJson: (data) => PagedResult<Category>.fromJson(

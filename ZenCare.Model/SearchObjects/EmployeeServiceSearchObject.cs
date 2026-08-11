@@ -1,6 +1,6 @@
 namespace ZenCare.Model.SearchObjects
 {
-    public class EmployeeServiceSearchObject : BaseSearchObject
+    public class EmployeeServiceSearchObject : PagedSearchObject
     {
         public int? EmployeeId { get; set; }
 

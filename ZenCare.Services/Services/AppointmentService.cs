@@ -118,7 +118,9 @@ namespace ZenCare.Services.Services
             int wellnessServiceId,
             DateTime? appointmentDate,
             TimeSpan? startTime,
-            TimeSpan? endTime)
+            TimeSpan? endTime,
+            int? page,
+            int? pageSize)
         {
             var serviceExists = await DbContext.WellnessServices
                 .AnyAsync(s => s.Id == wellnessServiceId);
@@ -171,7 +173,20 @@ namespace ZenCare.Services.Services
                     requestedEnd > a.StartTime));
             }
 
+            var pagination = new BaseSearchObject
+            {
+                Page = page,
+                PageSize = pageSize
+            };
+
+            var (normalizedPage, normalizedPageSize) = BaseSearchObject.NormalizePagination(pagination);
+
             var employees = await query
+                .OrderBy(employee => employee.User.FirstName)
+                .ThenBy(employee => employee.User.LastName)
+                .ThenBy(employee => employee.Id)
+                .Skip((normalizedPage - 1) * normalizedPageSize)
+                .Take(normalizedPageSize)
                 .Select(employee => new
                 {
                     employee.Id,
@@ -191,7 +206,6 @@ namespace ZenCare.Services.Services
                     Specialization = employee.Specialization,
                     IsAvailable = employee.IsAvailable
                 })
-                .OrderBy(employee => employee.FullName)
                 .ToList();
         }
         public override async Task<AppointmentResponse> GetByIdAsync(int id)

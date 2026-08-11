@@ -1,6 +1,6 @@
 namespace ZenCare.Model.SearchObjects
 {
-    public class FAQSearchObject : BaseSearchObject
+    public class FAQSearchObject : PagedSearchObject
     {
         public string? Question { get; set; }
 

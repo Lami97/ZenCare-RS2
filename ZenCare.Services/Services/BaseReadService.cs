@@ -38,19 +38,12 @@ public abstract class BaseReadService<TModel, TDb, TSearch> : IReadService<TMode
         {
             query = query.OrderBy(search.SortBy);
         }
-
-        if (search is PagedSearchObject pagedSearch)
+        else
         {
-            if (pagedSearch.Page.HasValue && pagedSearch.PageSize.HasValue)
-            {
-                query = query.Skip((pagedSearch.Page.Value - 1) * pagedSearch.PageSize.Value);
-            }
-
-            if (pagedSearch.PageSize.HasValue)
-            {
-                query = query.Take(pagedSearch.PageSize.Value);
-            }
+            query = query.OrderBy(entity => EF.Property<int>(entity, "Id"));
         }
+
+        query = ApplyPagination(query, search);
 
         var entities = await query.ToListAsync();
 
@@ -81,5 +74,14 @@ public abstract class BaseReadService<TModel, TDb, TSearch> : IReadService<TMode
     protected virtual Task<IQueryable<TDb>> IncludeRelatedEntitiesAsync(IQueryable<TDb> query, TSearch? search)
     {
         return Task.FromResult(query);
+    }
+
+    protected IQueryable<TDb> ApplyPagination(IQueryable<TDb> query, TSearch? search)
+    {
+        var (page, pageSize) = BaseSearchObject.NormalizePagination(search);
+
+        return query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize);
     }
 }

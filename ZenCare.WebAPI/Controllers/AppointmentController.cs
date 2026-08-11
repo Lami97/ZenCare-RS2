@@ -63,7 +63,9 @@ public class AppointmentController : ControllerBase
         [FromQuery] int wellnessServiceId,
         [FromQuery] DateTime? appointmentDate,
         [FromQuery] TimeSpan? startTime,
-        [FromQuery] TimeSpan? endTime)
+        [FromQuery] TimeSpan? endTime,
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize)
     {
         try
         {
@@ -71,7 +73,9 @@ public class AppointmentController : ControllerBase
                 wellnessServiceId,
                 appointmentDate,
                 startTime,
-                endTime);
+                endTime,
+                page,
+                pageSize);
 
             return Ok(result);
         }

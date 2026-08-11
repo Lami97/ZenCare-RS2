@@ -1,6 +1,6 @@
 namespace ZenCare.Model.SearchObjects
 {
-    public class BusinessReportSearchObject : BaseSearchObject
+    public class BusinessReportSearchObject : PagedSearchObject
     {
         public string? ReportType { get; set; }
 

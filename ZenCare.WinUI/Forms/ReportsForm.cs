@@ -75,8 +75,29 @@ public partial class ReportsForm : Form
 
     private async Task<List<T>> GetItems<T>(string endpoint)
     {
-        var result = await _apiService.Get<PagedResult<T>>(endpoint);
-        return result?.Items ?? new List<T>();
+        const int pageSize = 100;
+        var page = 1;
+        var items = new List<T>();
+
+        while (true)
+        {
+            var separator = endpoint.Contains('?') ? '&' : '?';
+            var result = await _apiService.Get<PagedResult<T>>(
+                $"{endpoint}{separator}Page={page}&PageSize={pageSize}&IncludeTotalCount=true");
+
+            var pageItems = result?.Items ?? new List<T>();
+
+            items.AddRange(pageItems);
+
+            if (pageItems.Count < pageSize || (result?.TotalCount.HasValue == true && items.Count >= result.TotalCount.Value))
+            {
+                break;
+            }
+
+            page++;
+        }
+
+        return items;
     }
 
     private void LoadGeneralStatistics(

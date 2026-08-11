@@ -29,6 +29,8 @@ class CartService {
     return _apiService.get<PagedResult<CartItem>>(
       '/CartItem/My',
       queryParameters: {
+        'Page': 1,
+        'PageSize': 100,
         'IncludeTotalCount': includeTotalCount,
       },
       fromJson: (data) => PagedResult<CartItem>.fromJson(

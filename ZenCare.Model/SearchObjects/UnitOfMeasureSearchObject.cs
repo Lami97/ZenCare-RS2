@@ -1,6 +1,6 @@
 namespace ZenCare.Model.SearchObjects
 {
-    public class UnitOfMeasureSearchObject : BaseSearchObject
+    public class UnitOfMeasureSearchObject : PagedSearchObject
     {
         public string? Name { get; set; }
 

@@ -212,6 +212,9 @@ namespace ZenCare.Services.Services
                 totalCount = await query.CountAsync();
             }
 
+            query = query.OrderBy(pi => pi.Id);
+            query = ApplyPagination(query, search);
+
             var entities = await query.ToListAsync();
 
             return new PagedResult<PurchaseItemResponse>

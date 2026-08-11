@@ -6,6 +6,8 @@ namespace ZenCare.WinUI.Helpers;
 public class APIService
 {
     private const string BaseUrl = "http://localhost:5281";
+    private const int DefaultPage = 1;
+    private const int DefaultPageSize = 100;
     private static readonly HttpClient Client = new HttpClient
     {
         BaseAddress = new Uri(BaseUrl)
@@ -21,7 +23,7 @@ public class APIService
         AttachAuthorizationHeader();
         LastErrorMessage = null;
 
-        var response = await Client.GetAsync(endpoint);
+        var response = await Client.GetAsync(AddDefaultPagination(endpoint));
 
         if (!response.IsSuccessStatusCode)
         {
@@ -103,5 +105,17 @@ public class APIService
             System.Net.HttpStatusCode.Conflict => "Podatak je u konfliktu sa postojecim zapisima.",
             _ => $"Greska prilikom poziva API-ja: {(int)response.StatusCode}"
         };
+    }
+
+    private static string AddDefaultPagination(string endpoint)
+    {
+        if (endpoint.Contains("Page=", StringComparison.OrdinalIgnoreCase) ||
+            endpoint.Contains("PageSize=", StringComparison.OrdinalIgnoreCase))
+        {
+            return endpoint;
+        }
+
+        var separator = endpoint.Contains('?') ? '&' : '?';
+        return $"{endpoint}{separator}Page={DefaultPage}&PageSize={DefaultPageSize}";
     }
 }

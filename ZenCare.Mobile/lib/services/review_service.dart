@@ -11,12 +11,16 @@ class ReviewService {
   Future<PagedResult<Review>> getMyReviews({
     int? appointmentId,
     int? productId,
+    int page = 1,
+    int pageSize = 20,
   }) {
     return _apiService.get<PagedResult<Review>>(
       '/Review/My',
       queryParameters: {
         if (appointmentId != null) 'AppointmentId': appointmentId,
         if (productId != null) 'ProductId': productId,
+        'Page': page,
+        'PageSize': pageSize,
         'IncludeTotalCount': true,
       },
       fromJson: (data) => PagedResult<Review>.fromJson(
