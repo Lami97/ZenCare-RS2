@@ -39,7 +39,7 @@ class AuthProvider extends ChangeNotifier {
   void configure(AuthService authService, ApiService apiService) {
     _authService = authService;
     _apiService = apiService;
-    _apiService!.setUnauthorizedHandler(logout);
+    _apiService!.setUnauthorizedHandler(() => logout(notifyServer: false));
 
     if (!_configured) {
       _configured = true;
@@ -110,7 +110,21 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> logout() async {
+  Future<void> logout({bool notifyServer = true}) async {
+    if (notifyServer && _token != null) {
+      try {
+        await _authService!.logout();
+      } on ApiException catch (error) {
+        if (error.statusCode != 401) {
+          rethrow;
+        }
+      }
+    }
+
+    await _clearSession();
+  }
+
+  Future<void> _clearSession() async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.remove(_tokenKey);
     await preferences.remove(_userKey);

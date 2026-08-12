@@ -1,17 +1,36 @@
 using ZenCare.WinUI.Forms;
 using ZenCare.WinUI.Helpers;
+using ZenCare.Model.Responses;
 
 namespace ZenCare.WinUI;
 
 public partial class MainForm : Form
 {
+    private readonly APIService _apiService = new APIService();
+
     public MainForm()
     {
         InitializeComponent();
     }
 
-    private void btnLogout_Click(object sender, EventArgs e)
+    private async void btnLogout_Click(object sender, EventArgs e)
     {
+        try
+        {
+            var response = await _apiService.Post<LogoutResponse>("Auth/Logout", new { });
+
+            if (response == null)
+            {
+                MessageBox.Show(GetApiErrorMessage("Unable to log out. Please try again."));
+                return;
+            }
+        }
+        catch
+        {
+            MessageBox.Show("Unable to log out. Please check the API connection and try again.");
+            return;
+        }
+
         AuthStorage.Token = null;
         AuthStorage.Username = null;
         AuthStorage.Roles.Clear();
@@ -22,6 +41,13 @@ public partial class MainForm : Form
         loginForm.ShowDialog();
 
         Close();
+    }
+
+    private string GetApiErrorMessage(string fallback)
+    {
+        return string.IsNullOrWhiteSpace(_apiService.LastErrorMessage)
+            ? fallback
+            : _apiService.LastErrorMessage;
     }
 
     private void btnProducts_Click(object sender, EventArgs e)

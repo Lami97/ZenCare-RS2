@@ -127,7 +127,22 @@ class _ProfileView extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   FilledButton.icon(
-                    onPressed: () => context.read<AuthProvider>().logout(),
+                    onPressed: () async {
+                      final authProvider = context.read<AuthProvider>();
+                      final messenger = ScaffoldMessenger.of(context);
+
+                      try {
+                        await authProvider.logout();
+                      } catch (error) {
+                        if (!context.mounted) {
+                          return;
+                        }
+
+                        messenger.showSnackBar(
+                          SnackBar(content: Text(error.toString())),
+                        );
+                      }
+                    },
                     icon: const Icon(Icons.logout),
                     label: const Text('Logout'),
                   ),

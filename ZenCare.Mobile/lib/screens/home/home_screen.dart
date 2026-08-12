@@ -17,6 +17,22 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
+  Future<void> _logout() async {
+    final messenger = ScaffoldMessenger.of(context);
+
+    try {
+      await context.read<AuthProvider>().logout();
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      messenger.showSnackBar(
+        SnackBar(content: Text(error.toString())),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final screens = [
@@ -33,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(
             tooltip: 'Logout',
-            onPressed: () => context.read<AuthProvider>().logout(),
+            onPressed: _logout,
             icon: const Icon(Icons.logout),
           ),
         ],

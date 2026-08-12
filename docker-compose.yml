@@ -52,6 +52,7 @@
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
+      Swagger__Enabled: ${SWAGGER_ENABLED:-true}
       ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=ZenCareDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False
       RabbitMQ__Host: rabbitmq
       RabbitMQ__Port: 5672

@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using ZenCare.Model.Exceptions;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
 using ZenCare.Services.Interfaces;
@@ -90,6 +91,35 @@ namespace ZenCare.Services.Services
             };
         }
 
+        public async Task<LogoutResponse> LogoutAsync(int userId, string jti, DateTime expiresAt)
+        {
+            if (string.IsNullOrWhiteSpace(jti))
+            {
+                throw new BusinessException("Token cannot be invalidated.");
+            }
+
+            var alreadyRevoked = await _dbContext.RevokedTokens
+                .AnyAsync(rt => rt.Jti == jti);
+
+            if (!alreadyRevoked)
+            {
+                _dbContext.RevokedTokens.Add(new Database.RevokedToken
+                {
+                    Jti = jti,
+                    UserId = userId,
+                    ExpiresAt = expiresAt,
+                    RevokedAt = DateTime.UtcNow
+                });
+
+                await _dbContext.SaveChangesAsync();
+            }
+
+            return new LogoutResponse
+            {
+                Message = "Logged out successfully."
+            };
+        }
+
         private string GenerateToken(Database.User user, List<string> roles, DateTime expiresAt)
         {
             var issuer = _configuration["JwtToken:Issuer"];
@@ -103,6 +133,7 @@ namespace ZenCare.Services.Services
 
             var claims = new List<Claim>
             {
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.Username),
                 new Claim(ClaimTypes.Email, user.Email)

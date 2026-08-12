@@ -30,6 +30,7 @@ public class ZenCareDbContext : DbContext
     public DbSet<RecommendationLog> RecommendationLogs { get; set; }
     public DbSet<Review> Reviews { get; set; }
     public DbSet<Role> Roles { get; set; }
+    public DbSet<RevokedToken> RevokedTokens { get; set; }
     public DbSet<ServiceCategory> ServiceCategories { get; set; }
     public DbSet<Supplier> Suppliers { get; set; }
     public DbSet<UnitOfMeasure> UnitOfMeasures { get; set; }
@@ -55,6 +56,10 @@ public class ZenCareDbContext : DbContext
 
         modelBuilder.Entity<UserRole>()
             .HasIndex(ur => new { ur.UserId, ur.RoleId })
+            .IsUnique();
+
+        modelBuilder.Entity<RevokedToken>()
+            .HasIndex(rt => rt.Jti)
             .IsUnique();
 
         modelBuilder.Entity<EmployeeService>()
@@ -164,6 +169,12 @@ public class ZenCareDbContext : DbContext
             .WithMany(p => p.Reviews)
             .HasForeignKey(r => r.ProductId)
             .OnDelete(DeleteBehavior.NoAction);
+
+        modelBuilder.Entity<RevokedToken>()
+            .HasOne(rt => rt.User)
+            .WithMany()
+            .HasForeignKey(rt => rt.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Notification>()
             .HasOne(n => n.User)

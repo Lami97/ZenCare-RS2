@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using ZenCare.Services;
@@ -67,6 +68,29 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             NameClaimType = ClaimTypes.Name,
             ClockSkew = TimeSpan.Zero
         };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var jti = context.Principal?.FindFirstValue(JwtRegisteredClaimNames.Jti);
+
+                if (string.IsNullOrWhiteSpace(jti))
+                {
+                    context.Fail("Token identifier is missing.");
+                    return;
+                }
+
+                var dbContext = context.HttpContext.RequestServices.GetRequiredService<ZenCareDbContext>();
+                var isRevoked = await dbContext.RevokedTokens
+                    .AnyAsync(rt => rt.Jti == jti && rt.ExpiresAt > DateTime.UtcNow);
+
+                if (isRevoked)
+                {
+                    context.Fail("Token has been revoked.");
+                }
+            }
+        };
     });
 builder.Services.AddAuthorization();
 builder.Services.AddEndpointsApiExplorer();
@@ -101,7 +125,10 @@ await ApplyDatabaseMigrationsAsync(app);
 await BootstrapAdminAsync(app);
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+var swaggerEnabled = app.Environment.IsDevelopment()
+    || app.Configuration.GetValue<bool>("Swagger:Enabled");
+
+if (swaggerEnabled)
 {
     app.MapOpenApi();
     app.UseSwagger();
@@ -113,25 +140,6 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
-
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
 
 app.MapControllers();
 
@@ -170,11 +178,3 @@ static async Task ApplyDatabaseMigrationsAsync(WebApplication app)
     var finalDbContext = finalScope.ServiceProvider.GetRequiredService<ZenCareDbContext>();
     await finalDbContext.Database.MigrateAsync();
 }
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
-
-
-

@@ -50,4 +50,11 @@ class AuthService {
       fromJson: (_) {},
     );
   }
+
+  Future<void> logout() {
+    return _apiService.post<void>(
+      '/Auth/Logout',
+      fromJson: (_) {},
+    );
+  }
 }

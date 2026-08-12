@@ -1,4 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
 using ZenCare.Services.Interfaces;
@@ -36,5 +39,42 @@ public class AuthController : ControllerBase
     {
         var result = await _authService.RegisterAsync(request);
         return Ok(result);
+    }
+
+    [Authorize]
+    [HttpPost("Logout")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<LogoutResponse>> Logout()
+    {
+        var userId = GetCurrentUserId();
+        var jti = User.FindFirstValue(JwtRegisteredClaimNames.Jti);
+        var expiresAt = GetTokenExpiration();
+
+        if (!userId.HasValue || string.IsNullOrWhiteSpace(jti) || !expiresAt.HasValue)
+        {
+            return Unauthorized();
+        }
+
+        var result = await _authService.LogoutAsync(userId.Value, jti, expiresAt.Value);
+        return Ok(result);
+    }
+
+    private int? GetCurrentUserId()
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return int.TryParse(userIdClaim, out var userId) ? userId : null;
+    }
+
+    private DateTime? GetTokenExpiration()
+    {
+        var expClaim = User.FindFirstValue(JwtRegisteredClaimNames.Exp);
+
+        if (!long.TryParse(expClaim, out var exp))
+        {
+            return null;
+        }
+
+        return DateTimeOffset.FromUnixTimeSeconds(exp).UtcDateTime;
     }
 }
