@@ -32,7 +32,7 @@ namespace ZenCare.Services.Services
                     .ThenInclude(ur => ur.Role)
                 .FirstOrDefaultAsync(u => u.Username == request.Username);
 
-            if (user == null || !PasswordHasher.Verify(user.PasswordHash, user.PasswordSalt, request.Password))
+            if (user == null || !user.IsActive || !PasswordHasher.Verify(user.PasswordHash, user.PasswordSalt, request.Password))
             {
                 return null;
             }
