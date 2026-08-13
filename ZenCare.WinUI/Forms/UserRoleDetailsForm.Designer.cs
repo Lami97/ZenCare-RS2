@@ -33,7 +33,7 @@ partial class UserRoleDetailsForm
         lblUser.Name = "lblUser";
         lblUser.Size = new Size(50, 15);
         lblUser.TabIndex = 0;
-        lblUser.Text = "Korisnik";
+        lblUser.Text = "User";
         // 
         // cmbUser
         // 
@@ -51,7 +51,7 @@ partial class UserRoleDetailsForm
         lblRole.Name = "lblRole";
         lblRole.Size = new Size(40, 15);
         lblRole.TabIndex = 2;
-        lblRole.Text = "Uloga";
+        lblRole.Text = "Role";
         // 
         // cmbRole
         // 
@@ -68,7 +68,7 @@ partial class UserRoleDetailsForm
         btnSave.Name = "btnSave";
         btnSave.Size = new Size(84, 32);
         btnSave.TabIndex = 4;
-        btnSave.Text = "Sačuvaj";
+        btnSave.Text = "Save";
         btnSave.UseVisualStyleBackColor = true;
         btnSave.Click += btnSave_Click;
         // 
@@ -78,7 +78,7 @@ partial class UserRoleDetailsForm
         btnCancel.Name = "btnCancel";
         btnCancel.Size = new Size(84, 32);
         btnCancel.TabIndex = 5;
-        btnCancel.Text = "Odustani";
+        btnCancel.Text = "Cancel";
         btnCancel.UseVisualStyleBackColor = true;
         btnCancel.Click += btnCancel_Click;
         // 
@@ -100,7 +100,7 @@ partial class UserRoleDetailsForm
         MinimizeBox = false;
         Name = "UserRoleDetailsForm";
         StartPosition = FormStartPosition.CenterParent;
-        Text = "Dodijeljena uloga";
+        Text = "User role";
         Load += UserRoleDetailsForm_Load;
         ResumeLayout(false);
         PerformLayout();

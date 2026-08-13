@@ -26,13 +26,13 @@ public partial class UserDetailsForm : Form
     {
         if (_userId.HasValue)
         {
-            Text = "Izmjena korisnika";
+            Text = "Edit user";
             HidePasswordFields();
             await LoadUser();
         }
         else
         {
-            Text = "Novi korisnik";
+            Text = "New user";
         }
     }
 
@@ -42,7 +42,7 @@ public partial class UserDetailsForm : Form
 
         if (user == null)
         {
-            MessageBox.Show(GetApiErrorMessage("Korisnika nije moguce ucitati."));
+            MessageBox.Show(GetApiErrorMessage("Unable to load user."));
             DialogResult = DialogResult.Cancel;
             Close();
             return;
@@ -91,7 +91,7 @@ public partial class UserDetailsForm : Form
 
         if (response == null)
         {
-            MessageBox.Show(GetApiErrorMessage("Korisnika nije moguce dodati."));
+            MessageBox.Show(GetApiErrorMessage("Unable to add user."));
             return;
         }
 
@@ -117,7 +117,7 @@ public partial class UserDetailsForm : Form
 
         if (response == null)
         {
-            MessageBox.Show(GetApiErrorMessage("Korisnika nije moguce izmijeniti."));
+            MessageBox.Show(GetApiErrorMessage("Unable to update user."));
             return;
         }
 
@@ -130,35 +130,35 @@ public partial class UserDetailsForm : Form
     {
         if (string.IsNullOrWhiteSpace(txtFirstName.Text))
         {
-            MessageBox.Show("Unesite ime korisnika.");
+            MessageBox.Show("First name is required.");
             txtFirstName.Focus();
             return false;
         }
 
         if (string.IsNullOrWhiteSpace(txtLastName.Text))
         {
-            MessageBox.Show("Unesite prezime korisnika.");
+            MessageBox.Show("Last name is required.");
             txtLastName.Focus();
             return false;
         }
 
         if (string.IsNullOrWhiteSpace(txtEmail.Text) || !IsValidEmail(txtEmail.Text))
         {
-            MessageBox.Show("Unesite validnu email adresu.");
+            MessageBox.Show("Enter a valid email address.");
             txtEmail.Focus();
             return false;
         }
 
         if (string.IsNullOrWhiteSpace(txtUsername.Text))
         {
-            MessageBox.Show("Unesite korisnicko ime.");
+            MessageBox.Show("Username is required.");
             txtUsername.Focus();
             return false;
         }
 
         if (!string.IsNullOrWhiteSpace(txtPhoneNumber.Text) && txtPhoneNumber.Text.Length > 20)
         {
-            MessageBox.Show("Broj telefona moze imati najvise 20 karaktera.");
+            MessageBox.Show("Phone can contain at most 20 characters.");
             txtPhoneNumber.Focus();
             return false;
         }
@@ -167,14 +167,14 @@ public partial class UserDetailsForm : Form
         {
             if (txtPassword.Text.Length < 6)
             {
-                MessageBox.Show("Lozinka mora imati najmanje 6 karaktera.");
+                MessageBox.Show("Password must contain at least 6 characters.");
                 txtPassword.Focus();
                 return false;
             }
 
             if (txtPassword.Text != txtPasswordConfirm.Text)
             {
-                MessageBox.Show("Lozinka i potvrda lozinke se ne podudaraju.");
+                MessageBox.Show("Password and confirmation password do not match.");
                 txtPasswordConfirm.Focus();
                 return false;
             }

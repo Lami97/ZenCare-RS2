@@ -44,7 +44,7 @@ partial class UserDetailsForm
         lblFirstName.Name = "lblFirstName";
         lblFirstName.Size = new Size(27, 15);
         lblFirstName.TabIndex = 0;
-        lblFirstName.Text = "Ime";
+        lblFirstName.Text = "First name";
         // 
         // txtFirstName
         // 
@@ -60,7 +60,7 @@ partial class UserDetailsForm
         lblLastName.Name = "lblLastName";
         lblLastName.Size = new Size(48, 15);
         lblLastName.TabIndex = 2;
-        lblLastName.Text = "Prezime";
+        lblLastName.Text = "Last name";
         // 
         // txtLastName
         // 
@@ -92,7 +92,7 @@ partial class UserDetailsForm
         lblUsername.Name = "lblUsername";
         lblUsername.Size = new Size(89, 15);
         lblUsername.TabIndex = 6;
-        lblUsername.Text = "Korisničko ime";
+        lblUsername.Text = "Username";
         // 
         // txtUsername
         // 
@@ -108,7 +108,7 @@ partial class UserDetailsForm
         lblPhoneNumber.Name = "lblPhoneNumber";
         lblPhoneNumber.Size = new Size(43, 15);
         lblPhoneNumber.TabIndex = 8;
-        lblPhoneNumber.Text = "Telefon";
+        lblPhoneNumber.Text = "Phone";
         // 
         // txtPhoneNumber
         // 
@@ -124,7 +124,7 @@ partial class UserDetailsForm
         lblPassword.Name = "lblPassword";
         lblPassword.Size = new Size(47, 15);
         lblPassword.TabIndex = 10;
-        lblPassword.Text = "Lozinka";
+        lblPassword.Text = "Password";
         // 
         // txtPassword
         // 
@@ -141,7 +141,7 @@ partial class UserDetailsForm
         lblPasswordConfirm.Name = "lblPasswordConfirm";
         lblPasswordConfirm.Size = new Size(84, 15);
         lblPasswordConfirm.TabIndex = 12;
-        lblPasswordConfirm.Text = "Potvrda lozinke";
+        lblPasswordConfirm.Text = "Confirm password";
         // 
         // txtPasswordConfirm
         // 
@@ -156,9 +156,9 @@ partial class UserDetailsForm
         chkIsActive.AutoSize = true;
         chkIsActive.Location = new Point(24, 388);
         chkIsActive.Name = "chkIsActive";
-        chkIsActive.Size = new Size(105, 19);
+        chkIsActive.Size = new Size(64, 19);
         chkIsActive.TabIndex = 14;
-        chkIsActive.Text = "Aktivan korisnik";
+        chkIsActive.Text = "Active";
         chkIsActive.UseVisualStyleBackColor = true;
         // 
         // btnSave
@@ -167,7 +167,7 @@ partial class UserDetailsForm
         btnSave.Name = "btnSave";
         btnSave.Size = new Size(84, 32);
         btnSave.TabIndex = 15;
-        btnSave.Text = "Sačuvaj";
+        btnSave.Text = "Save";
         btnSave.UseVisualStyleBackColor = true;
         btnSave.Click += btnSave_Click;
         // 
@@ -177,7 +177,7 @@ partial class UserDetailsForm
         btnCancel.Name = "btnCancel";
         btnCancel.Size = new Size(84, 32);
         btnCancel.TabIndex = 16;
-        btnCancel.Text = "Odustani";
+        btnCancel.Text = "Cancel";
         btnCancel.UseVisualStyleBackColor = true;
         btnCancel.Click += btnCancel_Click;
         // 
@@ -210,7 +210,7 @@ partial class UserDetailsForm
         MinimizeBox = false;
         Name = "UserDetailsForm";
         StartPosition = FormStartPosition.CenterParent;
-        Text = "Korisnik";
+        Text = "User";
         Load += UserDetailsForm_Load;
         ResumeLayout(false);
         PerformLayout();

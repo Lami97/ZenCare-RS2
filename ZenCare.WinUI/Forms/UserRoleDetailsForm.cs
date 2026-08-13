@@ -26,12 +26,12 @@ public partial class UserRoleDetailsForm : Form
 
         if (_userRoleId.HasValue)
         {
-            Text = "Izmjena dodijeljene uloge";
+            Text = "Edit user role";
             await LoadUserRole();
         }
         else
         {
-            Text = "Nova dodijeljena uloga";
+            Text = "New user role";
         }
     }
 
@@ -50,7 +50,7 @@ public partial class UserRoleDetailsForm : Form
 
         if (userRole == null)
         {
-            MessageBox.Show(GetApiErrorMessage("Dodijeljenu ulogu nije moguće učitati."));
+            MessageBox.Show(GetApiErrorMessage("Unable to load assigned role."));
             DialogResult = DialogResult.Cancel;
             Close();
             return;
@@ -124,14 +124,14 @@ public partial class UserRoleDetailsForm : Form
     {
         if (GetSelectedLookupId(cmbUser) <= 0)
         {
-            MessageBox.Show("Odaberite korisnika.");
+            MessageBox.Show("Please select a user.");
             cmbUser.Focus();
             return false;
         }
 
         if (GetSelectedLookupId(cmbRole) <= 0)
         {
-            MessageBox.Show("Odaberite ulogu.");
+            MessageBox.Show("Please select a role.");
             cmbRole.Focus();
             return false;
         }
@@ -143,10 +143,10 @@ public partial class UserRoleDetailsForm : Form
     {
         if (IsDuplicateError(_apiService.LastErrorMessage))
         {
-            return "Korisnik već posjeduje odabranu ulogu.";
+            return "The selected user already has this role.";
         }
 
-        return GetApiErrorMessage("Dodijeljenu ulogu nije moguće sačuvati.");
+        return GetApiErrorMessage("Unable to save assigned role.");
     }
 
     private static bool IsDuplicateError(string? errorMessage)
@@ -180,7 +180,7 @@ public partial class UserRoleDetailsForm : Form
 
     private static List<LookupItem> CreateLookupItems(IEnumerable<LookupItem>? items)
     {
-        var lookupItems = new List<LookupItem> { new LookupItem(0, "Odaberite") };
+        var lookupItems = new List<LookupItem> { new LookupItem(0, "Select") };
         lookupItems.AddRange(items ?? Enumerable.Empty<LookupItem>());
         return lookupItems;
     }
