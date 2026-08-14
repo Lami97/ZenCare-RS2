@@ -14,6 +14,20 @@ namespace ZenCare.Services.Services
         {
         }
 
+        public override async Task<UserRoleResponse> InsertAsync(UserRoleInsertRequest request)
+        {
+            await EnsureAssignmentIsUniqueAsync(request.UserId, request.RoleId);
+
+            return await base.InsertAsync(request);
+        }
+
+        public override async Task<UserRoleResponse> UpdateAsync(int id, UserRoleUpdateRequest request)
+        {
+            await EnsureAssignmentIsUniqueAsync(request.UserId, request.RoleId, id);
+
+            return await base.UpdateAsync(id, request);
+        }
+
         public override async Task<UserRoleResponse> GetByIdAsync(int id)
         {
             var entity = await DbContext.UserRoles
@@ -33,6 +47,12 @@ namespace ZenCare.Services.Services
         {
             if (search != null)
             {
+                if (!string.IsNullOrWhiteSpace(search.Username))
+                {
+                    var username = search.Username.Trim();
+                    query = query.Where(ur => ur.User.Username.Contains(username));
+                }
+
                 if (search.UserId.HasValue)
                 {
                     query = query.Where(ur => ur.UserId == search.UserId.Value);
@@ -54,6 +74,19 @@ namespace ZenCare.Services.Services
                 .Include(ur => ur.Role);
 
             return Task.FromResult(query);
+        }
+
+        private async Task EnsureAssignmentIsUniqueAsync(int userId, int roleId, int? excludedId = null)
+        {
+            var assignmentExists = await DbContext.UserRoles.AnyAsync(userRole =>
+                userRole.UserId == userId &&
+                userRole.RoleId == roleId &&
+                (!excludedId.HasValue || userRole.Id != excludedId.Value));
+
+            if (assignmentExists)
+            {
+                throw new BusinessException("This user already has the selected role.");
+            }
         }
     }
 }

@@ -14,6 +14,18 @@ namespace ZenCare.Services.Services
         {
         }
 
+        public override async Task<PagedResult<FAQResponse>> GetAllAsync(FAQSearchObject? search = null)
+        {
+            search ??= new FAQSearchObject();
+
+            if (string.IsNullOrWhiteSpace(search.SortBy))
+            {
+                search.SortBy = "DisplayOrder, Question";
+            }
+
+            return await base.GetAllAsync(search);
+        }
+
         public override async Task<FAQResponse> GetByIdAsync(int id)
         {
             var entity = await DbContext.FAQs
@@ -53,10 +65,7 @@ namespace ZenCare.Services.Services
 
         protected override Task<IQueryable<Database.FAQ>> IncludeRelatedEntitiesAsync(IQueryable<Database.FAQ> query, FAQSearchObject? search)
         {
-            query = query
-                .Include(f => f.FAQCategory)
-                .OrderBy(f => f.DisplayOrder)
-                .ThenBy(f => f.Question);
+            query = query.Include(f => f.FAQCategory);
 
             return Task.FromResult(query);
         }

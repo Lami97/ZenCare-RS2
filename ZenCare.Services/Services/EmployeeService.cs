@@ -14,6 +14,18 @@ namespace ZenCare.Services.Services
         {
         }
 
+        public override Task<EmployeeResponse> InsertAsync(EmployeeInsertRequest request)
+        {
+            ValidateHireDate(request.HireDate);
+            return base.InsertAsync(request);
+        }
+
+        public override Task<EmployeeResponse> UpdateAsync(int id, EmployeeUpdateRequest request)
+        {
+            ValidateHireDate(request.HireDate);
+            return base.UpdateAsync(id, request);
+        }
+
         public override async Task<EmployeeResponse> GetByIdAsync(int id)
         {
             var entity = await DbContext.Employees
@@ -32,6 +44,17 @@ namespace ZenCare.Services.Services
         {
             if (search != null)
             {
+                if (!string.IsNullOrWhiteSpace(search.SearchTerm))
+                {
+                    var searchTerm = search.SearchTerm.Trim();
+                    query = query.Where(e =>
+                        e.User.FirstName.Contains(searchTerm) ||
+                        e.User.LastName.Contains(searchTerm) ||
+                        (e.User.FirstName + " " + e.User.LastName).Contains(searchTerm) ||
+                        e.User.Username.Contains(searchTerm) ||
+                        (e.Specialization != null && e.Specialization.Contains(searchTerm)));
+                }
+
                 if (search.UserId.HasValue)
                 {
                     query = query.Where(e => e.UserId == search.UserId.Value);
@@ -51,6 +74,14 @@ namespace ZenCare.Services.Services
             query = query.Include(e => e.User);
 
             return Task.FromResult(query);
+        }
+
+        private static void ValidateHireDate(DateTime? hireDate)
+        {
+            if (hireDate.HasValue && hireDate.Value.Date > DateTime.UtcNow.Date)
+            {
+                throw new BusinessException("Hire date cannot be in the future.");
+            }
         }
     }
 }
