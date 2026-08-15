@@ -290,14 +290,16 @@ class _EntityFormDialogState extends State<EntityFormDialog> {
             labelText: field.label,
             helperText: field.helperText,
           ),
-          items: (_lookups[field.key] ?? [])
-              .map(
-                (item) => DropdownMenuItem(
-                  value: item.value,
-                  child: Text(item.label, overflow: TextOverflow.ellipsis),
-                ),
-              )
-              .toList(),
+          items: [
+            if (!field.required)
+              const DropdownMenuItem<int>(value: null, child: Text('None')),
+            ...(_lookups[field.key] ?? []).map(
+              (item) => DropdownMenuItem(
+                value: item.value,
+                child: Text(item.label, overflow: TextOverflow.ellipsis),
+              ),
+            ),
+          ],
           onChanged: field.readOnly
               ? null
               : (value) => setState(() => _values[field.key] = value),
