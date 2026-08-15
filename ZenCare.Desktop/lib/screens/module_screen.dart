@@ -317,7 +317,7 @@ class _FilterBarState extends State<_FilterBar> {
           children: [
             if (widget.module.searchKey != null)
               SizedBox(
-                width: 280,
+                width: widget.module.searchWidth,
                 child: TextField(
                   controller: widget.searchController,
                   decoration: InputDecoration(

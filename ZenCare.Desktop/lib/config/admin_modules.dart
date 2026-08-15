@@ -9,16 +9,25 @@ const activeFilter = FilterField(
   booleanFalseLabel: 'Inactive',
 );
 
+String _userLookupLabel(Map<String, dynamic> item) {
+  final name = displayName(item);
+  final username = item['username']?.toString();
+  return username == null || username.isEmpty || username == name
+      ? name
+      : '$name ($username)';
+}
+
 final usersLookup = LookupConfig(
   endpoint: 'User',
   valueKey: 'id',
-  labelBuilder: (item) {
-    final name = displayName(item);
-    final username = item['username']?.toString();
-    return username == null || username.isEmpty || username == name
-        ? name
-        : '$name ($username)';
-  },
+  labelBuilder: _userLookupLabel,
+);
+
+final appointmentClientsLookup = LookupConfig(
+  endpoint: 'User',
+  valueKey: 'id',
+  labelBuilder: _userLookupLabel,
+  queryParameters: const {'IsClient': true},
 );
 
 final rolesLookup = LookupConfig(
@@ -54,7 +63,11 @@ final servicesLookup = LookupConfig(
 final employeesLookup = LookupConfig(
   endpoint: 'Employee',
   valueKey: 'id',
-  labelBuilder: itemLabel,
+  labelBuilder: (item) {
+    final employeeName = item['employeeName']?.toString().trim();
+    if (employeeName != null && employeeName.isNotEmpty) return employeeName;
+    return textValue(item['userName']);
+  },
 );
 final productsLookup = LookupConfig(
   endpoint: 'Product',
@@ -526,7 +539,8 @@ final adminModules = <AdminModule>[
     endpoint: 'Employee',
     entityName: 'employee',
     searchKey: 'SearchTerm',
-    searchLabel: 'Search employees',
+    searchLabel: 'Search by name / specialization',
+    searchWidth: 340,
     filters: const [
       FilterField(
         key: 'IsAvailable',
@@ -587,11 +601,62 @@ final adminModules = <AdminModule>[
     ],
   ),
   AdminModule(
+    title: 'Service Assignments',
+    endpoint: 'EmployeeService',
+    entityName: 'service assignment',
+    filters: [
+      FilterField(
+        key: 'EmployeeId',
+        label: 'Employee',
+        lookup: employeesLookup,
+      ),
+      FilterField(
+        key: 'WellnessServiceId',
+        label: 'Service',
+        lookup: servicesLookup,
+      ),
+      const FilterField(key: 'IsActive', label: 'Active', isBoolean: true),
+    ],
+    columns: [
+      AdminColumn(
+        label: 'Employee',
+        value: (x) => textValue(x['employeeName']),
+      ),
+      AdminColumn(label: 'Service', value: (x) => textValue(x['serviceName'])),
+      AdminColumn(label: 'Active', value: (x) => textValue(x['isActive'])),
+    ],
+    fields: [
+      AdminField(
+        key: 'employeeId',
+        label: 'Employee',
+        type: AdminFieldType.lookup,
+        required: true,
+        lookup: employeesLookup,
+      ),
+      AdminField(
+        key: 'wellnessServiceId',
+        label: 'Service',
+        type: AdminFieldType.lookup,
+        required: true,
+        lookup: servicesLookup,
+      ),
+      const AdminField(
+        key: 'isActive',
+        label: 'Active',
+        type: AdminFieldType.boolean,
+      ),
+    ],
+  ),
+  AdminModule(
     title: 'Appointments',
     endpoint: 'Appointment',
     entityName: 'appointment',
     filters: [
-      FilterField(key: 'UserId', label: 'Client', lookup: usersLookup),
+      FilterField(
+        key: 'UserId',
+        label: 'Client',
+        lookup: appointmentClientsLookup,
+      ),
       FilterField(
         key: 'EmployeeId',
         label: 'Employee',
@@ -634,7 +699,7 @@ final adminModules = <AdminModule>[
         label: 'Client',
         type: AdminFieldType.lookup,
         required: true,
-        lookup: usersLookup,
+        lookup: appointmentClientsLookup,
       ),
       AdminField(
         key: 'employeeId',

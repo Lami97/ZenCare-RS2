@@ -24,11 +24,13 @@ class LookupConfig {
     required this.endpoint,
     required this.valueKey,
     required this.labelBuilder,
+    this.queryParameters = const {},
   });
 
   final String endpoint;
   final String valueKey;
   final String Function(Map<String, dynamic> item) labelBuilder;
+  final Map<String, dynamic> queryParameters;
 }
 
 class LookupOption {
@@ -110,6 +112,7 @@ class AdminModule {
     this.filters = const [],
     this.searchKey,
     this.searchLabel = 'Search',
+    this.searchWidth = 280,
     this.canAdd = true,
     this.canEdit = true,
     this.canDelete = true,
@@ -124,6 +127,7 @@ class AdminModule {
   final List<FilterField> filters;
   final String? searchKey;
   final String searchLabel;
+  final double searchWidth;
   final bool canAdd;
   final bool canEdit;
   final bool canDelete;

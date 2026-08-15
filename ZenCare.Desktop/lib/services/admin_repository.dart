@@ -56,6 +56,7 @@ class AdminRepository {
           'Page': page,
           'PageSize': pageSize,
           'IncludeTotalCount': true,
+          ...config.queryParameters,
         },
       );
       items.addAll(result.items);

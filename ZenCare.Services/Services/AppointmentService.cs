@@ -26,6 +26,11 @@ namespace ZenCare.Services.Services
                 request.EndTime,
                 enforceFutureSchedule: true);
             ValidateAppointmentStatus(request.Status, request.CancellationReason);
+            ValidateAppointmentStatusTiming(
+                request.Status,
+                request.AppointmentDate,
+                request.StartTime,
+                request.EndTime);
 
             return await base.InsertAsync(request);
         }
@@ -40,6 +45,8 @@ namespace ZenCare.Services.Services
             }
 
             var isRescheduling = IsScheduleChanged(entity, request.AppointmentDate, request.StartTime, request.EndTime);
+            var isEmployeeServiceChanged = entity.EmployeeId != request.EmployeeId ||
+                entity.WellnessServiceId != request.WellnessServiceId;
 
             await ValidateAppointmentRequestAsync(
                 request.UserId,
@@ -49,9 +56,15 @@ namespace ZenCare.Services.Services
                 request.StartTime,
                 request.EndTime,
                 id,
-                isRescheduling);
+                isRescheduling,
+                isEmployeeServiceChanged);
             ValidateStatusTransition(entity.Status, request.Status);
             ValidateAppointmentStatus(request.Status, request.CancellationReason);
+            ValidateAppointmentStatusTiming(
+                request.Status,
+                request.AppointmentDate,
+                request.StartTime,
+                request.EndTime);
 
             Mapper.Map(request, entity);
             SetUpdatedAt(entity);
@@ -313,7 +326,8 @@ namespace ZenCare.Services.Services
             TimeSpan startTime,
             TimeSpan endTime,
             int? currentAppointmentId = null,
-            bool enforceFutureSchedule = false)
+            bool enforceFutureSchedule = false,
+            bool validateEmployeeServiceAssignment = true)
         {
             if (endTime <= startTime)
             {
@@ -349,6 +363,19 @@ namespace ZenCare.Services.Services
             if (!wellnessServiceExists)
             {
                 throw new BusinessException("Wellness service was not found.");
+            }
+
+            if (validateEmployeeServiceAssignment)
+            {
+                var hasActiveAssignment = await DbContext.EmployeeServices.AnyAsync(employeeService =>
+                    employeeService.EmployeeId == employeeId &&
+                    employeeService.WellnessServiceId == wellnessServiceId &&
+                    employeeService.IsActive);
+
+                if (!hasActiveAssignment)
+                {
+                    throw new BusinessException("The selected employee is not assigned to the selected service.");
+                }
             }
 
             var hasOverlap = await DbContext.Appointments
@@ -417,6 +444,11 @@ namespace ZenCare.Services.Services
             return DateTime.SpecifyKind(appointmentDate.Date.Add(startTime), DateTimeKind.Unspecified);
         }
 
+        private static DateTime GetAppointmentEndDateTime(DateTime appointmentDate, TimeSpan endTime)
+        {
+            return DateTime.SpecifyKind(appointmentDate.Date.Add(endTime), DateTimeKind.Unspecified);
+        }
+
         private static bool IsScheduleChanged(Database.Appointment appointment, DateTime appointmentDate, TimeSpan startTime, TimeSpan endTime)
         {
             return appointment.AppointmentDate.Date != appointmentDate.Date
@@ -461,6 +493,27 @@ namespace ZenCare.Services.Services
             if (status == AppointmentStatus.Cancelled && string.IsNullOrWhiteSpace(cancellationReason))
             {
                 throw new BusinessException("Cancellation reason is required when cancelling an appointment.");
+            }
+        }
+
+        private static void ValidateAppointmentStatusTiming(
+            AppointmentStatus status,
+            DateTime appointmentDate,
+            TimeSpan startTime,
+            TimeSpan endTime)
+        {
+            var now = DateTime.Now;
+
+            if (status == AppointmentStatus.Completed &&
+                GetAppointmentEndDateTime(appointmentDate, endTime) > now)
+            {
+                throw new BusinessException("An appointment cannot be completed before it has ended.");
+            }
+
+            if (status == AppointmentStatus.NoShow &&
+                GetAppointmentStartDateTime(appointmentDate, startTime) > now)
+            {
+                throw new BusinessException("An appointment cannot be marked as no-show before its scheduled time.");
             }
         }
     }

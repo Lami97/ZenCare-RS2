@@ -11,5 +11,7 @@ namespace ZenCare.Model.SearchObjects
         public string? Username { get; set; }
 
         public bool? IsActive { get; set; }
+
+        public bool? IsClient { get; set; }
     }
 }

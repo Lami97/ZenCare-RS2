@@ -14,6 +14,20 @@ namespace ZenCare.Services.Services
         {
         }
 
+        public override async Task<EmployeeServiceResponse> InsertAsync(EmployeeServiceInsertRequest request)
+        {
+            await EnsureAssignmentIsUniqueAsync(request.EmployeeId, request.WellnessServiceId);
+
+            return await base.InsertAsync(request);
+        }
+
+        public override async Task<EmployeeServiceResponse> UpdateAsync(int id, EmployeeServiceUpdateRequest request)
+        {
+            await EnsureAssignmentIsUniqueAsync(request.EmployeeId, request.WellnessServiceId, id);
+
+            return await base.UpdateAsync(id, request);
+        }
+
         public override async Task<EmployeeServiceResponse> GetByIdAsync(int id)
         {
             var entity = await DbContext.EmployeeServices
@@ -61,6 +75,19 @@ namespace ZenCare.Services.Services
                 .Include(es => es.WellnessService);
 
             return Task.FromResult(query);
+        }
+
+        private async Task EnsureAssignmentIsUniqueAsync(int employeeId, int wellnessServiceId, int? excludedId = null)
+        {
+            var assignmentExists = await DbContext.EmployeeServices.AnyAsync(employeeService =>
+                employeeService.EmployeeId == employeeId &&
+                employeeService.WellnessServiceId == wellnessServiceId &&
+                (!excludedId.HasValue || employeeService.Id != excludedId.Value));
+
+            if (assignmentExists)
+            {
+                throw new BusinessException("This employee is already assigned to the selected service.");
+            }
         }
     }
 }

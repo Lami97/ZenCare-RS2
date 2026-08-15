@@ -268,6 +268,17 @@ namespace ZenCare.Services.Services
                 {
                     query = query.Where(u => u.IsActive == search.IsActive.Value);
                 }
+
+                if (search.IsClient.HasValue)
+                {
+                    query = search.IsClient.Value
+                        ? query.Where(u =>
+                            u.ClientProfile != null &&
+                            u.UserRoles.Any(ur => ur.Role.Name == "Client" || ur.Role.RoleType == UserRoleType.Client))
+                        : query.Where(u =>
+                            u.ClientProfile == null ||
+                            !u.UserRoles.Any(ur => ur.Role.Name == "Client" || ur.Role.RoleType == UserRoleType.Client));
+                }
             }
 
             return query;
