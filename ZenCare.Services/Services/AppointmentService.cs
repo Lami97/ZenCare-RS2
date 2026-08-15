@@ -45,7 +45,8 @@ namespace ZenCare.Services.Services
             }
 
             var isRescheduling = IsScheduleChanged(entity, request.AppointmentDate, request.StartTime, request.EndTime);
-            var isEmployeeServiceChanged = entity.EmployeeId != request.EmployeeId ||
+            var isEmployeeChanged = entity.EmployeeId != request.EmployeeId;
+            var isEmployeeServiceChanged = isEmployeeChanged ||
                 entity.WellnessServiceId != request.WellnessServiceId;
 
             await ValidateAppointmentRequestAsync(
@@ -57,7 +58,8 @@ namespace ZenCare.Services.Services
                 request.EndTime,
                 id,
                 isRescheduling,
-                isEmployeeServiceChanged);
+                isEmployeeServiceChanged,
+                isEmployeeChanged);
             ValidateStatusTransition(entity.Status, request.Status);
             ValidateAppointmentStatus(request.Status, request.CancellationReason);
             ValidateAppointmentStatusTiming(
@@ -327,7 +329,8 @@ namespace ZenCare.Services.Services
             TimeSpan endTime,
             int? currentAppointmentId = null,
             bool enforceFutureSchedule = false,
-            bool validateEmployeeServiceAssignment = true)
+            bool validateEmployeeServiceAssignment = true,
+            bool validateEmployeeAccountStatus = true)
         {
             if (endTime <= startTime)
             {
@@ -346,7 +349,14 @@ namespace ZenCare.Services.Services
                 throw new BusinessException("User was not found.");
             }
 
-            var employee = await DbContext.Employees.FindAsync(employeeId);
+            var employee = await DbContext.Employees
+                .Where(e => e.Id == employeeId)
+                .Select(e => new
+                {
+                    e.IsAvailable,
+                    IsUserActive = e.User.IsActive
+                })
+                .FirstOrDefaultAsync();
 
             if (employee == null)
             {
@@ -356,6 +366,11 @@ namespace ZenCare.Services.Services
             if (!employee.IsAvailable)
             {
                 throw new BusinessException("The selected employee is not available.");
+            }
+
+            if (validateEmployeeAccountStatus && !employee.IsUserActive)
+            {
+                throw new BusinessException("The selected employee account is inactive.");
             }
 
             var wellnessServiceExists = await DbContext.WellnessServices.AnyAsync(s => s.Id == wellnessServiceId);
