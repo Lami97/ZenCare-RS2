@@ -59,7 +59,8 @@ namespace ZenCare.Services.Services
                 id,
                 isRescheduling,
                 isEmployeeServiceChanged,
-                isEmployeeChanged);
+                isEmployeeChanged,
+                isEmployeeServiceChanged);
             ValidateStatusTransition(entity.Status, request.Status);
             ValidateAppointmentStatus(request.Status, request.CancellationReason);
             ValidateAppointmentStatusTiming(
@@ -330,7 +331,8 @@ namespace ZenCare.Services.Services
             int? currentAppointmentId = null,
             bool enforceFutureSchedule = false,
             bool validateEmployeeServiceAssignment = true,
-            bool validateEmployeeAccountStatus = true)
+            bool validateEmployeeAccountStatus = true,
+            bool validateServiceStatus = true)
         {
             if (endTime <= startTime)
             {
@@ -373,11 +375,18 @@ namespace ZenCare.Services.Services
                 throw new BusinessException("The selected employee account is inactive.");
             }
 
-            var wellnessServiceExists = await DbContext.WellnessServices.AnyAsync(s => s.Id == wellnessServiceId);
+            var wellnessService = await DbContext.WellnessServices
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.Id == wellnessServiceId);
 
-            if (!wellnessServiceExists)
+            if (wellnessService == null)
             {
                 throw new BusinessException("Wellness service was not found.");
+            }
+
+            if (validateServiceStatus && wellnessService.Status != ServiceStatus.Active)
+            {
+                throw new BusinessException("The selected service is inactive.");
             }
 
             if (validateEmployeeServiceAssignment)
