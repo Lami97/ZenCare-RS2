@@ -216,6 +216,7 @@ class _EntityFormDialogState extends State<EntityFormDialog> {
         ? 'Edit ${widget.module.entityName}'
         : 'Add ${widget.module.entityName}';
     return AlertDialog(
+      scrollable: true,
       title: Text(title),
       content: SizedBox(
         width: 620,
@@ -231,25 +232,23 @@ class _EntityFormDialogState extends State<EntityFormDialog> {
               )
             : Form(
                 key: _formKey,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (_saveError != null) ...[
-                        Text(
-                          _saveError!,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
-                          ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (_saveError != null) ...[
+                      Text(
+                        _saveError!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
                         ),
-                        const SizedBox(height: 12),
-                      ],
-                      ...widget.module.fields
-                          .where((field) => !(_isEdit && field.createOnly))
-                          .map(_buildField),
+                      ),
+                      const SizedBox(height: 12),
                     ],
-                  ),
+                    ...widget.module.fields
+                        .where((field) => !(_isEdit && field.createOnly))
+                        .map(_buildField),
+                  ],
                 ),
               ),
       ),

@@ -411,7 +411,7 @@ class _FilterBarState extends State<_FilterBar> {
   }
 }
 
-class _DataGrid extends StatelessWidget {
+class _DataGrid extends StatefulWidget {
   const _DataGrid({
     required this.module,
     required this.items,
@@ -425,6 +425,19 @@ class _DataGrid extends StatelessWidget {
   final ValueChanged<Map<String, dynamic>> onSelected;
 
   @override
+  State<_DataGrid> createState() => _DataGridState();
+}
+
+class _DataGridState extends State<_DataGrid> {
+  final _horizontalScrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _horizontalScrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Card(
       elevation: 0,
@@ -434,23 +447,25 @@ class _DataGrid extends StatelessWidget {
         side: BorderSide(color: Theme.of(context).dividerColor),
       ),
       child: Scrollbar(
+        controller: _horizontalScrollController,
         child: SingleChildScrollView(
+          controller: _horizontalScrollController,
           scrollDirection: Axis.horizontal,
           child: SingleChildScrollView(
             child: DataTable(
               showCheckboxColumn: false,
-              columns: module.columns
+              columns: widget.module.columns
                   .map((column) => DataColumn(label: Text(column.label)))
                   .toList(),
-              rows: items.map((item) {
+              rows: widget.items.map((item) {
                 final rawId = item['id'];
                 final id = rawId is int
                     ? rawId
                     : int.tryParse(rawId?.toString() ?? '');
                 return DataRow(
-                  selected: id != null && id == selectedId,
-                  onSelectChanged: (_) => onSelected(item),
-                  cells: module.columns
+                  selected: id != null && id == widget.selectedId,
+                  onSelectChanged: (_) => widget.onSelected(item),
+                  cells: widget.module.columns
                       .map(
                         (column) => DataCell(
                           ConstrainedBox(
