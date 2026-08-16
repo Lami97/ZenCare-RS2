@@ -92,7 +92,7 @@ class _EntityFormDialogState extends State<EntityFormDialog> {
           .where((field) => field.lookup != null)
           .toList();
       for (final field in lookupFields) {
-        _lookups[field.key] = await widget.repository.lookup(field.lookup!);
+        _lookups[field.key] = await _loadLookup(field);
       }
     } on ApiException catch (error) {
       _loadError = error.message;
@@ -101,6 +101,58 @@ class _EntityFormDialogState extends State<EntityFormDialog> {
     } finally {
       if (mounted) {
         setState(() => _loadingLookups = false);
+      }
+    }
+  }
+
+  Future<List<LookupOption>> _loadLookup(AdminField field) {
+    final dependencyValue = field.dependsOn == null
+        ? null
+        : _values[field.dependsOn];
+    if (field.dependsOn != null && dependencyValue == null) {
+      return Future.value(const []);
+    }
+
+    final lookup = field.lookup!;
+    final queryParameters = <String, dynamic>{...lookup.queryParameters};
+    if (field.dependencyQueryKey != null) {
+      queryParameters[field.dependencyQueryKey!] = dependencyValue;
+    }
+
+    return widget.repository.lookup(
+      LookupConfig(
+        endpoint: lookup.endpoint,
+        valueKey: lookup.valueKey,
+        labelBuilder: lookup.labelBuilder,
+        queryParameters: queryParameters,
+      ),
+    );
+  }
+
+  Future<void> _changeLookup(AdminField field, int? value) async {
+    final dependentFields = widget.module.fields
+        .where((candidate) => candidate.dependsOn == field.key)
+        .toList();
+
+    setState(() {
+      _values[field.key] = value;
+      for (final dependent in dependentFields) {
+        _values[dependent.key] = null;
+        _lookups[dependent.key] = const [];
+      }
+    });
+
+    for (final dependent in dependentFields) {
+      try {
+        final options = await _loadLookup(dependent);
+        if (!mounted || _values[field.key] != value) return;
+        setState(() => _lookups[dependent.key] = options);
+      } on ApiException catch (error) {
+        if (mounted) setState(() => _saveError = error.message);
+      } catch (_) {
+        if (mounted) {
+          setState(() => _saveError = 'Reference data could not be loaded.');
+        }
       }
     }
   }
@@ -285,6 +337,7 @@ class _EntityFormDialogState extends State<EntityFormDialog> {
           contentPadding: EdgeInsets.zero,
         ),
         AdminFieldType.lookup => DropdownButtonFormField<int>(
+          key: ValueKey('${field.key}:${_values[field.key]}'),
           initialValue: _values[field.key] as int?,
           decoration: InputDecoration(
             labelText: field.label,
@@ -302,7 +355,7 @@ class _EntityFormDialogState extends State<EntityFormDialog> {
           ],
           onChanged: field.readOnly
               ? null
-              : (value) => setState(() => _values[field.key] = value),
+              : (value) => _changeLookup(field, value),
           validator: (value) => field.required && value == null
               ? '${field.label} is required.'
               : null,

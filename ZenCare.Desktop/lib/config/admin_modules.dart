@@ -89,6 +89,12 @@ final appointmentsLookup = LookupConfig(
     return '$client - $service - $date';
   },
 );
+final completedAppointmentsLookup = LookupConfig(
+  endpoint: 'Appointment',
+  valueKey: 'id',
+  labelBuilder: appointmentsLookup.labelBuilder,
+  queryParameters: const {'Status': 4},
+);
 final faqCategoriesLookup = LookupConfig(
   endpoint: 'FAQCategory',
   valueKey: 'id',
@@ -758,7 +764,11 @@ final adminModules = <AdminModule>[
     endpoint: 'Review',
     entityName: 'review',
     filters: [
-      FilterField(key: 'UserId', label: 'User', lookup: usersLookup),
+      FilterField(
+        key: 'UserId',
+        label: 'User',
+        lookup: appointmentClientsLookup,
+      ),
       const FilterField(
         key: 'Status',
         label: 'Status',
@@ -786,13 +796,15 @@ final adminModules = <AdminModule>[
         label: 'User',
         type: AdminFieldType.lookup,
         required: true,
-        lookup: usersLookup,
+        lookup: appointmentClientsLookup,
       ),
       AdminField(
         key: 'appointmentId',
         label: 'Completed appointment',
         type: AdminFieldType.lookup,
-        lookup: appointmentsLookup,
+        lookup: completedAppointmentsLookup,
+        dependsOn: 'userId',
+        dependencyQueryKey: 'UserId',
         helperText: 'Use only for an eligible completed appointment.',
       ),
       AdminField(

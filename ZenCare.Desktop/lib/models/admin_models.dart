@@ -59,6 +59,8 @@ class AdminField {
     this.createOnly = false,
     this.readOnly = false,
     this.disallowFutureDates = false,
+    this.dependsOn,
+    this.dependencyQueryKey,
   });
 
   final String key;
@@ -73,6 +75,8 @@ class AdminField {
   final bool createOnly;
   final bool readOnly;
   final bool disallowFutureDates;
+  final String? dependsOn;
+  final String? dependencyQueryKey;
 }
 
 class AdminColumn {
