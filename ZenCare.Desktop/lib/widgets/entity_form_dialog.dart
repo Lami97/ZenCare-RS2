@@ -105,12 +105,12 @@ class _EntityFormDialogState extends State<EntityFormDialog> {
     }
   }
 
-  Future<List<LookupOption>> _loadLookup(AdminField field) {
+  Future<List<LookupOption>> _loadLookup(AdminField field) async {
     final dependencyValue = field.dependsOn == null
         ? null
         : _values[field.dependsOn];
     if (field.dependsOn != null && dependencyValue == null) {
-      return Future.value(const []);
+      return const [];
     }
 
     final lookup = field.lookup!;
@@ -119,7 +119,7 @@ class _EntityFormDialogState extends State<EntityFormDialog> {
       queryParameters[field.dependencyQueryKey!] = dependencyValue;
     }
 
-    return widget.repository.lookup(
+    final options = await widget.repository.lookup(
       LookupConfig(
         endpoint: lookup.endpoint,
         valueKey: lookup.valueKey,
@@ -127,6 +127,22 @@ class _EntityFormDialogState extends State<EntityFormDialog> {
         queryParameters: queryParameters,
       ),
     );
+
+    final optionsByValue = <int, LookupOption>{
+      for (final option in options) option.value: option,
+    };
+    final currentValue = _values[field.key] as int?;
+    if (_isEdit &&
+        currentValue != null &&
+        !optionsByValue.containsKey(currentValue)) {
+      final currentOption = await widget.repository.lookupById(
+        lookup,
+        currentValue,
+      );
+      optionsByValue[currentOption.value] = currentOption;
+    }
+
+    return optionsByValue.values.toList();
   }
 
   Future<void> _changeLookup(AdminField field, int? value) async {

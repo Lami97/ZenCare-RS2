@@ -67,19 +67,30 @@ class AdminRepository {
       }
       page++;
     }
-    return items
-        .map((item) {
-          final rawValue = item[config.valueKey];
-          final value = rawValue is int
-              ? rawValue
-              : int.tryParse(rawValue?.toString() ?? '') ?? 0;
-          return LookupOption(
-            value: value,
-            label: config.labelBuilder(item),
-            raw: item,
-          );
-        })
-        .where((item) => item.value > 0)
-        .toList();
+    final optionsByValue = <int, LookupOption>{};
+    for (final item in items) {
+      final option = _toLookupOption(config, item);
+      if (option.value > 0) {
+        optionsByValue.putIfAbsent(option.value, () => option);
+      }
+    }
+    return optionsByValue.values.toList();
+  }
+
+  Future<LookupOption> lookupById(LookupConfig config, int id) async {
+    final item = await _apiService.getMap('${config.endpoint}/$id');
+    return _toLookupOption(config, item);
+  }
+
+  LookupOption _toLookupOption(LookupConfig config, Map<String, dynamic> item) {
+    final rawValue = item[config.valueKey];
+    final value = rawValue is int
+        ? rawValue
+        : int.tryParse(rawValue?.toString() ?? '') ?? 0;
+    return LookupOption(
+      value: value,
+      label: config.labelBuilder(item),
+      raw: item,
+    );
   }
 }
