@@ -17,6 +17,7 @@ namespace ZenCare.Services.Services
 
         public override async Task<ReviewResponse> InsertAsync(ReviewInsertRequest request)
         {
+            ValidateReviewStatus(request.Status);
             await ValidateReviewCreateAsync(request.UserId, request.AppointmentId, request.ProductId, request.Rating);
 
             return await base.InsertAsync(request);
@@ -31,6 +32,7 @@ namespace ZenCare.Services.Services
                 throw new NotFoundException(nameof(Database.Review), id);
             }
 
+            ValidateReviewStatus(request.Status);
             await ValidateReviewUpdateAsync(entity, request.UserId, request.AppointmentId, request.ProductId, request.Rating, id);
 
             return await base.UpdateAsync(id, request);
@@ -54,6 +56,7 @@ namespace ZenCare.Services.Services
         public async Task<ReviewResponse> InsertMyAsync(int userId, ReviewInsertRequest request)
         {
             request.UserId = userId;
+            request.Status = ReviewStatus.PendingApproval;
             await ValidateReviewCreateAsync(userId, request.AppointmentId, request.ProductId, request.Rating);
 
             return await base.InsertAsync(request);
@@ -65,6 +68,7 @@ namespace ZenCare.Services.Services
 
             request.Id = id;
             request.UserId = userId;
+            request.Status = existingReview.Status;
 
             await ValidateClientReviewUpdateAsync(userId, existingReview, request.AppointmentId, request.ProductId, request.Rating);
 
@@ -295,6 +299,14 @@ namespace ZenCare.Services.Services
             if (rating < 1 || rating > 5)
             {
                 throw new BusinessException("Rating must be between 1 and 5.");
+            }
+        }
+
+        private static void ValidateReviewStatus(ReviewStatus status)
+        {
+            if (!Enum.IsDefined(typeof(ReviewStatus), status))
+            {
+                throw new BusinessException("Review status is not valid.");
             }
         }
 
