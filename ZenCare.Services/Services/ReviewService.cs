@@ -17,7 +17,7 @@ namespace ZenCare.Services.Services
 
         public override async Task<ReviewResponse> InsertAsync(ReviewInsertRequest request)
         {
-            await ValidateReviewCreateAsync(request.UserId, request.AppointmentId, request.ProductId, request.Rating, false);
+            await ValidateReviewCreateAsync(request.UserId, request.AppointmentId, request.ProductId, request.Rating);
 
             return await base.InsertAsync(request);
         }
@@ -31,7 +31,7 @@ namespace ZenCare.Services.Services
                 throw new NotFoundException(nameof(Database.Review), id);
             }
 
-            await ValidateReviewUpdateAsync(request.UserId, request.AppointmentId, request.ProductId, request.Rating, id);
+            await ValidateReviewUpdateAsync(entity, request.UserId, request.AppointmentId, request.ProductId, request.Rating, id);
 
             return await base.UpdateAsync(id, request);
         }
@@ -54,7 +54,7 @@ namespace ZenCare.Services.Services
         public async Task<ReviewResponse> InsertMyAsync(int userId, ReviewInsertRequest request)
         {
             request.UserId = userId;
-            await ValidateReviewCreateAsync(userId, request.AppointmentId, request.ProductId, request.Rating, true);
+            await ValidateReviewCreateAsync(userId, request.AppointmentId, request.ProductId, request.Rating);
 
             return await base.InsertAsync(request);
         }
@@ -142,7 +142,7 @@ namespace ZenCare.Services.Services
             return Task.FromResult(query);
         }
 
-        private async Task ValidateReviewCreateAsync(int userId, int? appointmentId, int? productId, int rating, bool enforceClientOwnershipAndPurchase)
+        private async Task ValidateReviewCreateAsync(int userId, int? appointmentId, int? productId, int rating)
         {
             ValidateReviewRequest(appointmentId, productId, rating);
 
@@ -152,10 +152,7 @@ namespace ZenCare.Services.Services
                 return;
             }
 
-            if (enforceClientOwnershipAndPurchase)
-            {
-                await ValidateProductReviewCreateAsync(userId, productId!.Value);
-            }
+            await ValidateProductReviewCreateAsync(userId, productId!.Value, null);
         }
 
         private async Task ValidateClientReviewUpdateAsync(int userId, Database.Review existingReview, int? appointmentId, int? productId, int rating)
@@ -176,13 +173,23 @@ namespace ZenCare.Services.Services
             await ValidateProductReviewEligibilityAsync(userId, productId!.Value);
         }
 
-        private async Task ValidateReviewUpdateAsync(int userId, int? appointmentId, int? productId, int rating, int currentReviewId)
+        private async Task ValidateReviewUpdateAsync(Database.Review existingReview, int userId, int? appointmentId, int? productId, int rating, int currentReviewId)
         {
             ValidateReviewRequest(appointmentId, productId, rating);
 
             if (appointmentId.HasValue)
             {
                 await ValidateAppointmentReviewCreateAsync(userId, appointmentId.Value, currentReviewId);
+                return;
+            }
+
+            var productReviewIdentityChanged = existingReview.UserId != userId
+                || existingReview.ProductId != productId
+                || existingReview.AppointmentId.HasValue;
+
+            if (productReviewIdentityChanged)
+            {
+                await ValidateProductReviewCreateAsync(userId, productId!.Value, currentReviewId);
             }
         }
 
@@ -222,12 +229,14 @@ namespace ZenCare.Services.Services
 
         }
 
-        private async Task ValidateProductReviewCreateAsync(int userId, int productId)
+        private async Task ValidateProductReviewCreateAsync(int userId, int productId, int? currentReviewId)
         {
             await ValidateProductReviewEligibilityAsync(userId, productId);
 
             var alreadyReviewed = await DbContext.Reviews
-                .AnyAsync(r => r.UserId == userId && r.ProductId == productId);
+                .AnyAsync(r => r.UserId == userId
+                    && r.ProductId == productId
+                    && (!currentReviewId.HasValue || r.Id != currentReviewId.Value));
 
             if (alreadyReviewed)
             {
@@ -237,6 +246,16 @@ namespace ZenCare.Services.Services
 
         private async Task ValidateProductReviewEligibilityAsync(int userId, int productId)
         {
+            var isValidClient = await DbContext.Users
+                .AnyAsync(u => u.Id == userId
+                    && u.ClientProfile != null
+                    && u.UserRoles.Any(ur => ur.Role.Name == "Client" || ur.Role.RoleType == UserRoleType.Client));
+
+            if (!isValidClient)
+            {
+                throw new BusinessException("You can review only products you have purchased.");
+            }
+
             var productExists = await DbContext.Products
                 .AnyAsync(p => p.Id == productId);
 
