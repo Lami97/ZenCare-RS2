@@ -557,33 +557,22 @@ namespace ZenCare.Services.Services
 
         private static void ValidatePaymentStatus(PurchaseStatus status, PaymentStatus paymentStatus)
         {
-            var isPaidWorkflowStatus = status is PurchaseStatus.Paid
-                or PurchaseStatus.Processing
-                or PurchaseStatus.ReadyForPickup
-                or PurchaseStatus.Shipped
-                or PurchaseStatus.Completed;
-
-            if (isPaidWorkflowStatus && paymentStatus != PaymentStatus.Succeeded)
+            var isValidCombination = status switch
             {
-                throw new BusinessException("Payment status is not valid for the selected purchase status.");
-            }
+                PurchaseStatus.Draft => paymentStatus == PaymentStatus.Pending,
+                PurchaseStatus.PendingPayment => paymentStatus == PaymentStatus.Pending,
+                PurchaseStatus.Paid => paymentStatus == PaymentStatus.Succeeded,
+                PurchaseStatus.Processing => paymentStatus == PaymentStatus.Succeeded,
+                PurchaseStatus.ReadyForPickup => paymentStatus == PaymentStatus.Succeeded,
+                PurchaseStatus.Shipped => paymentStatus == PaymentStatus.Succeeded,
+                PurchaseStatus.Completed => paymentStatus == PaymentStatus.Succeeded,
+                PurchaseStatus.Cancelled => paymentStatus == PaymentStatus.Cancelled,
+                PurchaseStatus.Refunded => paymentStatus == PaymentStatus.Refunded,
+                PurchaseStatus.Failed => paymentStatus == PaymentStatus.Failed,
+                _ => false
+            };
 
-            if (status == PurchaseStatus.PendingPayment && paymentStatus == PaymentStatus.Succeeded)
-            {
-                throw new BusinessException("Payment status is not valid for the selected purchase status.");
-            }
-
-            if (status == PurchaseStatus.Refunded && paymentStatus != PaymentStatus.Refunded)
-            {
-                throw new BusinessException("Payment status is not valid for the selected purchase status.");
-            }
-
-            if (status == PurchaseStatus.Cancelled && paymentStatus == PaymentStatus.Succeeded)
-            {
-                throw new BusinessException("Payment status is not valid for the selected purchase status.");
-            }
-
-            if (status == PurchaseStatus.Failed && paymentStatus != PaymentStatus.Failed)
+            if (!isValidCombination)
             {
                 throw new BusinessException("Payment status is not valid for the selected purchase status.");
             }
