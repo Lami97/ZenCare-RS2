@@ -17,18 +17,45 @@ namespace ZenCare.Services.Services
 
         public override async Task<PurchaseItemResponse> InsertAsync(PurchaseItemInsertRequest request)
         {
-            await PreparePurchaseItemRequestAsync(request);
+            await using var transaction = await DbContext.Database.BeginTransactionAsync();
 
-            var response = await base.InsertAsync(request);
-            await UpdatePurchaseTotalAsync(request.PurchaseId);
+            ValidateQuantity(request.Quantity);
 
-            return await GetByIdAsync(response.Id);
+            var purchase = await GetMutablePurchaseAsync(request.PurchaseId);
+            var product = await GetActiveProductAsync(request.ProductId);
+
+            await EnsureProductIsNotAlreadyIncludedAsync(request.PurchaseId, request.ProductId);
+            ValidateAvailableStock(product, request.Quantity);
+
+            var entity = new Database.PurchaseItem
+            {
+                PurchaseId = purchase.Id,
+                ProductId = product.Id,
+                Quantity = request.Quantity,
+                UnitPrice = product.Price,
+                TotalPrice = product.Price * request.Quantity
+            };
+
+            product.StockQuantity -= request.Quantity;
+            product.UpdatedAt = DateTime.UtcNow;
+
+            DbContext.PurchaseItems.Add(entity);
+            await DbContext.SaveChangesAsync();
+
+            await RecalculatePurchaseTotalAsync(purchase.Id);
+            await DbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return await GetByIdAsync(entity.Id);
         }
 
         public override async Task<PurchaseItemResponse> UpdateAsync(int id, PurchaseItemUpdateRequest request)
         {
+            await using var transaction = await DbContext.Database.BeginTransactionAsync();
+
             var existingEntity = await DbContext.PurchaseItems
-                .AsNoTracking()
+                .Include(pi => pi.Purchase)
+                .Include(pi => pi.Product)
                 .FirstOrDefaultAsync(pi => pi.Id == id);
 
             if (existingEntity == null)
@@ -36,24 +63,81 @@ namespace ZenCare.Services.Services
                 throw new NotFoundException(nameof(Database.PurchaseItem), id);
             }
 
-            await PreparePurchaseItemRequestAsync(request);
+            ValidateQuantity(request.Quantity);
+            ValidatePurchaseCanBeModified(existingEntity.Purchase);
 
-            var response = await base.UpdateAsync(id, request);
+            var targetPurchase = existingEntity.PurchaseId == request.PurchaseId
+                ? existingEntity.Purchase
+                : await GetMutablePurchaseAsync(request.PurchaseId);
 
-            if (existingEntity.PurchaseId != request.PurchaseId)
+            await EnsureProductIsNotAlreadyIncludedAsync(request.PurchaseId, request.ProductId, id);
+
+            var targetProduct = existingEntity.ProductId == request.ProductId
+                ? existingEntity.Product
+                : await GetActiveProductAsync(request.ProductId);
+
+            ValidateProductIsActive(targetProduct);
+
+            var productChanged = existingEntity.ProductId != request.ProductId;
+            var unitPrice = productChanged ? targetProduct.Price : existingEntity.UnitPrice;
+
+            if (productChanged)
             {
-                await UpdatePurchaseTotalAsync(existingEntity.PurchaseId);
+                ValidateAvailableStock(targetProduct, request.Quantity);
+
+                existingEntity.Product.StockQuantity += existingEntity.Quantity;
+                existingEntity.Product.UpdatedAt = DateTime.UtcNow;
+
+                targetProduct.StockQuantity -= request.Quantity;
+                targetProduct.UpdatedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                var quantityDelta = request.Quantity - existingEntity.Quantity;
+
+                if (quantityDelta > 0)
+                {
+                    ValidateAvailableStock(targetProduct, quantityDelta);
+                }
+
+                targetProduct.StockQuantity -= quantityDelta;
+                if (quantityDelta != 0)
+                {
+                    targetProduct.UpdatedAt = DateTime.UtcNow;
+                }
             }
 
-            await UpdatePurchaseTotalAsync(request.PurchaseId);
+            var originalPurchaseId = existingEntity.PurchaseId;
 
-            return await GetByIdAsync(response.Id);
+            existingEntity.PurchaseId = targetPurchase.Id;
+            existingEntity.Purchase = targetPurchase;
+            existingEntity.ProductId = targetProduct.Id;
+            existingEntity.Product = targetProduct;
+            existingEntity.Quantity = request.Quantity;
+            existingEntity.UnitPrice = unitPrice;
+            existingEntity.TotalPrice = unitPrice * request.Quantity;
+
+            await DbContext.SaveChangesAsync();
+
+            if (originalPurchaseId != targetPurchase.Id)
+            {
+                await RecalculatePurchaseTotalAsync(originalPurchaseId);
+            }
+
+            await RecalculatePurchaseTotalAsync(targetPurchase.Id);
+            await DbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return await GetByIdAsync(existingEntity.Id);
         }
 
         public override async Task DeleteAsync(int id)
         {
+            await using var transaction = await DbContext.Database.BeginTransactionAsync();
+
             var existingEntity = await DbContext.PurchaseItems
-                .AsNoTracking()
+                .Include(pi => pi.Purchase)
+                .Include(pi => pi.Product)
                 .FirstOrDefaultAsync(pi => pi.Id == id);
 
             if (existingEntity == null)
@@ -61,8 +145,18 @@ namespace ZenCare.Services.Services
                 throw new NotFoundException(nameof(Database.PurchaseItem), id);
             }
 
-            await base.DeleteAsync(id);
-            await UpdatePurchaseTotalAsync(existingEntity.PurchaseId);
+            ValidatePurchaseCanBeModified(existingEntity.Purchase);
+
+            var purchaseId = existingEntity.PurchaseId;
+            existingEntity.Product.StockQuantity += existingEntity.Quantity;
+            existingEntity.Product.UpdatedAt = DateTime.UtcNow;
+
+            DbContext.PurchaseItems.Remove(existingEntity);
+            await DbContext.SaveChangesAsync();
+
+            await RecalculatePurchaseTotalAsync(purchaseId);
+            await DbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
         }
 
         public async Task<PagedResult<PurchaseItemResponse>> GetMyAsync(int userId, PurchaseItemSearchObject? search)
@@ -136,39 +230,38 @@ namespace ZenCare.Services.Services
                 .Where(pi => pi.Purchase.UserId == userId);
         }
 
-        private async Task PreparePurchaseItemRequestAsync(PurchaseItemInsertRequest request)
-        {
-            await PreparePurchaseItemRequestAsync(request.PurchaseId, request.ProductId, request.Quantity, (unitPrice, totalPrice) =>
-            {
-                request.UnitPrice = unitPrice;
-                request.TotalPrice = totalPrice;
-            });
-        }
-
-        private async Task PreparePurchaseItemRequestAsync(PurchaseItemUpdateRequest request)
-        {
-            await PreparePurchaseItemRequestAsync(request.PurchaseId, request.ProductId, request.Quantity, (unitPrice, totalPrice) =>
-            {
-                request.UnitPrice = unitPrice;
-                request.TotalPrice = totalPrice;
-            });
-        }
-
-        private async Task PreparePurchaseItemRequestAsync(int purchaseId, int productId, int quantity, Action<decimal, decimal> setCalculatedPrices)
+        private static void ValidateQuantity(int quantity)
         {
             if (quantity <= 0)
             {
                 throw new BusinessException("Quantity must be greater than zero.");
             }
+        }
 
-            var purchaseExists = await DbContext.Purchases
-                .AnyAsync(p => p.Id == purchaseId);
+        private async Task<Database.Purchase> GetMutablePurchaseAsync(int purchaseId)
+        {
+            var purchase = await DbContext.Purchases
+                .FirstOrDefaultAsync(p => p.Id == purchaseId);
 
-            if (!purchaseExists)
+            if (purchase == null)
             {
                 throw new BusinessException("Purchase was not found.");
             }
 
+            ValidatePurchaseCanBeModified(purchase);
+            return purchase;
+        }
+
+        private static void ValidatePurchaseCanBeModified(Database.Purchase purchase)
+        {
+            if (purchase.Status is not PurchaseStatus.Draft and not PurchaseStatus.PendingPayment)
+            {
+                throw new BusinessException("Purchase items cannot be modified after payment processing has started.");
+            }
+        }
+
+        private async Task<Database.Product> GetActiveProductAsync(int productId)
+        {
             var product = await DbContext.Products
                 .FirstOrDefaultAsync(p => p.Id == productId);
 
@@ -177,15 +270,40 @@ namespace ZenCare.Services.Services
                 throw new BusinessException("Product was not found.");
             }
 
+            ValidateProductIsActive(product);
+            return product;
+        }
+
+        private static void ValidateProductIsActive(Database.Product product)
+        {
             if (product.Status != ProductStatus.Active)
             {
                 throw new BusinessException("Product must be active.");
             }
-
-            setCalculatedPrices(product.Price, product.Price * quantity);
         }
 
-        private async Task UpdatePurchaseTotalAsync(int purchaseId)
+        private static void ValidateAvailableStock(Database.Product product, int requiredQuantity)
+        {
+            if (product.StockQuantity < requiredQuantity)
+            {
+                throw new BusinessException("Not enough stock is available for the selected product.");
+            }
+        }
+
+        private async Task EnsureProductIsNotAlreadyIncludedAsync(int purchaseId, int productId, int? excludedItemId = null)
+        {
+            var duplicateExists = await DbContext.PurchaseItems.AnyAsync(pi =>
+                pi.PurchaseId == purchaseId &&
+                pi.ProductId == productId &&
+                (!excludedItemId.HasValue || pi.Id != excludedItemId.Value));
+
+            if (duplicateExists)
+            {
+                throw new BusinessException("This product is already included in the purchase.");
+            }
+        }
+
+        private async Task RecalculatePurchaseTotalAsync(int purchaseId)
         {
             var purchase = await DbContext.Purchases
                 .FirstOrDefaultAsync(p => p.Id == purchaseId);
@@ -199,8 +317,6 @@ namespace ZenCare.Services.Services
                 .Where(pi => pi.PurchaseId == purchaseId)
                 .SumAsync(pi => pi.TotalPrice);
             purchase.UpdatedAt = DateTime.UtcNow;
-
-            await DbContext.SaveChangesAsync();
         }
 
         private async Task<PagedResult<PurchaseItemResponse>> CreatePagedResultAsync(IQueryable<Database.PurchaseItem> query, PurchaseItemSearchObject? search)
