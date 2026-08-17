@@ -10,6 +10,7 @@ namespace ZenCare.Model.Responses
         public int? AppointmentId { get; set; }
         public int? ProductId { get; set; }
         public string? ProductName { get; set; }
+        public string? ServiceName { get; set; }
         public int Rating { get; set; }
         public string? Comment { get; set; }
         public ReviewStatus Status { get; set; }

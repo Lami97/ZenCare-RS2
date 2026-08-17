@@ -94,6 +94,8 @@ namespace ZenCare.Services.Services
             var entity = await DbContext.Reviews
                 .Include(r => r.User)
                 .Include(r => r.Product)
+                .Include(r => r.Appointment)
+                    .ThenInclude(a => a!.WellnessService)
                 .FirstOrDefaultAsync(r => r.Id == id);
 
             if (entity == null)
@@ -141,7 +143,9 @@ namespace ZenCare.Services.Services
         {
             query = query
                 .Include(r => r.User)
-                .Include(r => r.Product);
+                .Include(r => r.Product)
+                .Include(r => r.Appointment)
+                    .ThenInclude(a => a!.WellnessService);
 
             return Task.FromResult(query);
         }
@@ -315,6 +319,8 @@ namespace ZenCare.Services.Services
             var entity = await DbContext.Reviews
                 .Include(r => r.User)
                 .Include(r => r.Product)
+                .Include(r => r.Appointment)
+                    .ThenInclude(a => a!.WellnessService)
                 .FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId);
 
             if (entity == null)
