@@ -179,7 +179,9 @@ class _EntityFormDialogState extends State<EntityFormDialog> {
     final request = <String, dynamic>{};
     for (final field in widget.module.fields) {
       if (_isEdit && field.createOnly) continue;
-      final value = _readValue(field);
+      final value = _isEdit && field.readOnly
+          ? widget.initialData![field.key]
+          : _readValue(field);
       if (value == null || (value is String && value.trim().isEmpty)) continue;
       request[_toRequestKey(field.key)] = value;
     }

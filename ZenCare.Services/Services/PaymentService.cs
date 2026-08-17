@@ -20,6 +20,21 @@ namespace ZenCare.Services.Services
             _configuration = configuration;
         }
 
+        public override Task<PaymentResponse> InsertAsync(PaymentInsertRequest request)
+        {
+            throw new BusinessException("Payment records can only be created through the payment workflow.");
+        }
+
+        public override Task<PaymentResponse> UpdateAsync(int id, PaymentUpdateRequest request)
+        {
+            throw new BusinessException("Payment records can only be updated through the payment workflow.");
+        }
+
+        public override Task DeleteAsync(int id)
+        {
+            throw new BusinessException("Payment records cannot be deleted.");
+        }
+
         public async Task<PagedResult<PaymentResponse>> GetMyAsync(int userId, PaymentSearchObject? search)
         {
             var query = DbContext.Payments

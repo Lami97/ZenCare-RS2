@@ -34,6 +34,7 @@ namespace ZenCare.Services.Services
 
         public override async Task<PurchaseResponse> InsertAsync(PurchaseInsertRequest request)
         {
+            ValidateGenericPurchaseInsert(request);
             ValidatePurchaseRequest(request.PurchaseNumber, request.TotalAmount, request.Status, request.PaymentStatus);
 
             return await base.InsertAsync(request);
@@ -48,6 +49,8 @@ namespace ZenCare.Services.Services
                 throw new NotFoundException(nameof(Database.Purchase), id);
             }
 
+            ValidateGenericPurchaseUpdate(entity, request);
+            PreservePaymentEvidence(entity, request);
             ValidatePurchaseRequest(request.PurchaseNumber, request.TotalAmount, request.Status, request.PaymentStatus);
             ValidatePurchaseStatusTransition(entity.Status, request.Status);
 
@@ -78,7 +81,12 @@ namespace ZenCare.Services.Services
 
         public async Task<PurchaseResponse> UpdateMyAsync(int id, int userId, PurchaseUpdateRequest request)
         {
-            await EnsureClientPurchaseExistsAsync(id, userId);
+            var entity = await GetClientPurchaseEntityAsync(id, userId);
+
+            if (request.Status != entity.Status)
+            {
+                throw new BusinessException("Purchase status can only be changed through the payment, cancellation, or fulfillment workflow.");
+            }
 
             request.Id = id;
             request.UserId = userId;
@@ -275,17 +283,6 @@ namespace ZenCare.Services.Services
             return entity;
         }
 
-        private async Task EnsureClientPurchaseExistsAsync(int id, int userId)
-        {
-            var exists = await DbContext.Purchases
-                .AnyAsync(p => p.Id == id && p.UserId == userId);
-
-            if (!exists)
-            {
-                throw new NotFoundException(nameof(Database.Purchase), id);
-            }
-        }
-
         private static void ValidateCheckoutRequest(PurchaseCheckoutRequest request)
         {
             if (request.Items.Count == 0)
@@ -448,6 +445,58 @@ namespace ZenCare.Services.Services
             }
 
             ValidatePaymentStatus(status, paymentStatus);
+        }
+
+        private static void ValidateGenericPurchaseInsert(PurchaseInsertRequest request)
+        {
+            if (request.Status is not PurchaseStatus.Draft and not PurchaseStatus.PendingPayment ||
+                request.PaymentStatus != PaymentStatus.Pending)
+            {
+                throw new BusinessException("Purchases can only be created in Draft or PendingPayment status with Pending payment status.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.StripePaymentIntentId) || request.PaidAt.HasValue)
+            {
+                throw new BusinessException("Stripe payment details can only be set through the payment workflow.");
+            }
+        }
+
+        private static void ValidateGenericPurchaseUpdate(Database.Purchase entity, PurchaseUpdateRequest request)
+        {
+            if (entity.Status != request.Status && request.Status is PurchaseStatus.Paid or PurchaseStatus.Refunded)
+            {
+                throw new BusinessException("Paid and refunded statuses can only be set through the payment workflow.");
+            }
+
+            if (entity.PaymentStatus != request.PaymentStatus &&
+                request.PaymentStatus is PaymentStatus.Succeeded or PaymentStatus.Refunded)
+            {
+                throw new BusinessException("Succeeded and refunded payment statuses can only be set through the payment workflow.");
+            }
+
+            if (request.TotalAmount != entity.TotalAmount)
+            {
+                throw new BusinessException("Purchase total can only be changed through purchase item operations.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.StripePaymentIntentId) &&
+                request.StripePaymentIntentId != entity.StripePaymentIntentId)
+            {
+                throw new BusinessException("Stripe payment details can only be set through the payment workflow.");
+            }
+
+            if (request.PaidAt.HasValue && request.PaidAt != entity.PaidAt)
+            {
+                throw new BusinessException("Payment date can only be set through the payment workflow.");
+            }
+        }
+
+        private static void PreservePaymentEvidence(Database.Purchase entity, PurchaseUpdateRequest request)
+        {
+            request.UserId = entity.UserId;
+            request.TotalAmount = entity.TotalAmount;
+            request.StripePaymentIntentId = entity.StripePaymentIntentId;
+            request.PaidAt = entity.PaidAt;
         }
 
         private static void ValidatePurchaseForCancellation(Database.Purchase purchase)

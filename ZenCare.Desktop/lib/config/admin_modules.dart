@@ -838,6 +838,7 @@ final adminModules = <AdminModule>[
     title: 'Purchases',
     endpoint: 'Purchase',
     entityName: 'purchase',
+    canAdd: false,
     searchKey: 'PurchaseNumber',
     searchLabel: 'Search by purchase number',
     filters: [
@@ -891,6 +892,7 @@ final adminModules = <AdminModule>[
         type: AdminFieldType.decimal,
         required: true,
         min: 0,
+        readOnly: true,
       ),
       const AdminField(
         key: 'status',
@@ -903,11 +905,13 @@ final adminModules = <AdminModule>[
         label: 'Payment status',
         type: AdminFieldType.status,
         statusOptions: paymentStatuses,
+        readOnly: true,
       ),
       const AdminField(
         key: 'paidAt',
         label: 'Paid at',
         type: AdminFieldType.date,
+        readOnly: true,
       ),
     ],
   ),
