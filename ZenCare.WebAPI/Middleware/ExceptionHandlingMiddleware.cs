@@ -20,6 +20,11 @@ public class ExceptionHandlingMiddleware
         {
             await _next(context);
         }
+        catch (NotFoundException ex)
+        {
+            _logger.LogInformation(ex, "Requested resource was not found.");
+            await WriteErrorResponseAsync(context, StatusCodes.Status404NotFound, ex.Message);
+        }
         catch (BusinessException ex)
         {
             _logger.LogWarning(ex, "Business rule validation failed.");
