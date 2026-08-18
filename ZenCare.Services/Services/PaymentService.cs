@@ -302,9 +302,19 @@ namespace ZenCare.Services.Services
                 throw new BusinessException("Stripe refund could not be created.");
             }
 
-            if (refund.Status is "failed" or "canceled")
+            switch (refund.Status)
             {
-                throw new BusinessException("Stripe refund was not successful.");
+                case "succeeded":
+                    break;
+                case "pending":
+                    throw new BusinessException("Stripe refund is pending and has not yet been finalized.");
+                case "requires_action":
+                    throw new BusinessException("Stripe refund requires further action and has not yet been finalized.");
+                case "failed":
+                case "canceled":
+                    throw new BusinessException("Stripe refund was not successful.");
+                default:
+                    throw new BusinessException("Stripe refund status could not be verified as succeeded.");
             }
 
             await using var transaction = await DbContext.Database.BeginTransactionAsync();
