@@ -4,14 +4,17 @@ import 'package:provider/provider.dart';
 import '../../models/wellness_service.dart';
 import '../../services/wellness_service_service.dart';
 import '../../utils/api_exception.dart';
+import '../appointments/create_appointment_screen.dart';
 
 class ServiceDetailsScreen extends StatefulWidget {
   const ServiceDetailsScreen({
     super.key,
     required this.serviceId,
+    this.onBack,
   });
 
   final int serviceId;
+  final VoidCallback? onBack;
 
   @override
   State<ServiceDetailsScreen> createState() => _ServiceDetailsScreenState();
@@ -27,7 +30,9 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   }
 
   Future<WellnessService> _loadService() {
-    return context.read<WellnessServiceService>().getServiceById(widget.serviceId);
+    return context
+        .read<WellnessServiceService>()
+        .getServiceById(widget.serviceId);
   }
 
   void _retry() {
@@ -39,7 +44,16 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Service details')),
+      appBar: AppBar(
+        title: const Text('Service details'),
+        leading: widget.onBack == null
+            ? null
+            : IconButton(
+                tooltip: 'Back to services',
+                onPressed: widget.onBack,
+                icon: const Icon(Icons.arrow_back),
+              ),
+      ),
       body: FutureBuilder<WellnessService>(
         future: _serviceFuture,
         builder: (context, snapshot) {
@@ -92,7 +106,8 @@ class _ServiceDetailsContent extends StatelessWidget {
         const SizedBox(height: 20),
         Text(
           service.name,
-          style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+          style: theme.textTheme.headlineSmall
+              ?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
         Text(
@@ -113,10 +128,29 @@ class _ServiceDetailsContent extends StatelessWidget {
         _DetailsSection(
           children: [
             _DetailsRow(label: 'Category', value: service.serviceCategoryName),
-            _DetailsRow(label: 'Duration', value: '${service.durationMinutes} minutes'),
-            _DetailsRow(label: 'Status', value: service.isActive ? 'Active' : 'Inactive'),
+            _DetailsRow(
+                label: 'Duration', value: '${service.durationMinutes} minutes'),
+            _DetailsRow(
+                label: 'Status',
+                value: service.isActive ? 'Active' : 'Inactive'),
           ],
         ),
+        if (service.isActive) ...[
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<bool>(
+                  builder: (_) => CreateAppointmentScreen(
+                    initialServiceId: service.id,
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.calendar_month_outlined),
+            label: const Text('Book appointment'),
+          ),
+        ],
       ],
     );
   }
@@ -181,11 +215,13 @@ class _DetailsError extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.primary),
+            Icon(Icons.error_outline,
+                size: 48, color: theme.colorScheme.primary),
             const SizedBox(height: 16),
             Text(
               'Service details could not be loaded',
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              style: theme.textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w700),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),

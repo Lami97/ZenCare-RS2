@@ -7,13 +7,17 @@ import '../../models/category.dart';
 import '../../models/wellness_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/appointment_service.dart';
+import '../../services/wellness_service_service.dart';
 import '../../utils/api_exception.dart';
 
 class CreateAppointmentScreen extends StatefulWidget {
-  const CreateAppointmentScreen({super.key});
+  const CreateAppointmentScreen({super.key, this.initialServiceId});
+
+  final int? initialServiceId;
 
   @override
-  State<CreateAppointmentScreen> createState() => _CreateAppointmentScreenState();
+  State<CreateAppointmentScreen> createState() =>
+      _CreateAppointmentScreenState();
 }
 
 class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
@@ -49,6 +53,8 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
   }
 
   Future<void> _loadLookups() async {
+    var shouldLoadEmployees = false;
+
     setState(() {
       _isLoadingLookups = true;
       _lookupError = null;
@@ -60,12 +66,48 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
     });
 
     try {
-      final service = context.read<AppointmentService>();
-      final categoriesResult = await service.getActiveServiceCategories();
-      final servicesResult = await service.getActiveServices();
+      final service = context.read<WellnessServiceService>();
+      final categoriesResult = await service.getCategories(isActive: true);
+      final servicesResult = await service.getServices(
+        isActive: true,
+        page: 1,
+        pageSize: 100,
+      );
 
-      _serviceCategories = categoriesResult.items.where((category) => category.isActive).toList();
-      _services = servicesResult.items.where((wellnessService) => wellnessService.isActive).toList();
+      _serviceCategories = categoriesResult.items
+          .where((category) => category.isActive)
+          .toList();
+      _services = servicesResult.items
+          .where((wellnessService) => wellnessService.isActive)
+          .toList();
+
+      final initialServiceId = widget.initialServiceId;
+      if (initialServiceId != null) {
+        for (final service in _services) {
+          if (service.id == initialServiceId) {
+            _selectedService = service;
+            break;
+          }
+        }
+
+        final selectedService = _selectedService;
+        if (selectedService != null) {
+          for (final category in _serviceCategories) {
+            if (category.id == selectedService.serviceCategoryId) {
+              _selectedServiceCategory = category;
+              break;
+            }
+          }
+
+          if (_startTime != null) {
+            _endTime = _addMinutes(
+              _startTime!,
+              selectedService.durationMinutes,
+            );
+          }
+          shouldLoadEmployees = _selectedServiceCategory != null;
+        }
+      }
     } on ApiException catch (error) {
       _lookupError = error.message;
     } catch (_) {
@@ -77,6 +119,10 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
         });
       }
     }
+
+    if (shouldLoadEmployees && mounted) {
+      await _loadEmployeesForSelectedService();
+    }
   }
 
   List<WellnessService> get _filteredServices {
@@ -86,7 +132,9 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
       return [];
     }
 
-    return _services.where((service) => service.serviceCategoryId == selectedCategory.id).toList();
+    return _services
+        .where((service) => service.serviceCategoryId == selectedCategory.id)
+        .toList();
   }
 
   Future<void> _loadEmployeesForSelectedService() async {
@@ -111,14 +159,16 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
     try {
       final start = _startTime == null ? null : _toDuration(_startTime!);
       final end = _endTime == null ? null : _toDuration(_endTime!);
-      final hasCompleteTimeFilter = _selectedDate != null && start != null && end != null;
+      final hasCompleteTimeFilter =
+          _selectedDate != null && start != null && end != null;
 
-      final result = await context.read<AppointmentService>().getAvailableEmployees(
-            wellnessServiceId: selectedService.id,
-            appointmentDate: hasCompleteTimeFilter ? _selectedDate : null,
-            startTime: hasCompleteTimeFilter ? start : null,
-            endTime: hasCompleteTimeFilter ? end : null,
-          );
+      final result =
+          await context.read<AppointmentService>().getAvailableEmployees(
+                wellnessServiceId: selectedService.id,
+                appointmentDate: hasCompleteTimeFilter ? _selectedDate : null,
+                startTime: hasCompleteTimeFilter ? start : null,
+                endTime: hasCompleteTimeFilter ? end : null,
+              );
 
       if (!mounted) {
         return;
@@ -126,7 +176,9 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
 
       setState(() {
         _employees = result.where((employee) => employee.isAvailable).toList();
-        _employeeLookupMessage = _employees.isEmpty ? 'No employees are available for the selected service.' : null;
+        _employeeLookupMessage = _employees.isEmpty
+            ? 'No employees are available for the selected service.'
+            : null;
       });
     } on ApiException catch (error) {
       if (!mounted) {
@@ -144,7 +196,8 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
       }
 
       setState(() {
-        _employeeLookupMessage = 'Unable to load employees for the selected service.';
+        _employeeLookupMessage =
+            'Unable to load employees for the selected service.';
       });
     } finally {
       if (mounted) {
@@ -290,7 +343,8 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
                     children: [
                       DropdownButtonFormField<Category>(
                         initialValue: _selectedServiceCategory,
-                        decoration: const InputDecoration(labelText: 'Service category'),
+                        decoration: const InputDecoration(
+                            labelText: 'Service category'),
                         items: _serviceCategories
                             .map(
                               (category) => DropdownMenuItem<Category>(
@@ -310,7 +364,9 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
                                   _employeeLookupMessage = null;
                                 });
                               },
-                        validator: (value) => value == null ? 'Service category is required.' : null,
+                        validator: (value) => value == null
+                            ? 'Service category is required.'
+                            : null,
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<WellnessService>(
@@ -321,11 +377,13 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
                             .map(
                               (service) => DropdownMenuItem<WellnessService>(
                                 value: service,
-                                child: Text('${service.name} (${service.durationMinutes} min)'),
+                                child: Text(
+                                    '${service.name} (${service.durationMinutes} min)'),
                               ),
                             )
                             .toList(),
-                        onChanged: _selectedServiceCategory == null || _filteredServices.isEmpty
+                        onChanged: _selectedServiceCategory == null ||
+                                _filteredServices.isEmpty
                             ? null
                             : (value) async {
                                 setState(() {
@@ -334,18 +392,22 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
                                   _employees = [];
                                   _employeeLookupMessage = null;
                                   if (_startTime != null && value != null) {
-                                    _endTime = _addMinutes(_startTime!, value.durationMinutes);
+                                    _endTime = _addMinutes(
+                                        _startTime!, value.durationMinutes);
                                   }
                                 });
                                 await _loadEmployeesForSelectedService();
                               },
-                        validator: (value) => value == null ? 'Service is required.' : null,
+                        validator: (value) =>
+                            value == null ? 'Service is required.' : null,
                       ),
-                      if (_selectedServiceCategory != null && _filteredServices.isEmpty) ...[
+                      if (_selectedServiceCategory != null &&
+                          _filteredServices.isEmpty) ...[
                         const SizedBox(height: 8),
                         Text(
                           'No services available in this category',
-                          style: TextStyle(color: Theme.of(context).colorScheme.error),
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.error),
                         ),
                       ],
                       const SizedBox(height: 16),
@@ -360,54 +422,71 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
                                   child: SizedBox(
                                     width: 20,
                                     height: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
                                   ),
                                 )
                               : null,
                         ),
                         items: _employees
                             .map(
-                              (employee) => DropdownMenuItem<AppointmentEmployeeOption>(
+                              (employee) =>
+                                  DropdownMenuItem<AppointmentEmployeeOption>(
                                 value: employee,
                                 child: Text(employee.displayName),
                               ),
                             )
                             .toList(),
-                        onChanged: _selectedService == null || _isLoadingEmployees || _employees.isEmpty
+                        onChanged: _selectedService == null ||
+                                _isLoadingEmployees ||
+                                _employees.isEmpty
                             ? null
-                            : (value) => setState(() => _selectedEmployee = value),
-                        validator: (value) => value == null ? 'Employee is required.' : null,
+                            : (value) =>
+                                setState(() => _selectedEmployee = value),
+                        validator: (value) =>
+                            value == null ? 'Employee is required.' : null,
                       ),
                       if (_employeeLookupMessage != null) ...[
                         const SizedBox(height: 8),
                         Text(
                           _employeeLookupMessage!,
-                          style: TextStyle(color: Theme.of(context).colorScheme.error),
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.error),
                         ),
                       ],
                       const SizedBox(height: 16),
                       _PickerTile(
                         label: 'Date',
-                        value: _selectedDate == null ? 'Select date' : _formatDate(_selectedDate!),
+                        value: _selectedDate == null
+                            ? 'Select date'
+                            : _formatDate(_selectedDate!),
                         icon: Icons.event_outlined,
                         onTap: _pickDate,
-                        validator: () => _selectedDate == null ? 'Date is required.' : null,
+                        validator: () =>
+                            _selectedDate == null ? 'Date is required.' : null,
                       ),
                       const SizedBox(height: 16),
                       _PickerTile(
                         label: 'Start time',
-                        value: _startTime == null ? 'Select start time' : _formatTimeOfDay(_startTime!),
+                        value: _startTime == null
+                            ? 'Select start time'
+                            : _formatTimeOfDay(_startTime!),
                         icon: Icons.schedule_outlined,
                         onTap: _pickStartTime,
-                        validator: () => _startTime == null ? 'Start time is required.' : null,
+                        validator: () => _startTime == null
+                            ? 'Start time is required.'
+                            : null,
                       ),
                       const SizedBox(height: 16),
                       _PickerTile(
                         label: 'End time',
-                        value: _endTime == null ? 'Select end time' : _formatTimeOfDay(_endTime!),
+                        value: _endTime == null
+                            ? 'Select end time'
+                            : _formatTimeOfDay(_endTime!),
                         icon: Icons.schedule,
                         onTap: _pickEndTime,
-                        validator: () => _endTime == null ? 'End time is required.' : null,
+                        validator: () =>
+                            _endTime == null ? 'End time is required.' : null,
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -420,7 +499,8 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
                         const SizedBox(height: 8),
                         Text(
                           _submitError!,
-                          style: TextStyle(color: Theme.of(context).colorScheme.error),
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.error),
                         ),
                       ],
                       const SizedBox(height: 24),
@@ -430,7 +510,8 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
                               )
                             : const Text('Create appointment'),
                       ),
@@ -482,11 +563,13 @@ class _LookupError extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.primary),
+            Icon(Icons.error_outline,
+                size: 48, color: theme.colorScheme.primary),
             const SizedBox(height: 16),
             Text(
               'Appointment options could not be loaded',
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              style: theme.textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w700),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
@@ -519,7 +602,8 @@ String _formatTimeOfDay(TimeOfDay value) {
 
 String? _validateFutureSchedule(DateTime selectedDate, TimeOfDay startTime) {
   final now = DateTime.now();
-  final appointmentDate = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+  final appointmentDate =
+      DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
 
   if (appointmentDate.isBefore(DateTime(now.year, now.month, now.day))) {
     return 'Appointment date cannot be in the past.';

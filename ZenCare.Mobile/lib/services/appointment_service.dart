@@ -1,9 +1,7 @@
 import '../models/appointment.dart';
 import '../models/appointment_create_request.dart';
 import '../models/appointment_employee_option.dart';
-import '../models/category.dart';
 import '../models/paged_result.dart';
-import '../models/wellness_service.dart';
 import 'api_service.dart';
 
 class AppointmentService {
@@ -25,7 +23,10 @@ class AppointmentService {
         if (employeeId != null) 'EmployeeId': employeeId,
         if (wellnessServiceId != null) 'WellnessServiceId': wellnessServiceId,
         if (status != null) 'Status': status,
-        if (appointmentDate != null) 'AppointmentDate': DateTime.utc(appointmentDate.year, appointmentDate.month, appointmentDate.day).toIso8601String(),
+        if (appointmentDate != null)
+          'AppointmentDate': DateTime.utc(appointmentDate.year,
+                  appointmentDate.month, appointmentDate.day)
+              .toIso8601String(),
         'Page': page,
         'PageSize': pageSize,
         'IncludeTotalCount': true,
@@ -75,14 +76,18 @@ class AppointmentService {
       '/Appointment/My/available-employees',
       queryParameters: {
         'wellnessServiceId': wellnessServiceId,
-        if (appointmentDate != null) 'appointmentDate': DateTime.utc(appointmentDate.year, appointmentDate.month, appointmentDate.day).toIso8601String(),
+        if (appointmentDate != null)
+          'appointmentDate': DateTime.utc(appointmentDate.year,
+                  appointmentDate.month, appointmentDate.day)
+              .toIso8601String(),
         if (startTime != null) 'startTime': _formatTime(startTime),
         if (endTime != null) 'endTime': _formatTime(endTime),
         'page': 1,
         'pageSize': 100,
       },
       fromJson: (data) => (data as List<dynamic>)
-          .map((item) => AppointmentEmployeeOption.fromJson(item as Map<String, dynamic>))
+          .map((item) =>
+              AppointmentEmployeeOption.fromJson(item as Map<String, dynamic>))
           .toList(),
     );
   }
@@ -93,37 +98,5 @@ class AppointmentService {
     final seconds = value.inSeconds.remainder(60).toString().padLeft(2, '0');
 
     return '$hours:$minutes:$seconds';
-  }
-
-  Future<PagedResult<Category>> getActiveServiceCategories() {
-    return _apiService.get<PagedResult<Category>>(
-      '/ServiceCategory',
-      queryParameters: {
-        'IsActive': true,
-        'Page': 1,
-        'PageSize': 100,
-        'IncludeTotalCount': true,
-      },
-      fromJson: (data) => PagedResult<Category>.fromJson(
-        data as Map<String, dynamic>,
-        Category.fromJson,
-      ),
-    );
-  }
-
-  Future<PagedResult<WellnessService>> getActiveServices() {
-    return _apiService.get<PagedResult<WellnessService>>(
-      '/Service',
-      queryParameters: {
-        'IsActive': true,
-        'Page': 1,
-        'PageSize': 100,
-        'IncludeTotalCount': true,
-      },
-      fromJson: (data) => PagedResult<WellnessService>.fromJson(
-        data as Map<String, dynamic>,
-        WellnessService.fromJson,
-      ),
-    );
   }
 }

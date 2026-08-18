@@ -6,6 +6,7 @@ import '../appointments/appointments_screen.dart';
 import '../cart/cart_screen.dart';
 import '../products/products_screen.dart';
 import '../profile/profile_screen.dart';
+import '../services/services_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -36,7 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final screens = [
-      const _HomeTab(),
+      const ServicesScreen(),
       const ProductsScreen(),
       const CartScreen(),
       const AppointmentsScreen(),
@@ -64,13 +65,13 @@ class _HomeScreenState extends State<HomeScreen> {
         },
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          NavigationDestination(
             icon: Icon(Icons.spa_outlined),
             selectedIcon: Icon(Icons.spa),
+            label: 'Services',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.inventory_2_outlined),
+            selectedIcon: Icon(Icons.inventory_2),
             label: 'Products',
           ),
           NavigationDestination(
@@ -93,43 +94,3 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-
-class _HomeTab extends StatelessWidget {
-  const _HomeTab();
-
-  @override
-  Widget build(BuildContext context) {
-    final user = context.watch<AuthProvider>().user;
-
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Welcome to ZenCare',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-                const SizedBox(height: 12),
-                Text('Logged in as: ${user?.username ?? '-'}'),
-                const SizedBox(height: 8),
-                Text('Role: ${user?.primaryRole ?? '-'}'),
-                const SizedBox(height: 16),
-                const Text('Your wellness appointments, products and profile tools will appear here.'),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-
-
