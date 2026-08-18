@@ -18,7 +18,7 @@ public class FAQController : ControllerBase
         _faqService = faqService;
     }
 
-    [AllowAnonymous]
+    [Authorize]
     [HttpGet]
     public async Task<ActionResult<PagedResult<FAQResponse>>> GetAll([FromQuery] FAQSearchObject? search)
     {
@@ -26,7 +26,7 @@ public class FAQController : ControllerBase
         return Ok(result);
     }
 
-    [AllowAnonymous]
+    [Authorize]
     [HttpGet("{id}")]
     public async Task<ActionResult<FAQResponse>> GetById(int id)
     {

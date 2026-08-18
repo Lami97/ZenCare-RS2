@@ -18,7 +18,7 @@ public class UnitOfMeasureController : ControllerBase
         _unitOfMeasureService = unitOfMeasureService;
     }
 
-    [AllowAnonymous]
+    [Authorize]
     [HttpGet]
     public async Task<ActionResult<PagedResult<UnitOfMeasureResponse>>> GetAll([FromQuery] UnitOfMeasureSearchObject? search)
     {
@@ -26,7 +26,7 @@ public class UnitOfMeasureController : ControllerBase
         return Ok(result);
     }
 
-    [AllowAnonymous]
+    [Authorize]
     [HttpGet("{id}")]
     public async Task<ActionResult<UnitOfMeasureResponse>> GetById(int id)
     {

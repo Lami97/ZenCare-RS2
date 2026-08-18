@@ -18,7 +18,7 @@ public class ServiceCategoryController : ControllerBase
         _serviceCategoryService = serviceCategoryService;
     }
 
-    [AllowAnonymous]
+    [Authorize]
     [HttpGet]
     public async Task<ActionResult<PagedResult<ServiceCategoryResponse>>> GetAll([FromQuery] ServiceCategorySearchObject? search)
     {
@@ -26,7 +26,7 @@ public class ServiceCategoryController : ControllerBase
         return Ok(result);
     }
 
-    [AllowAnonymous]
+    [Authorize]
     [HttpGet("{id}")]
     public async Task<ActionResult<ServiceCategoryResponse>> GetById(int id)
     {

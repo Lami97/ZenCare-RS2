@@ -18,7 +18,7 @@ public class FAQCategoryController : ControllerBase
         _faqCategoryService = faqCategoryService;
     }
 
-    [AllowAnonymous]
+    [Authorize]
     [HttpGet]
     public async Task<ActionResult<PagedResult<FAQCategoryResponse>>> GetAll([FromQuery] FAQCategorySearchObject? search)
     {
@@ -26,7 +26,7 @@ public class FAQCategoryController : ControllerBase
         return Ok(result);
     }
 
-    [AllowAnonymous]
+    [Authorize]
     [HttpGet("{id}")]
     public async Task<ActionResult<FAQCategoryResponse>> GetById(int id)
     {

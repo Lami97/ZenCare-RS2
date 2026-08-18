@@ -18,7 +18,7 @@ public class ServiceController : ControllerBase
         _serviceService = serviceService;
     }
 
-    [AllowAnonymous]
+    [Authorize]
     [HttpGet]
     public async Task<ActionResult<PagedResult<ServiceResponse>>> GetAll([FromQuery] ServiceSearchObject? search)
     {
@@ -26,7 +26,7 @@ public class ServiceController : ControllerBase
         return Ok(result);
     }
 
-    [AllowAnonymous]
+    [Authorize]
     [HttpGet("{id}")]
     public async Task<ActionResult<ServiceResponse>> GetById(int id)
     {

@@ -18,7 +18,7 @@ public class ProductCategoryController : ControllerBase
         _productCategoryService = productCategoryService;
     }
 
-    [AllowAnonymous]
+    [Authorize]
     [HttpGet]
     public async Task<ActionResult<PagedResult<ProductCategoryResponse>>> GetAll([FromQuery] ProductCategorySearchObject? search)
     {
@@ -26,7 +26,7 @@ public class ProductCategoryController : ControllerBase
         return Ok(result);
     }
 
-    [AllowAnonymous]
+    [Authorize]
     [HttpGet("{id}")]
     public async Task<ActionResult<ProductCategoryResponse>> GetById(int id)
     {

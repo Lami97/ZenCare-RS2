@@ -18,7 +18,7 @@ public class ProductController : ControllerBase
         _productService = productService;
     }
 
-    [AllowAnonymous]
+    [Authorize]
     [HttpGet]
     public async Task<ActionResult<PagedResult<ProductResponse>>> GetAll([FromQuery] ProductSearchObject? search)
     {
@@ -26,7 +26,7 @@ public class ProductController : ControllerBase
         return Ok(result);
     }
 
-    [AllowAnonymous]
+    [Authorize]
     [HttpGet("{id}")]
     public async Task<ActionResult<ProductResponse>> GetById(int id)
     {

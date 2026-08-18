@@ -18,7 +18,7 @@ public class SupplierController : ControllerBase
         _supplierService = supplierService;
     }
 
-    [AllowAnonymous]
+    [Authorize]
     [HttpGet]
     public async Task<ActionResult<PagedResult<SupplierResponse>>> GetAll([FromQuery] SupplierSearchObject? search)
     {
@@ -26,7 +26,7 @@ public class SupplierController : ControllerBase
         return Ok(result);
     }
 
-    [AllowAnonymous]
+    [Authorize]
     [HttpGet("{id}")]
     public async Task<ActionResult<SupplierResponse>> GetById(int id)
     {
