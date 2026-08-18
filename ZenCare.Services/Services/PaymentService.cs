@@ -178,7 +178,19 @@ namespace ZenCare.Services.Services
                 .Include(p => p.PurchaseItems)
                 .FirstOrDefaultAsync(p => p.Id == purchaseId);
 
-            ValidatePurchaseForConfirmation(purchase, purchaseId, userId);
+            var purchaseEntity = ValidatePurchaseOwnership(purchase, purchaseId, userId);
+
+            if (purchaseEntity.Status == PurchaseStatus.Paid &&
+                purchaseEntity.PaymentStatus == PaymentStatus.Succeeded)
+            {
+                return await ConfirmAlreadySuccessfulPaymentAsync(
+                    purchaseEntity,
+                    userId,
+                    paymentIntentService,
+                    requestOptions);
+            }
+
+            ValidatePurchaseForConfirmation(purchaseEntity);
 
             var payment = await DbContext.Payments
                 .FirstOrDefaultAsync(p => p.PurchaseId == purchaseId && p.UserId == userId);
@@ -190,7 +202,7 @@ namespace ZenCare.Services.Services
 
             var paymentIntent = await GetPaymentIntentForConfirmationAsync(
                 paymentIntentService,
-                purchase!.StripePaymentIntentId!,
+                purchaseEntity.StripePaymentIntentId!,
                 requestOptions);
 
             if (IsIncompletePaymentIntent(paymentIntent))
@@ -204,10 +216,10 @@ namespace ZenCare.Services.Services
             {
                 var paidAt = DateTime.UtcNow;
 
-                purchase.Status = PurchaseStatus.Paid;
-                purchase.PaymentStatus = PaymentStatus.Succeeded;
-                purchase.PaidAt = paidAt;
-                purchase.UpdatedAt = paidAt;
+                purchaseEntity.Status = PurchaseStatus.Paid;
+                purchaseEntity.PaymentStatus = PaymentStatus.Succeeded;
+                purchaseEntity.PaidAt = paidAt;
+                purchaseEntity.UpdatedAt = paidAt;
 
                 payment.Status = PaymentStatus.Succeeded;
                 payment.PaidAt = paidAt;
@@ -216,18 +228,18 @@ namespace ZenCare.Services.Services
             }
             else if (paymentIntent.Status == "canceled")
             {
-                purchase.Status = PurchaseStatus.Cancelled;
-                purchase.PaymentStatus = PaymentStatus.Cancelled;
-                purchase.UpdatedAt = DateTime.UtcNow;
+                purchaseEntity.Status = PurchaseStatus.Cancelled;
+                purchaseEntity.PaymentStatus = PaymentStatus.Cancelled;
+                purchaseEntity.UpdatedAt = DateTime.UtcNow;
 
                 payment.Status = PaymentStatus.Cancelled;
                 payment.UpdatedAt = DateTime.UtcNow;
             }
             else if (paymentIntent.Status == "failed")
             {
-                purchase.Status = PurchaseStatus.Failed;
-                purchase.PaymentStatus = PaymentStatus.Failed;
-                purchase.UpdatedAt = DateTime.UtcNow;
+                purchaseEntity.Status = PurchaseStatus.Failed;
+                purchaseEntity.PaymentStatus = PaymentStatus.Failed;
+                purchaseEntity.UpdatedAt = DateTime.UtcNow;
 
                 payment.Status = PaymentStatus.Failed;
                 payment.UpdatedAt = DateTime.UtcNow;
@@ -240,14 +252,7 @@ namespace ZenCare.Services.Services
             await DbContext.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            return new PaymentConfirmResponse
-            {
-                PurchaseId = purchase.Id,
-                PaymentId = payment.Id,
-                PurchaseStatus = purchase.Status,
-                PaymentStatus = purchase.PaymentStatus,
-                PaidAt = purchase.PaidAt
-            };
+            return CreateConfirmResponse(purchaseEntity, payment);
         }
 
         public async Task<PaymentRefundResponse> RefundPaymentAsync(int purchaseId, int userId)
@@ -486,7 +491,7 @@ namespace ZenCare.Services.Services
             }
         }
 
-        private static void ValidatePurchaseForConfirmation(Database.Purchase? purchase, int purchaseId, int userId)
+        private static Database.Purchase ValidatePurchaseOwnership(Database.Purchase? purchase, int purchaseId, int userId)
         {
             if (purchase == null)
             {
@@ -498,6 +503,11 @@ namespace ZenCare.Services.Services
                 throw new NotFoundException(nameof(Database.Purchase), purchaseId);
             }
 
+            return purchase;
+        }
+
+        private static void ValidatePurchaseForConfirmation(Database.Purchase purchase)
+        {
             if (purchase.Status != PurchaseStatus.PendingPayment || purchase.PaymentStatus != PaymentStatus.Pending)
             {
                 throw new BusinessException("Payment can only be confirmed for a pending purchase.");
@@ -506,6 +516,94 @@ namespace ZenCare.Services.Services
             if (string.IsNullOrWhiteSpace(purchase.StripePaymentIntentId))
             {
                 throw new BusinessException("Stripe payment intent was not created for this purchase.");
+            }
+        }
+
+        private async Task<PaymentConfirmResponse> ConfirmAlreadySuccessfulPaymentAsync(
+            Database.Purchase purchase,
+            int userId,
+            PaymentIntentService paymentIntentService,
+            RequestOptions requestOptions)
+        {
+            var payment = await DbContext.Payments
+                .FirstOrDefaultAsync(p => p.PurchaseId == purchase.Id && p.UserId == userId);
+
+            var expectedCurrency = GetStripeCurrency();
+            ValidateAlreadySuccessfulPayment(purchase, payment, expectedCurrency);
+
+            var paymentIntent = await GetPaymentIntentForConfirmationAsync(
+                paymentIntentService,
+                purchase.StripePaymentIntentId!,
+                requestOptions);
+
+            ValidateAlreadySuccessfulPaymentIntent(purchase, payment!, paymentIntent, expectedCurrency);
+
+            return CreateConfirmResponse(purchase, payment!);
+        }
+
+        private static void ValidateAlreadySuccessfulPayment(
+            Database.Purchase purchase,
+            Database.Payment? payment,
+            string expectedCurrency)
+        {
+            if (payment == null)
+            {
+                throw new BusinessException("Payment record was not found for this purchase.");
+            }
+
+            if (payment.Status != PaymentStatus.Succeeded)
+            {
+                throw new BusinessException("Payment state is inconsistent with the paid purchase.");
+            }
+
+            if (string.IsNullOrWhiteSpace(purchase.StripePaymentIntentId) ||
+                string.IsNullOrWhiteSpace(payment.StripePaymentIntentId) ||
+                !string.Equals(purchase.StripePaymentIntentId, payment.StripePaymentIntentId, StringComparison.Ordinal))
+            {
+                throw new BusinessException("Stripe payment evidence is missing or inconsistent.");
+            }
+
+            if (payment.Amount != purchase.TotalAmount)
+            {
+                throw new BusinessException("Payment amount does not match the purchase total.");
+            }
+
+            if (!string.Equals(payment.Currency, expectedCurrency, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new BusinessException("Payment currency is not valid for this purchase.");
+            }
+
+            if (!purchase.PaidAt.HasValue || !payment.PaidAt.HasValue || purchase.PaidAt != payment.PaidAt)
+            {
+                throw new BusinessException("Payment completion time is missing or inconsistent.");
+            }
+        }
+
+        private static void ValidateAlreadySuccessfulPaymentIntent(
+            Database.Purchase purchase,
+            Database.Payment payment,
+            PaymentIntent paymentIntent,
+            string expectedCurrency)
+        {
+            if (!string.Equals(paymentIntent.Id, purchase.StripePaymentIntentId, StringComparison.Ordinal) ||
+                !string.Equals(paymentIntent.Id, payment.StripePaymentIntentId, StringComparison.Ordinal))
+            {
+                throw new BusinessException("Stripe payment intent does not match this purchase.");
+            }
+
+            if (paymentIntent.Status != "succeeded")
+            {
+                throw new BusinessException("Stripe payment is not in a succeeded state.");
+            }
+
+            if (paymentIntent.Amount != ConvertAmountToSmallestCurrencyUnit(purchase.TotalAmount))
+            {
+                throw new BusinessException("Stripe payment amount does not match the purchase total.");
+            }
+
+            if (!string.Equals(paymentIntent.Currency, expectedCurrency, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new BusinessException("Stripe payment currency does not match this purchase.");
             }
         }
 
@@ -604,6 +702,20 @@ namespace ZenCare.Services.Services
                 Amount = purchase.TotalAmount,
                 Currency = payment.Currency,
                 Status = payment.Status
+            };
+        }
+
+        private static PaymentConfirmResponse CreateConfirmResponse(
+            Database.Purchase purchase,
+            Database.Payment payment)
+        {
+            return new PaymentConfirmResponse
+            {
+                PurchaseId = purchase.Id,
+                PaymentId = payment.Id,
+                PurchaseStatus = purchase.Status,
+                PaymentStatus = purchase.PaymentStatus,
+                PaidAt = purchase.PaidAt
             };
         }
     }
