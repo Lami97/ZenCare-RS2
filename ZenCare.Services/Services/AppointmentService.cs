@@ -94,6 +94,11 @@ namespace ZenCare.Services.Services
 
         public async Task<AppointmentResponse> InsertMyAsync(int userId, AppointmentInsertRequest request)
         {
+            if (request.Status != AppointmentStatus.Pending)
+            {
+                throw new BusinessException("Client appointments must be created in Pending status.");
+            }
+
             request.UserId = userId;
 
             return await InsertAsync(request);
@@ -101,7 +106,20 @@ namespace ZenCare.Services.Services
 
         public async Task<AppointmentResponse> UpdateMyAsync(int id, int userId, AppointmentUpdateRequest request)
         {
-            await EnsureClientAppointmentExistsAsync(id, userId);
+            var currentStatus = await DbContext.Appointments
+                .Where(a => a.Id == id && a.UserId == userId)
+                .Select(a => (AppointmentStatus?)a.Status)
+                .FirstOrDefaultAsync();
+
+            if (!currentStatus.HasValue)
+            {
+                throw new NotFoundException(nameof(Database.Appointment), id);
+            }
+
+            if (request.Status != currentStatus.Value)
+            {
+                throw new BusinessException("Appointment status cannot be changed through the client update endpoint. Use the cancellation action to cancel an appointment.");
+            }
 
             request.Id = id;
             request.UserId = userId;
@@ -308,17 +326,6 @@ namespace ZenCare.Services.Services
             }
 
             return entity;
-        }
-
-        private async Task EnsureClientAppointmentExistsAsync(int id, int userId)
-        {
-            var exists = await DbContext.Appointments
-                .AnyAsync(a => a.Id == id && a.UserId == userId);
-
-            if (!exists)
-            {
-                throw new NotFoundException(nameof(Database.Appointment), id);
-            }
         }
 
         private async Task ValidateAppointmentRequestAsync(
