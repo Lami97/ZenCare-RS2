@@ -100,6 +100,16 @@ public class AppointmentController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Employee,Admin")]
+    [HttpGet("{id}/history")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<List<AppointmentStatusHistoryResponse>>> GetHistory(int id)
+    {
+        var result = await _appointmentService.GetStatusHistoryAsync(id);
+        return Ok(result);
+    }
+
     [HttpPost("My")]
     [Authorize(Roles = "Client")]
     [ProducesResponseType(StatusCodes.Status201Created)]
@@ -207,9 +217,16 @@ public class AppointmentController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<AppointmentResponse>> Update(int id, [FromBody] AppointmentUpdateRequest request)
     {
+        var actorUserId = GetCurrentUserId();
+
+        if (actorUserId == null)
+        {
+            return Unauthorized();
+        }
+
         try
         {
-            var result = await _appointmentService.UpdateAsync(id, request);
+            var result = await _appointmentService.UpdateWithActorAsync(id, actorUserId.Value, request);
             return Ok(result);
         }
         catch (BusinessException ex)

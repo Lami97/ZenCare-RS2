@@ -74,6 +74,16 @@ public class PurchaseController : ControllerBase
     }
 
     [Authorize(Roles = "Admin")]
+    [HttpGet("{id}/history")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<List<PurchaseStatusHistoryResponse>>> GetHistory(int id)
+    {
+        var result = await _purchaseService.GetStatusHistoryAsync(id);
+        return Ok(result);
+    }
+
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -175,9 +185,16 @@ public class PurchaseController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PurchaseResponse>> Update(int id, [FromBody] PurchaseUpdateRequest request)
     {
+        var actorUserId = GetCurrentUserId();
+
+        if (actorUserId == null)
+        {
+            return Unauthorized();
+        }
+
         try
         {
-            var result = await _purchaseService.UpdateAsync(id, request);
+            var result = await _purchaseService.UpdateWithActorAsync(id, actorUserId.Value, request);
             return Ok(result);
         }
         catch (BusinessException ex)

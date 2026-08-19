@@ -12,6 +12,7 @@ public class ZenCareDbContext : DbContext
     }
 
     public DbSet<Appointment> Appointments { get; set; }
+    public DbSet<AppointmentStatusHistory> AppointmentStatusHistories { get; set; }
     public DbSet<BusinessReport> BusinessReports { get; set; }
     public DbSet<Cart> Carts { get; set; }
     public DbSet<CartItem> CartItems { get; set; }
@@ -28,6 +29,7 @@ public class ZenCareDbContext : DbContext
     public DbSet<ProductType> ProductTypes { get; set; }
     public DbSet<ProductView> ProductViews { get; set; }
     public DbSet<Purchase> Purchases { get; set; }
+    public DbSet<PurchaseStatusHistory> PurchaseStatusHistories { get; set; }
     public DbSet<PurchaseItem> PurchaseItems { get; set; }
     public DbSet<RecommendationLog> RecommendationLogs { get; set; }
     public DbSet<Review> Reviews { get; set; }
@@ -79,6 +81,12 @@ public class ZenCareDbContext : DbContext
         modelBuilder.Entity<ProductView>()
             .HasIndex(pv => new { pv.UserId, pv.ProductId })
             .IsUnique();
+
+        modelBuilder.Entity<AppointmentStatusHistory>()
+            .HasIndex(history => new { history.AppointmentId, history.ChangedAt });
+
+        modelBuilder.Entity<PurchaseStatusHistory>()
+            .HasIndex(history => new { history.PurchaseId, history.ChangedAt });
 
         modelBuilder.Entity<Product>()
             .Property(p => p.Price)
@@ -143,6 +151,18 @@ public class ZenCareDbContext : DbContext
             .WithMany()
             .HasForeignKey(a => a.WellnessServiceId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<AppointmentStatusHistory>()
+            .HasOne(history => history.Appointment)
+            .WithMany()
+            .HasForeignKey(history => history.AppointmentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<AppointmentStatusHistory>()
+            .HasOne(history => history.ChangedByUser)
+            .WithMany()
+            .HasForeignKey(history => history.ChangedByUserId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         modelBuilder.Entity<Payment>()
             .HasOne(p => p.User)
@@ -257,6 +277,18 @@ public class ZenCareDbContext : DbContext
             .WithMany()
             .HasForeignKey(p => p.UserId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<PurchaseStatusHistory>()
+            .HasOne(history => history.Purchase)
+            .WithMany()
+            .HasForeignKey(history => history.PurchaseId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PurchaseStatusHistory>()
+            .HasOne(history => history.ChangedByUser)
+            .WithMany()
+            .HasForeignKey(history => history.ChangedByUserId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         modelBuilder.Entity<PurchaseItem>()
             .HasOne(pi => pi.Purchase)

@@ -218,10 +218,14 @@ namespace ZenCare.Services.Services
             }
 
             await using var transaction = await DbContext.Database.BeginTransactionAsync();
+            var previousPurchaseStatus = purchaseEntity.Status;
+            var previousPaymentStatus = purchaseEntity.PaymentStatus;
+            var transitionAt = DateTime.UtcNow;
+            string historyDescription;
 
             if (paymentIntent.Status == "succeeded")
             {
-                var paidAt = DateTime.UtcNow;
+                var paidAt = transitionAt;
 
                 purchaseEntity.Status = PurchaseStatus.Paid;
                 purchaseEntity.PaymentStatus = PaymentStatus.Succeeded;
@@ -232,29 +236,40 @@ namespace ZenCare.Services.Services
                 payment.PaidAt = paidAt;
                 payment.UpdatedAt = paidAt;
                 payment.StripeChargeId = paymentIntent.LatestChargeId;
+                historyDescription = "Payment confirmed through Stripe.";
             }
             else if (paymentIntent.Status == "canceled")
             {
                 purchaseEntity.Status = PurchaseStatus.Cancelled;
                 purchaseEntity.PaymentStatus = PaymentStatus.Cancelled;
-                purchaseEntity.UpdatedAt = DateTime.UtcNow;
+                purchaseEntity.UpdatedAt = transitionAt;
 
                 payment.Status = PaymentStatus.Cancelled;
-                payment.UpdatedAt = DateTime.UtcNow;
+                payment.UpdatedAt = transitionAt;
+                historyDescription = "Stripe payment cancelled.";
             }
             else if (paymentIntent.Status == "failed")
             {
                 purchaseEntity.Status = PurchaseStatus.Failed;
                 purchaseEntity.PaymentStatus = PaymentStatus.Failed;
-                purchaseEntity.UpdatedAt = DateTime.UtcNow;
+                purchaseEntity.UpdatedAt = transitionAt;
 
                 payment.Status = PaymentStatus.Failed;
-                payment.UpdatedAt = DateTime.UtcNow;
+                payment.UpdatedAt = transitionAt;
+                historyDescription = "Stripe payment failed.";
             }
             else
             {
                 throw new BusinessException("Stripe payment status cannot be confirmed yet.");
             }
+
+            AddPurchaseStatusHistory(
+                purchaseEntity,
+                previousPurchaseStatus,
+                previousPaymentStatus,
+                userId,
+                transitionAt,
+                historyDescription);
 
             await DbContext.SaveChangesAsync();
             await transaction.CommitAsync();
@@ -323,7 +338,7 @@ namespace ZenCare.Services.Services
                     return CreateRefundResponse(purchaseEntity, payment, refundedAt);
                 }
 
-                return await PersistRefundedStateAsync(purchaseEntity, payment);
+                return await PersistRefundedStateAsync(purchaseEntity, payment, userId);
             }
 
             if (IsFullyRefunded(charge))
@@ -390,7 +405,7 @@ namespace ZenCare.Services.Services
                 throw new BusinessException("Stripe refund could not be verified as a full refund.");
             }
 
-            return await PersistRefundedStateAsync(purchaseEntity, payment);
+            return await PersistRefundedStateAsync(purchaseEntity, payment, userId);
         }
 
         public override async Task<PaymentResponse> GetByIdAsync(int id)
@@ -854,11 +869,14 @@ namespace ZenCare.Services.Services
 
         private async Task<PaymentRefundResponse> PersistRefundedStateAsync(
             Database.Purchase purchase,
-            Database.Payment payment)
+            Database.Payment payment,
+            int actorUserId)
         {
             await using var transaction = await DbContext.Database.BeginTransactionAsync();
 
             var refundedAt = DateTime.UtcNow;
+            var previousPurchaseStatus = purchase.Status;
+            var previousPaymentStatus = purchase.PaymentStatus;
 
             purchase.Status = PurchaseStatus.Refunded;
             purchase.PaymentStatus = PaymentStatus.Refunded;
@@ -867,6 +885,14 @@ namespace ZenCare.Services.Services
             payment.Status = PaymentStatus.Refunded;
             payment.UpdatedAt = refundedAt;
 
+            AddPurchaseStatusHistory(
+                purchase,
+                previousPurchaseStatus,
+                previousPaymentStatus,
+                actorUserId,
+                refundedAt,
+                "Payment refunded through Stripe.");
+
             await DbContext.SaveChangesAsync();
             await transaction.CommitAsync();
 
@@ -874,6 +900,36 @@ namespace ZenCare.Services.Services
             await PublishRefundCompletedAsync(purchase, payment, refundedAt);
 
             return response;
+        }
+
+        private void AddPurchaseStatusHistory(
+            Database.Purchase purchase,
+            PurchaseStatus oldStatus,
+            PaymentStatus oldPaymentStatus,
+            int actorUserId,
+            DateTime changedAt,
+            string description)
+        {
+            if (oldStatus == purchase.Status && oldPaymentStatus == purchase.PaymentStatus)
+            {
+                return;
+            }
+
+            DbContext.PurchaseStatusHistories.Add(new Database.PurchaseStatusHistory
+            {
+                PurchaseId = purchase.Id,
+                OldStatus = oldStatus,
+                NewStatus = purchase.Status,
+                OldPaymentStatus = oldPaymentStatus == purchase.PaymentStatus
+                    ? null
+                    : oldPaymentStatus,
+                NewPaymentStatus = oldPaymentStatus == purchase.PaymentStatus
+                    ? null
+                    : purchase.PaymentStatus,
+                ChangedByUserId = actorUserId,
+                ChangedAt = changedAt,
+                Description = description
+            });
         }
 
         private Task PublishPaymentSucceededAsync(Database.Purchase purchase, Database.Payment payment)

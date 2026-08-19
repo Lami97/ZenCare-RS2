@@ -45,6 +45,22 @@ namespace ZenCare.Services.Services
 
         public override async Task<PurchaseResponse> UpdateAsync(int id, PurchaseUpdateRequest request)
         {
+            return await UpdateCoreAsync(id, request, null);
+        }
+
+        public async Task<PurchaseResponse> UpdateWithActorAsync(
+            int id,
+            int actorUserId,
+            PurchaseUpdateRequest request)
+        {
+            return await UpdateCoreAsync(id, request, actorUserId);
+        }
+
+        private async Task<PurchaseResponse> UpdateCoreAsync(
+            int id,
+            PurchaseUpdateRequest request,
+            int? actorUserId)
+        {
             var entity = await DbContext.Purchases.FindAsync(id);
 
             if (entity == null)
@@ -53,13 +69,29 @@ namespace ZenCare.Services.Services
             }
 
             var previousStatus = entity.Status;
+            var previousPaymentStatus = entity.PaymentStatus;
 
             ValidateGenericPurchaseUpdate(entity, request);
             PreservePaymentEvidence(entity, request);
             ValidatePurchaseRequest(request.PurchaseNumber, request.TotalAmount, request.Status, request.PaymentStatus);
             ValidatePurchaseStatusTransition(entity.Status, request.Status);
 
-            var result = await base.UpdateAsync(id, request);
+            Mapper.Map(request, entity);
+            SetUpdatedAt(entity);
+
+            if (previousStatus != entity.Status || previousPaymentStatus != entity.PaymentStatus)
+            {
+                AddPurchaseStatusHistory(
+                    entity,
+                    previousStatus,
+                    previousPaymentStatus,
+                    actorUserId,
+                    GetPurchaseStatusChangeDescription(entity.Status),
+                    null);
+            }
+
+            await DbContext.SaveChangesAsync();
+            var result = await GetByIdAsync(id);
 
             if (previousStatus != entity.Status && IsClientRelevantFulfillmentStatus(entity.Status))
             {
@@ -207,6 +239,8 @@ namespace ZenCare.Services.Services
             await using var transaction = await DbContext.Database.BeginTransactionAsync();
 
             var cancelledAt = DateTime.UtcNow;
+            var previousStatus = purchase.Status;
+            var previousPaymentStatus = purchase.PaymentStatus;
 
             foreach (var item in purchase.PurchaseItems)
             {
@@ -224,10 +258,96 @@ namespace ZenCare.Services.Services
                 payment.UpdatedAt = cancelledAt;
             }
 
+            AddPurchaseStatusHistory(
+                purchase,
+                previousStatus,
+                previousPaymentStatus,
+                userId,
+                "Unpaid purchase cancelled by client.",
+                null,
+                cancelledAt);
+
             await DbContext.SaveChangesAsync();
             await transaction.CommitAsync();
 
             return await GetByIdAsync(purchase.Id);
+        }
+
+        public async Task<List<PurchaseStatusHistoryResponse>> GetStatusHistoryAsync(int id)
+        {
+            if (!await DbContext.Purchases.AnyAsync(purchase => purchase.Id == id))
+            {
+                throw new NotFoundException(nameof(Database.Purchase), id);
+            }
+
+            return await DbContext.PurchaseStatusHistories
+                .AsNoTracking()
+                .Where(history => history.PurchaseId == id)
+                .OrderBy(history => history.ChangedAt)
+                .ThenBy(history => history.Id)
+                .Select(history => new PurchaseStatusHistoryResponse
+                {
+                    Id = history.Id,
+                    PurchaseId = history.PurchaseId,
+                    OldStatus = history.OldStatus,
+                    NewStatus = history.NewStatus,
+                    OldPaymentStatus = history.OldPaymentStatus,
+                    NewPaymentStatus = history.NewPaymentStatus,
+                    ChangedByUserId = history.ChangedByUserId,
+                    ChangedByUsername = history.ChangedByUser == null
+                        ? null
+                        : history.ChangedByUser.Username,
+                    ChangedAt = history.ChangedAt,
+                    Description = history.Description,
+                    Reason = history.Reason
+                })
+                .ToListAsync();
+        }
+
+        private void AddPurchaseStatusHistory(
+            Database.Purchase purchase,
+            PurchaseStatus oldStatus,
+            PaymentStatus oldPaymentStatus,
+            int? actorUserId,
+            string description,
+            string? reason,
+            DateTime? changedAt = null)
+        {
+            var purchaseStatusChanged = oldStatus != purchase.Status;
+            var paymentStatusChanged = oldPaymentStatus != purchase.PaymentStatus;
+
+            if (!purchaseStatusChanged && !paymentStatusChanged)
+            {
+                return;
+            }
+
+            DbContext.PurchaseStatusHistories.Add(new Database.PurchaseStatusHistory
+            {
+                PurchaseId = purchase.Id,
+                OldStatus = oldStatus,
+                NewStatus = purchase.Status,
+                OldPaymentStatus = paymentStatusChanged ? oldPaymentStatus : null,
+                NewPaymentStatus = paymentStatusChanged ? purchase.PaymentStatus : null,
+                ChangedByUserId = actorUserId,
+                ChangedAt = changedAt ?? purchase.UpdatedAt ?? DateTime.UtcNow,
+                Description = description,
+                Reason = reason
+            });
+        }
+
+        private static string GetPurchaseStatusChangeDescription(PurchaseStatus status)
+        {
+            return status switch
+            {
+                PurchaseStatus.PendingPayment => "Purchase submitted for payment.",
+                PurchaseStatus.Processing => "Purchase moved to processing.",
+                PurchaseStatus.ReadyForPickup => "Purchase marked ready for pickup.",
+                PurchaseStatus.Shipped => "Purchase marked shipped.",
+                PurchaseStatus.Completed => "Purchase fulfilled.",
+                PurchaseStatus.Cancelled => "Purchase cancelled by administrator.",
+                PurchaseStatus.Failed => "Purchase marked failed.",
+                _ => $"Purchase status changed to {status}."
+            };
         }
 
         public override async Task<PurchaseResponse> GetByIdAsync(int id)

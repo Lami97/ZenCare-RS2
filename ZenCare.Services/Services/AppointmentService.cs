@@ -47,6 +47,22 @@ namespace ZenCare.Services.Services
 
         public override async Task<AppointmentResponse> UpdateAsync(int id, AppointmentUpdateRequest request)
         {
+            return await UpdateCoreAsync(id, request, null);
+        }
+
+        public async Task<AppointmentResponse> UpdateWithActorAsync(
+            int id,
+            int actorUserId,
+            AppointmentUpdateRequest request)
+        {
+            return await UpdateCoreAsync(id, request, actorUserId);
+        }
+
+        private async Task<AppointmentResponse> UpdateCoreAsync(
+            int id,
+            AppointmentUpdateRequest request,
+            int? actorUserId)
+        {
             var entity = await DbContext.Appointments.FindAsync(id);
 
             if (entity == null)
@@ -83,6 +99,22 @@ namespace ZenCare.Services.Services
 
             Mapper.Map(request, entity);
             SetUpdatedAt(entity);
+
+            if (previousStatus != entity.Status)
+            {
+                DbContext.AppointmentStatusHistories.Add(new Database.AppointmentStatusHistory
+                {
+                    AppointmentId = entity.Id,
+                    OldStatus = previousStatus,
+                    NewStatus = entity.Status,
+                    ChangedByUserId = actorUserId,
+                    ChangedAt = entity.UpdatedAt ?? DateTime.UtcNow,
+                    Description = GetAppointmentStatusChangeDescription(entity.Status),
+                    Reason = entity.Status == AppointmentStatus.Cancelled
+                        ? entity.CancellationReason
+                        : null
+                });
+            }
 
             await DbContext.SaveChangesAsync();
 
@@ -158,9 +190,21 @@ namespace ZenCare.Services.Services
 
             ValidateAppointmentCancellation(entity, request.CancellationReason);
 
+            var previousStatus = entity.Status;
             entity.Status = AppointmentStatus.Cancelled;
             entity.CancellationReason = request.CancellationReason.Trim();
             entity.UpdatedAt = DateTime.UtcNow;
+
+            DbContext.AppointmentStatusHistories.Add(new Database.AppointmentStatusHistory
+            {
+                AppointmentId = entity.Id,
+                OldStatus = previousStatus,
+                NewStatus = AppointmentStatus.Cancelled,
+                ChangedByUserId = userId,
+                ChangedAt = entity.UpdatedAt.Value,
+                Description = "Appointment cancelled by client.",
+                Reason = entity.CancellationReason
+            });
 
             await DbContext.SaveChangesAsync();
 
@@ -168,6 +212,48 @@ namespace ZenCare.Services.Services
             await PublishAppointmentStatusChangedAsync(result);
 
             return result;
+        }
+
+        public async Task<List<AppointmentStatusHistoryResponse>> GetStatusHistoryAsync(int id)
+        {
+            if (!await DbContext.Appointments.AnyAsync(appointment => appointment.Id == id))
+            {
+                throw new NotFoundException(nameof(Database.Appointment), id);
+            }
+
+            return await DbContext.AppointmentStatusHistories
+                .AsNoTracking()
+                .Where(history => history.AppointmentId == id)
+                .OrderBy(history => history.ChangedAt)
+                .ThenBy(history => history.Id)
+                .Select(history => new AppointmentStatusHistoryResponse
+                {
+                    Id = history.Id,
+                    AppointmentId = history.AppointmentId,
+                    OldStatus = history.OldStatus,
+                    NewStatus = history.NewStatus,
+                    ChangedByUserId = history.ChangedByUserId,
+                    ChangedByUsername = history.ChangedByUser == null
+                        ? null
+                        : history.ChangedByUser.Username,
+                    ChangedAt = history.ChangedAt,
+                    Description = history.Description,
+                    Reason = history.Reason
+                })
+                .ToListAsync();
+        }
+
+        private static string GetAppointmentStatusChangeDescription(AppointmentStatus status)
+        {
+            return status switch
+            {
+                AppointmentStatus.Confirmed => "Appointment confirmed.",
+                AppointmentStatus.Paid => "Appointment marked paid.",
+                AppointmentStatus.Completed => "Appointment marked completed.",
+                AppointmentStatus.Cancelled => "Appointment cancelled by employee or administrator.",
+                AppointmentStatus.NoShow => "Appointment marked as no-show.",
+                _ => $"Appointment status changed to {status}."
+            };
         }
 
         private Task PublishAppointmentBookedAsync(AppointmentResponse appointment)

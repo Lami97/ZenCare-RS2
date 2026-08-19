@@ -10,8 +10,10 @@ namespace ZenCare.Services.Interfaces
         Task<PurchaseResponse> GetMyByIdAsync(int id, int userId);
         Task<PurchaseResponse> InsertMyAsync(int userId, PurchaseInsertRequest request);
         Task<PurchaseResponse> UpdateMyAsync(int id, int userId, PurchaseUpdateRequest request);
+        Task<PurchaseResponse> UpdateWithActorAsync(int id, int actorUserId, PurchaseUpdateRequest request);
         Task DeleteMyAsync(int id, int userId);
         Task<PurchaseResponse> CheckoutAsync(int userId, PurchaseCheckoutRequest request);
         Task<PurchaseResponse> CancelMyAsync(int id, int userId);
+        Task<List<PurchaseStatusHistoryResponse>> GetStatusHistoryAsync(int id);
     }
 }
