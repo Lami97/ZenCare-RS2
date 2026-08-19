@@ -1,5 +1,6 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ZenCare.Model.Enums;
 using ZenCare.Model.Exceptions;
 using ZenCare.Model.Requests;
@@ -11,8 +12,42 @@ namespace ZenCare.Services.Services
 {
     public class ProductService : BaseCRUDService<ProductResponse, Database.Product, ProductInsertRequest, ProductUpdateRequest, ProductSearchObject>, IProductService
     {
-        public ProductService(ZenCareDbContext dbContext, IMapper mapper) : base(dbContext, mapper)
+        private readonly ILogger<ProductService> _logger;
+
+        public ProductService(ZenCareDbContext dbContext, IMapper mapper, ILogger<ProductService> logger) : base(dbContext, mapper)
         {
+            _logger = logger;
+        }
+
+        public override async Task<ProductResponse> InsertAsync(ProductInsertRequest request)
+        {
+            await ValidateReferencesAsync(request.SupplierId);
+
+            var entity = Mapper.Map<Database.Product>(request);
+            entity.CreatedAt = DateTime.UtcNow;
+
+            DbContext.Products.Add(entity);
+            await DbContext.SaveChangesAsync();
+
+            return await GetByIdAsync(entity.Id);
+        }
+
+        public override async Task<ProductResponse> UpdateAsync(int id, ProductUpdateRequest request)
+        {
+            var entity = await DbContext.Products.FindAsync(id);
+
+            if (entity == null)
+            {
+                throw new NotFoundException(nameof(Database.Product), id);
+            }
+
+            await ValidateReferencesAsync(request.SupplierId);
+
+            Mapper.Map(request, entity);
+            entity.UpdatedAt = DateTime.UtcNow;
+            await DbContext.SaveChangesAsync();
+
+            return await GetByIdAsync(entity.Id);
         }
 
         public override async Task<ProductResponse> GetByIdAsync(int id)
@@ -21,6 +56,7 @@ namespace ZenCare.Services.Services
                 .Include(p => p.ProductCategory)
                 .Include(p => p.ProductType)
                 .Include(p => p.UnitOfMeasure)
+                .Include(p => p.Supplier)
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (entity == null)
@@ -50,6 +86,11 @@ namespace ZenCare.Services.Services
                     query = query.Where(p => p.ProductTypeId == search.ProductTypeId.Value);
                 }
 
+                if (search.SupplierId.HasValue)
+                {
+                    query = query.Where(p => p.SupplierId == search.SupplierId.Value);
+                }
+
                 if (search.IsActive.HasValue)
                 {
                     query = query.Where(p => p.Status == (search.IsActive.Value ? ProductStatus.Active : ProductStatus.Inactive));
@@ -64,9 +105,67 @@ namespace ZenCare.Services.Services
             query = query
                 .Include(p => p.ProductCategory)
                 .Include(p => p.ProductType)
-                .Include(p => p.UnitOfMeasure);
+                .Include(p => p.UnitOfMeasure)
+                .Include(p => p.Supplier);
 
             return Task.FromResult(query);
+        }
+
+        public async Task RecordMyViewAsync(int productId, int userId)
+        {
+            var productExists = await DbContext.Products
+                .AsNoTracking()
+                .AnyAsync(p => p.Id == productId && p.Status == ProductStatus.Active);
+
+            if (!productExists)
+            {
+                throw new NotFoundException(nameof(Database.Product), productId);
+            }
+
+            try
+            {
+                var viewedAt = DateTime.UtcNow;
+                var productView = await DbContext.ProductViews
+                    .FirstOrDefaultAsync(pv => pv.UserId == userId && pv.ProductId == productId);
+
+                if (productView == null)
+                {
+                    DbContext.ProductViews.Add(new Database.ProductView
+                    {
+                        UserId = userId,
+                        ProductId = productId,
+                        ViewCount = 1,
+                        LastViewedAt = viewedAt
+                    });
+                }
+                else
+                {
+                    if (productView.ViewCount < int.MaxValue)
+                    {
+                        productView.ViewCount++;
+                    }
+
+                    productView.LastViewedAt = viewedAt;
+                }
+
+                await DbContext.SaveChangesAsync();
+            }
+            catch (Exception exception)
+            {
+                _logger.LogWarning(
+                    exception,
+                    "Could not record product view for user {UserId} and product {ProductId}.",
+                    userId,
+                    productId);
+            }
+        }
+
+        private async Task ValidateReferencesAsync(int supplierId)
+        {
+            if (!await DbContext.Suppliers.AnyAsync(s => s.Id == supplierId))
+            {
+                throw new BusinessException("The selected supplier does not exist.");
+            }
         }
     }
 }

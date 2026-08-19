@@ -26,6 +26,9 @@ namespace ZenCare.Model.Requests
         [Required]
         public int UnitOfMeasureId { get; set; }
 
+        [Required]
+        public int SupplierId { get; set; }
+
         public bool IsActive { get; set; } = true;
     }
 }

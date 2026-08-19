@@ -1,4 +1,4 @@
-﻿import '../models/category.dart';
+import '../models/category.dart';
 import '../models/paged_result.dart';
 import '../models/product.dart';
 import 'api_service.dart';
@@ -38,6 +38,13 @@ class ProductService {
     return _apiService.get<Product>(
       '/Product/$id',
       fromJson: (data) => Product.fromJson(data as Map<String, dynamic>),
+    );
+  }
+
+  Future<void> recordProductView(int id) {
+    return _apiService.post<void>(
+      '/Product/My/$id/view',
+      fromJson: (_) {},
     );
   }
 

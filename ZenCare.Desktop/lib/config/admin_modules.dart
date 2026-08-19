@@ -50,6 +50,11 @@ final unitsLookup = LookupConfig(
   valueKey: 'id',
   labelBuilder: itemLabel,
 );
+final suppliersLookup = LookupConfig(
+  endpoint: 'Supplier',
+  valueKey: 'id',
+  labelBuilder: itemLabel,
+);
 final serviceCategoriesLookup = LookupConfig(
   endpoint: 'ServiceCategory',
   valueKey: 'id',
@@ -213,6 +218,11 @@ final adminModules = <AdminModule>[
         label: 'Type',
         lookup: productTypesLookup,
       ),
+      FilterField(
+        key: 'SupplierId',
+        label: 'Supplier',
+        lookup: suppliersLookup,
+      ),
     ],
     columns: [
       AdminColumn(label: 'Name', value: (x) => textValue(x['name'])),
@@ -224,6 +234,10 @@ final adminModules = <AdminModule>[
       AdminColumn(
         label: 'Unit',
         value: (x) => textValue(x['unitOfMeasureName']),
+      ),
+      AdminColumn(
+        label: 'Supplier',
+        value: (x) => textValue(x['supplierName']),
       ),
       AdminColumn(label: 'Price', value: (x) => moneyValue(x['price'])),
       AdminColumn(label: 'Stock', value: (x) => textValue(x['stockQuantity'])),
@@ -277,6 +291,13 @@ final adminModules = <AdminModule>[
         type: AdminFieldType.lookup,
         required: true,
         lookup: unitsLookup,
+      ),
+      AdminField(
+        key: 'supplierId',
+        label: 'Supplier',
+        type: AdminFieldType.lookup,
+        required: true,
+        lookup: suppliersLookup,
       ),
       const AdminField(
         key: 'isActive',

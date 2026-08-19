@@ -25,4 +25,6 @@ public class Supplier
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? UpdatedAt { get; set; }
+
+    public ICollection<Product> Products { get; set; } = new List<Product>();
 }

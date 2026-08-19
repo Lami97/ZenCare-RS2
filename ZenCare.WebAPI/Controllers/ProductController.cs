@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
 using ZenCare.Model.SearchObjects;
@@ -32,6 +33,25 @@ public class ProductController : ControllerBase
     {
         var result = await _productService.GetByIdAsync(id);
         return Ok(result);
+    }
+
+    [Authorize(Roles = "Client")]
+    [HttpPost("My/{id}/view")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RecordMyView(int id)
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (!int.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        await _productService.RecordMyViewAsync(id, userId);
+        return NoContent();
     }
 
     [Authorize(Roles = "Admin")]

@@ -13,6 +13,7 @@ namespace ZenCare.Services.Mapping
                 .ForMember(dest => dest.ProductCategoryName, opt => opt.MapFrom(src => src.ProductCategory.Name))
                 .ForMember(dest => dest.ProductTypeName, opt => opt.MapFrom(src => src.ProductType.Name))
                 .ForMember(dest => dest.UnitOfMeasureName, opt => opt.MapFrom(src => src.UnitOfMeasure.Name))
+                .ForMember(dest => dest.SupplierName, opt => opt.MapFrom(src => src.Supplier.Name))
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.Status == ProductStatus.Active));
             CreateMap<ProductInsertRequest, Database.Product>()
                 .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.IsActive ? ProductStatus.Active : ProductStatus.Inactive));

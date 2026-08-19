@@ -6,5 +6,6 @@ namespace ZenCare.Services.Interfaces
 {
     public interface IProductService : ICRUDService<ProductResponse, ProductInsertRequest, ProductUpdateRequest, ProductSearchObject>
     {
+        Task RecordMyViewAsync(int productId, int userId);
     }
 }

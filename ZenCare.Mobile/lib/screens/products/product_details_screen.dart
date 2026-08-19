@@ -26,8 +26,17 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     _productFuture = _loadProduct();
   }
 
-  Future<Product> _loadProduct() {
-    return context.read<ProductService>().getProductById(widget.product.id);
+  Future<Product> _loadProduct() async {
+    final productService = context.read<ProductService>();
+    final product = await productService.getProductById(widget.product.id);
+
+    try {
+      await productService.recordProductView(product.id);
+    } on ApiException {
+      // View tracking is non-critical and must not block product details.
+    }
+
+    return product;
   }
 
   void _retry() {
@@ -64,7 +73,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             return _DetailsError(message: message, onRetry: _retry);
           }
 
-          return _ProductDetailsContent(product: snapshot.data ?? widget.product);
+          return _ProductDetailsContent(
+              product: snapshot.data ?? widget.product);
         },
       ),
     );
@@ -132,7 +142,8 @@ class _ProductDetailsContentState extends State<_ProductDetailsContent> {
         const SizedBox(height: 20),
         Text(
           product.name,
-          style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+          style: theme.textTheme.headlineSmall
+              ?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
         Text(
@@ -154,12 +165,18 @@ class _ProductDetailsContentState extends State<_ProductDetailsContent> {
           children: [
             _DetailsRow(label: 'Category', value: product.productCategoryName),
             _DetailsRow(label: 'Type', value: product.productTypeName),
-            _DetailsRow(label: 'Unit of measure', value: product.unitOfMeasureName),
+            _DetailsRow(
+                label: 'Unit of measure', value: product.unitOfMeasureName),
+            _DetailsRow(label: 'Supplier', value: product.supplierName),
             _DetailsRow(
               label: 'Stock',
-              value: product.stockQuantity > 0 ? '${product.stockQuantity} available' : 'Out of stock',
+              value: product.stockQuantity > 0
+                  ? '${product.stockQuantity} available'
+                  : 'Out of stock',
             ),
-            _DetailsRow(label: 'Status', value: product.isActive ? 'Active' : 'Inactive'),
+            _DetailsRow(
+                label: 'Status',
+                value: product.isActive ? 'Active' : 'Inactive'),
           ],
         ),
         const SizedBox(height: 20),
@@ -259,11 +276,13 @@ class _DetailsError extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.primary),
+            Icon(Icons.error_outline,
+                size: 48, color: theme.colorScheme.primary),
             const SizedBox(height: 16),
             Text(
               'Product details could not be loaded',
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              style: theme.textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w700),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),

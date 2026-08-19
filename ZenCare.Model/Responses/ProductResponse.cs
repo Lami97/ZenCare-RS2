@@ -13,6 +13,8 @@ namespace ZenCare.Model.Responses
         public string ProductTypeName { get; set; } = string.Empty;
         public int UnitOfMeasureId { get; set; }
         public string UnitOfMeasureName { get; set; } = string.Empty;
+        public int SupplierId { get; set; }
+        public string SupplierName { get; set; } = string.Empty;
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }

@@ -41,6 +41,11 @@ public class Product
     [ForeignKey(nameof(UnitOfMeasureId))]
     public UnitOfMeasure UnitOfMeasure { get; set; } = null!;
 
+    public int SupplierId { get; set; }
+
+    [ForeignKey(nameof(SupplierId))]
+    public Supplier Supplier { get; set; } = null!;
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? UpdatedAt { get; set; }
@@ -52,4 +57,6 @@ public class Product
     public ICollection<Review> Reviews { get; set; } = new List<Review>();
 
     public ICollection<RecommendationLog> RecommendationLogs { get; set; } = new List<RecommendationLog>();
+
+    public ICollection<ProductView> ProductViews { get; set; } = new List<ProductView>();
 }

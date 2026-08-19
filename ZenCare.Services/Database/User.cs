@@ -44,4 +44,6 @@ public class User
     public ClientProfile? ClientProfile { get; set; }
 
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+
+    public ICollection<ProductView> ProductViews { get; set; } = new List<ProductView>();
 }

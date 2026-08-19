@@ -25,6 +25,7 @@ public class ZenCareDbContext : DbContext
     public DbSet<Product> Products { get; set; }
     public DbSet<ProductCategory> ProductCategories { get; set; }
     public DbSet<ProductType> ProductTypes { get; set; }
+    public DbSet<ProductView> ProductViews { get; set; }
     public DbSet<Purchase> Purchases { get; set; }
     public DbSet<PurchaseItem> PurchaseItems { get; set; }
     public DbSet<RecommendationLog> RecommendationLogs { get; set; }
@@ -68,6 +69,10 @@ public class ZenCareDbContext : DbContext
 
         modelBuilder.Entity<CartItem>()
             .HasIndex(ci => new { ci.CartId, ci.ProductId })
+            .IsUnique();
+
+        modelBuilder.Entity<ProductView>()
+            .HasIndex(pv => new { pv.UserId, pv.ProductId })
             .IsUnique();
 
         modelBuilder.Entity<Product>()
@@ -199,6 +204,24 @@ public class ZenCareDbContext : DbContext
             .WithMany(uom => uom.Products)
             .HasForeignKey(p => p.UnitOfMeasureId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Product>()
+            .HasOne(p => p.Supplier)
+            .WithMany(s => s.Products)
+            .HasForeignKey(p => p.SupplierId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<ProductView>()
+            .HasOne(pv => pv.User)
+            .WithMany(u => u.ProductViews)
+            .HasForeignKey(pv => pv.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ProductView>()
+            .HasOne(pv => pv.Product)
+            .WithMany(p => p.ProductViews)
+            .HasForeignKey(pv => pv.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Cart>()
             .HasOne(c => c.User)

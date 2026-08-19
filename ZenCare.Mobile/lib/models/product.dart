@@ -11,6 +11,8 @@ class Product {
     required this.productTypeName,
     required this.unitOfMeasureId,
     required this.unitOfMeasureName,
+    required this.supplierId,
+    required this.supplierName,
     required this.isActive,
   });
 
@@ -25,6 +27,8 @@ class Product {
   final String productTypeName;
   final int unitOfMeasureId;
   final String unitOfMeasureName;
+  final int supplierId;
+  final String supplierName;
   final bool isActive;
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -40,6 +44,8 @@ class Product {
       productTypeName: json['productTypeName'] as String? ?? '',
       unitOfMeasureId: json['unitOfMeasureId'] as int? ?? 0,
       unitOfMeasureName: json['unitOfMeasureName'] as String? ?? '',
+      supplierId: json['supplierId'] as int? ?? 0,
+      supplierName: json['supplierName'] as String? ?? '',
       isActive: json['isActive'] as bool? ?? false,
     );
   }

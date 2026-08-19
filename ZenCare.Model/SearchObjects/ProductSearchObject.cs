@@ -8,6 +8,8 @@ namespace ZenCare.Model.SearchObjects
 
         public int? ProductTypeId { get; set; }
 
+        public int? SupplierId { get; set; }
+
         public bool? IsActive { get; set; }
     }
 }
