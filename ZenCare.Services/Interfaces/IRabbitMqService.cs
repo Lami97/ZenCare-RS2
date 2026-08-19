@@ -2,6 +2,8 @@ namespace ZenCare.Services.Interfaces
 {
     public interface IRabbitMqService
     {
+        bool IsConnected { get; }
+
         Task InitializeAsync(CancellationToken cancellationToken = default);
 
         Task PublishAsync(string routingKey, string message, CancellationToken cancellationToken = default);

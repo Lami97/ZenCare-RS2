@@ -11,6 +11,7 @@ namespace ZenCare.Model.Responses
         public string Message { get; set; } = string.Empty;
         public string? NotificationType { get; set; }
         public NotificationStatus Status { get; set; }
+        public bool IsRead { get; set; }
         public DateTime? SentAt { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }

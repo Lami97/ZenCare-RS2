@@ -2,6 +2,7 @@ using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using ZenCare.Model.Enums;
 using ZenCare.Model.Exceptions;
+using ZenCare.Model.Messages;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
 using ZenCare.Model.SearchObjects;
@@ -11,8 +12,14 @@ namespace ZenCare.Services.Services
 {
     public class AppointmentService : BaseCRUDService<AppointmentResponse, Database.Appointment, AppointmentInsertRequest, AppointmentUpdateRequest, AppointmentSearchObject>, IAppointmentService
     {
-        public AppointmentService(ZenCareDbContext dbContext, IMapper mapper) : base(dbContext, mapper)
+        private readonly INotificationEventPublisher _notificationEventPublisher;
+
+        public AppointmentService(
+            ZenCareDbContext dbContext,
+            IMapper mapper,
+            INotificationEventPublisher notificationEventPublisher) : base(dbContext, mapper)
         {
+            _notificationEventPublisher = notificationEventPublisher;
         }
 
         public override async Task<AppointmentResponse> InsertAsync(AppointmentInsertRequest request)
@@ -32,7 +39,10 @@ namespace ZenCare.Services.Services
                 request.StartTime,
                 request.EndTime);
 
-            return await base.InsertAsync(request);
+            var result = await base.InsertAsync(request);
+            await PublishAppointmentBookedAsync(result);
+
+            return result;
         }
 
         public override async Task<AppointmentResponse> UpdateAsync(int id, AppointmentUpdateRequest request)
@@ -61,7 +71,9 @@ namespace ZenCare.Services.Services
                 isEmployeeServiceChanged,
                 isEmployeeChanged,
                 isEmployeeServiceChanged);
-            ValidateStatusTransition(entity.Status, request.Status);
+            var previousStatus = entity.Status;
+
+            ValidateStatusTransition(previousStatus, request.Status);
             ValidateAppointmentStatus(request.Status, request.CancellationReason);
             ValidateAppointmentStatusTiming(
                 request.Status,
@@ -74,7 +86,14 @@ namespace ZenCare.Services.Services
 
             await DbContext.SaveChangesAsync();
 
-            return await GetByIdAsync(id);
+            var result = await GetByIdAsync(id);
+
+            if (previousStatus != result.Status)
+            {
+                await PublishAppointmentStatusChangedAsync(result);
+            }
+
+            return result;
         }
 
         public async Task<PagedResult<AppointmentResponse>> GetMyAsync(int userId, AppointmentSearchObject? search)
@@ -145,7 +164,38 @@ namespace ZenCare.Services.Services
 
             await DbContext.SaveChangesAsync();
 
-            return await GetByIdAsync(entity.Id);
+            var result = await GetByIdAsync(entity.Id);
+            await PublishAppointmentStatusChangedAsync(result);
+
+            return result;
+        }
+
+        private Task PublishAppointmentBookedAsync(AppointmentResponse appointment)
+        {
+            return _notificationEventPublisher.PublishAsync(new NotificationEventMessage
+            {
+                UserId = appointment.UserId,
+                EventKey = $"appointment-booked:{appointment.Id}",
+                Title = "Appointment booked",
+                Message = $"Appointment #{appointment.Id} for {appointment.AppointmentDate:yyyy-MM-dd} at {appointment.StartTime:hh\\:mm} was booked.",
+                OccurredAt = appointment.CreatedAt
+            });
+        }
+
+        private Task PublishAppointmentStatusChangedAsync(AppointmentResponse appointment)
+        {
+            var cancelled = appointment.Status == AppointmentStatus.Cancelled;
+
+            return _notificationEventPublisher.PublishAsync(new NotificationEventMessage
+            {
+                UserId = appointment.UserId,
+                EventKey = $"appointment-status:{appointment.Id}:{(int)appointment.Status}",
+                Title = cancelled ? "Appointment cancelled" : "Appointment status updated",
+                Message = cancelled
+                    ? $"Appointment #{appointment.Id} was cancelled."
+                    : $"Appointment #{appointment.Id} status changed to {appointment.Status}.",
+                OccurredAt = appointment.UpdatedAt ?? DateTime.UtcNow
+            });
         }
 
         public async Task<List<AppointmentEmployeeOptionResponse>> GetAvailableEmployeeOptionsAsync(

@@ -33,7 +33,28 @@ namespace ZenCare.Services.Services
 
             if (entity == null)
             {
-                throw new BusinessException("Notification was not found.");
+                throw new NotFoundException(nameof(Database.Notification), id);
+            }
+
+            return Mapper.Map<NotificationResponse>(entity);
+        }
+
+        public async Task<NotificationResponse> MarkMyAsReadAsync(int id, int userId)
+        {
+            var entity = await DbContext.Notifications
+                .Include(n => n.User)
+                .FirstOrDefaultAsync(n => n.Id == id && n.UserId == userId);
+
+            if (entity == null)
+            {
+                throw new NotFoundException(nameof(Database.Notification), id);
+            }
+
+            if (!entity.IsRead)
+            {
+                entity.IsRead = true;
+                entity.UpdatedAt = DateTime.UtcNow;
+                await DbContext.SaveChangesAsync();
             }
 
             return Mapper.Map<NotificationResponse>(entity);
@@ -92,7 +113,9 @@ namespace ZenCare.Services.Services
                 totalCount = await query.CountAsync();
             }
 
-            query = query.OrderBy(n => n.Id);
+            query = query
+                .OrderByDescending(n => n.CreatedAt)
+                .ThenByDescending(n => n.Id);
             query = ApplyPagination(query, search);
 
             var entities = await query.ToListAsync();

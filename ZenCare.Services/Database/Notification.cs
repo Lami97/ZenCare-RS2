@@ -27,6 +27,8 @@ public class Notification
 
     public NotificationStatus Status { get; set; } = NotificationStatus.Pending;
 
+    public bool IsRead { get; set; }
+
     public DateTime? SentAt { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

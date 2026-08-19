@@ -10,6 +10,7 @@ namespace ZenCare.Services.Services
 {
     public class RabbitMqService : IRabbitMqService, IAsyncDisposable
     {
+        private const int MaxProcessingAttempts = 5;
         public const string ExchangeName = "zencare.events";
         public const string AppointmentQueueName = "appointment-events";
         public const string PurchaseQueueName = "purchase-events";
@@ -35,6 +36,8 @@ namespace ZenCare.Services.Services
             _logger = logger;
         }
 
+        public bool IsConnected => _connection?.IsOpen == true && _channel?.IsOpen == true;
+
         public async Task InitializeAsync(CancellationToken cancellationToken = default)
         {
             if (_channel?.IsOpen == true)
@@ -52,6 +55,8 @@ namespace ZenCare.Services.Services
 
             try
             {
+                await DisposeConnectionAsync();
+
                 var factory = new ConnectionFactory
                 {
                     HostName = settings.Host,
@@ -106,8 +111,7 @@ namespace ZenCare.Services.Services
 
             if (_channel?.IsOpen != true)
             {
-                _logger.LogWarning("RabbitMQ consumer for queue {QueueName} was not registered because the channel is not available.", queueName);
-                return;
+                throw new InvalidOperationException($"RabbitMQ consumer for queue {queueName} could not be registered because the channel is unavailable.");
             }
 
             var consumer = new AsyncEventingBasicConsumer(_channel);
@@ -115,27 +119,48 @@ namespace ZenCare.Services.Services
             {
                 var message = Encoding.UTF8.GetString(eventArgs.Body.ToArray());
 
-                try
+                for (var attempt = 1; attempt <= MaxProcessingAttempts; attempt++)
                 {
-                    await handler(message, cancellationToken);
-                    await _channel.BasicAckAsync(eventArgs.DeliveryTag, multiple: false, cancellationToken);
-                }
-                catch (JsonException ex)
-                {
-                    _logger.LogWarning(ex, "RabbitMQ message on queue {QueueName} contains invalid JSON and will not be requeued.", queueName);
-                    await _channel.BasicRejectAsync(eventArgs.DeliveryTag, requeue: false, cancellationToken);
-                }
-                catch (InvalidDataException ex)
-                {
-                    _logger.LogWarning(ex, "RabbitMQ message on queue {QueueName} is invalid and will not be requeued.", queueName);
-                    await _channel.BasicRejectAsync(eventArgs.DeliveryTag, requeue: false, cancellationToken);
-                }
-                catch (Exception ex)
-                {
-                    var shouldRequeue = !eventArgs.Redelivered;
-
-                    _logger.LogWarning(ex, "RabbitMQ message processing failed on queue {QueueName}. Requeue: {Requeue}", queueName, shouldRequeue);
-                    await _channel.BasicNackAsync(eventArgs.DeliveryTag, multiple: false, requeue: shouldRequeue, cancellationToken);
+                    try
+                    {
+                        await handler(message, cancellationToken);
+                        await _channel.BasicAckAsync(eventArgs.DeliveryTag, multiple: false, cancellationToken);
+                        return;
+                    }
+                    catch (JsonException ex)
+                    {
+                        _logger.LogWarning(ex, "RabbitMQ message on queue {QueueName} contains invalid JSON and will not be requeued.", queueName);
+                        await _channel.BasicRejectAsync(eventArgs.DeliveryTag, requeue: false, cancellationToken);
+                        return;
+                    }
+                    catch (InvalidDataException ex)
+                    {
+                        _logger.LogWarning(ex, "RabbitMQ message on queue {QueueName} is invalid and will not be requeued.", queueName);
+                        await _channel.BasicRejectAsync(eventArgs.DeliveryTag, requeue: false, cancellationToken);
+                        return;
+                    }
+                    catch (Exception ex) when (attempt < MaxProcessingAttempts)
+                    {
+                        var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt - 1));
+                        _logger.LogWarning(
+                            ex,
+                            "RabbitMQ message processing failed on queue {QueueName}, attempt {Attempt}/{MaxAttempts}. Retrying in {DelaySeconds} seconds.",
+                            queueName,
+                            attempt,
+                            MaxProcessingAttempts,
+                            delay.TotalSeconds);
+                        await Task.Delay(delay, cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(
+                            ex,
+                            "RabbitMQ message processing failed permanently on queue {QueueName} after {MaxAttempts} attempts.",
+                            queueName,
+                            MaxProcessingAttempts);
+                        await _channel.BasicNackAsync(eventArgs.DeliveryTag, multiple: false, requeue: false, cancellationToken);
+                        return;
+                    }
                 }
             };
 

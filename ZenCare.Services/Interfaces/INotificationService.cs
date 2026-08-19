@@ -8,5 +8,6 @@ namespace ZenCare.Services.Interfaces
     {
         Task<PagedResult<NotificationResponse>> GetMyAsync(int userId, NotificationSearchObject? search);
         Task<NotificationResponse> GetMyByIdAsync(int id, int userId);
+        Task<NotificationResponse> MarkMyAsReadAsync(int id, int userId);
     }
 }

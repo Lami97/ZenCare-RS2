@@ -7,6 +7,7 @@ import 'change_password_screen.dart';
 import 'edit_profile_screen.dart';
 import '../recommendations/recommendations_screen.dart';
 import '../reviews/reviews_screen.dart';
+import '../notifications/notifications_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -94,6 +95,16 @@ class _ProfileView extends StatelessWidget {
                     },
                     icon: const Icon(Icons.edit_outlined),
                     label: const Text('Edit profile'),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(builder: (_) => const NotificationsScreen()),
+                      );
+                    },
+                    icon: const Icon(Icons.notifications_outlined),
+                    label: const Text('Notifications'),
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton.icon(

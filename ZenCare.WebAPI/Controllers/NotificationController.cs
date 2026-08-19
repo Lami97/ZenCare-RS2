@@ -49,6 +49,24 @@ public class NotificationController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Client")]
+    [HttpPut("My/{id}/read")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<NotificationResponse>> MarkMyAsRead(int id)
+    {
+        var userId = GetCurrentUserId();
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        var result = await _notificationService.MarkMyAsReadAsync(id, userId.Value);
+        return Ok(result);
+    }
+
     [Authorize(Roles = "Employee,Admin")]
     [HttpGet]
     public async Task<ActionResult<PagedResult<NotificationResponse>>> GetAll([FromQuery] NotificationSearchObject? search)

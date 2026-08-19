@@ -17,6 +17,7 @@ namespace ZenCare.Services.Services
     public class PurchaseService : BaseCRUDService<PurchaseResponse, Database.Purchase, PurchaseInsertRequest, PurchaseUpdateRequest, PurchaseSearchObject>, IPurchaseService
     {
         private readonly IRabbitMqService _rabbitMqService;
+        private readonly INotificationEventPublisher _notificationEventPublisher;
         private readonly IConfiguration _configuration;
         private readonly ILogger<PurchaseService> _logger;
 
@@ -24,10 +25,12 @@ namespace ZenCare.Services.Services
             ZenCareDbContext dbContext,
             IMapper mapper,
             IRabbitMqService rabbitMqService,
+            INotificationEventPublisher notificationEventPublisher,
             IConfiguration configuration,
             ILogger<PurchaseService> logger) : base(dbContext, mapper)
         {
             _rabbitMqService = rabbitMqService;
+            _notificationEventPublisher = notificationEventPublisher;
             _configuration = configuration;
             _logger = logger;
         }
@@ -49,18 +52,32 @@ namespace ZenCare.Services.Services
                 throw new NotFoundException(nameof(Database.Purchase), id);
             }
 
+            var previousStatus = entity.Status;
+
             ValidateGenericPurchaseUpdate(entity, request);
             PreservePaymentEvidence(entity, request);
             ValidatePurchaseRequest(request.PurchaseNumber, request.TotalAmount, request.Status, request.PaymentStatus);
             ValidatePurchaseStatusTransition(entity.Status, request.Status);
 
-            return await base.UpdateAsync(id, request);
+            var result = await base.UpdateAsync(id, request);
+
+            if (previousStatus != entity.Status && IsClientRelevantFulfillmentStatus(entity.Status))
+            {
+                await PublishPurchaseStatusChangedAsync(entity);
+            }
+
+            return result;
         }
 
         public async Task<PagedResult<PurchaseResponse>> GetMyAsync(int userId, PurchaseSearchObject? search)
         {
             search ??= new PurchaseSearchObject();
             search.UserId = userId;
+
+            if (string.IsNullOrWhiteSpace(search.SortBy))
+            {
+                search.SortBy = "CreatedAt descending, Id descending";
+            }
 
             return await GetAllAsync(search);
         }
@@ -351,6 +368,26 @@ namespace ZenCare.Services.Services
             {
                 _logger.LogWarning(ex, "Purchase {PurchaseId} was created, but the purchase event could not be published.", purchase.Id);
             }
+        }
+
+        private Task PublishPurchaseStatusChangedAsync(Database.Purchase purchase)
+        {
+            return _notificationEventPublisher.PublishAsync(new NotificationEventMessage
+            {
+                UserId = purchase.UserId,
+                EventKey = $"purchase-status:{purchase.Id}:{(int)purchase.Status}",
+                Title = "Purchase status updated",
+                Message = $"Purchase {purchase.PurchaseNumber} status changed to {purchase.Status}.",
+                OccurredAt = purchase.UpdatedAt ?? DateTime.UtcNow
+            });
+        }
+
+        private static bool IsClientRelevantFulfillmentStatus(PurchaseStatus status)
+        {
+            return status is PurchaseStatus.Processing
+                or PurchaseStatus.ReadyForPickup
+                or PurchaseStatus.Shipped
+                or PurchaseStatus.Completed;
         }
 
         private async Task CancelStripePaymentIntentIfNeededAsync(Database.Purchase purchase, Database.Payment? payment)

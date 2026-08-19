@@ -15,6 +15,7 @@ import 'services/appointment_service.dart';
 import 'services/cart_service.dart';
 import 'services/auth_service.dart';
 import 'services/payment_service.dart';
+import 'services/notification_service.dart';
 import 'services/product_service.dart';
 import 'services/purchase_service.dart';
 import 'services/recommendation_service.dart';
@@ -58,6 +59,9 @@ class ZenCareApp extends StatelessWidget {
         ),
         ProxyProvider<ApiService, PaymentService>(
           update: (_, apiService, __) => PaymentService(apiService),
+        ),
+        ProxyProvider<ApiService, NotificationService>(
+          update: (_, apiService, __) => NotificationService(apiService),
         ),
         ProxyProvider<ApiService, ReviewService>(
           update: (_, apiService, __) => ReviewService(apiService),

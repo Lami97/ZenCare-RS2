@@ -24,23 +24,70 @@ public class Worker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        try
-        {
-            await _rabbitMqService.InitializeAsync(stoppingToken);
-            _logger.LogInformation("ZenCare Worker started. RabbitMQ infrastructure initialization completed.");
-            await _rabbitMqService.RegisterConsumerAsync(RabbitMqService.PurchaseQueueName, ProcessPurchaseCreatedMessageAsync, stoppingToken);
-            _logger.LogInformation("ZenCare Worker is consuming queue {QueueName}.", RabbitMqService.PurchaseQueueName);
+        var retryDelay = TimeSpan.FromSeconds(1);
 
-            await Task.Delay(Timeout.InfiniteTimeSpan, stoppingToken);
-        }
-        catch (OperationCanceledException)
+        while (!stoppingToken.IsCancellationRequested)
         {
-            _logger.LogInformation("ZenCare Worker is stopping.");
+            try
+            {
+                await _rabbitMqService.InitializeAsync(stoppingToken);
+
+                if (!_rabbitMqService.IsConnected)
+                {
+                    throw new InvalidOperationException("RabbitMQ connection is unavailable.");
+                }
+
+                await _rabbitMqService.RegisterConsumerAsync(
+                    RabbitMqService.PurchaseQueueName,
+                    ProcessPurchaseCreatedMessageAsync,
+                    stoppingToken);
+                await _rabbitMqService.RegisterConsumerAsync(
+                    RabbitMqService.NotificationQueueName,
+                    ProcessNotificationEventMessageAsync,
+                    stoppingToken);
+
+                _logger.LogInformation(
+                    "ZenCare Worker is consuming queues {PurchaseQueueName} and {NotificationQueueName}.",
+                    RabbitMqService.PurchaseQueueName,
+                    RabbitMqService.NotificationQueueName);
+
+                retryDelay = TimeSpan.FromSeconds(1);
+
+                while (_rabbitMqService.IsConnected && !stoppingToken.IsCancellationRequested)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+                }
+
+                if (!stoppingToken.IsCancellationRequested)
+                {
+                    _logger.LogWarning("RabbitMQ connection was lost. Worker will reconnect.");
+                }
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "RabbitMQ consumers are unavailable. Retrying in {DelaySeconds} seconds.",
+                    retryDelay.TotalSeconds);
+            }
+
+            try
+            {
+                await Task.Delay(retryDelay, stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
+
+            retryDelay = TimeSpan.FromSeconds(Math.Min(retryDelay.TotalSeconds * 2, 8));
         }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "ZenCare Worker encountered a RabbitMQ infrastructure error and will continue without processing messages.");
-        }
+
+        _logger.LogInformation("ZenCare Worker is stopping.");
     }
 
     private async Task ProcessPurchaseCreatedMessageAsync(string message, CancellationToken cancellationToken)
@@ -95,12 +142,69 @@ public class Worker : BackgroundService
             Title = "Purchase created",
             Message = notificationMessage,
             NotificationType = "Purchase",
-            Status = NotificationStatus.Pending,
-            CreatedAt = DateTime.UtcNow
+            Status = NotificationStatus.Sent,
+            SentAt = DateTime.UtcNow,
+            CreatedAt = purchaseCreated.CreatedAt
         });
 
         await dbContext.SaveChangesAsync(cancellationToken);
         _logger.LogInformation("Notification created for purchase event {PurchaseId}.", purchaseCreated.PurchaseId);
+    }
+
+    private async Task ProcessNotificationEventMessageAsync(string message, CancellationToken cancellationToken)
+    {
+        var notificationEvent = JsonSerializer.Deserialize<NotificationEventMessage>(message);
+
+        if (notificationEvent == null)
+        {
+            throw new InvalidDataException("Notification event could not be deserialized.");
+        }
+
+        ValidateNotificationEventMessage(notificationEvent);
+
+        using var scope = _serviceScopeFactory.CreateScope();
+        var dbContext = scope.ServiceProvider.GetService<ZenCareDbContext>();
+
+        if (dbContext == null)
+        {
+            throw new InvalidOperationException("Worker database configuration is missing.");
+        }
+
+        var notificationExists = await dbContext.Notifications.AnyAsync(
+            n => n.UserId == notificationEvent.UserId &&
+                n.NotificationType == notificationEvent.EventKey,
+            cancellationToken);
+
+        if (notificationExists)
+        {
+            _logger.LogInformation("Notification event {EventKey} was already processed. Skipping duplicate.", notificationEvent.EventKey);
+            return;
+        }
+
+        var userExists = await dbContext.Users.AnyAsync(
+            u => u.Id == notificationEvent.UserId,
+            cancellationToken);
+
+        if (!userExists)
+        {
+            throw new InvalidDataException("Notification event references a user that does not exist.");
+        }
+
+        var sentAt = DateTime.UtcNow;
+
+        dbContext.Notifications.Add(new Notification
+        {
+            UserId = notificationEvent.UserId,
+            Title = notificationEvent.Title,
+            Message = notificationEvent.Message,
+            NotificationType = notificationEvent.EventKey,
+            Status = NotificationStatus.Sent,
+            SentAt = sentAt,
+            CreatedAt = notificationEvent.OccurredAt
+        });
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation("Notification event {EventKey} was persisted.", notificationEvent.EventKey);
     }
 
     private static void ValidatePurchaseCreatedMessage(PurchaseCreatedMessage message)
@@ -123,6 +227,34 @@ public class Worker : BackgroundService
         if (message.TotalAmount <= 0)
         {
             throw new InvalidDataException("TotalAmount must be greater than zero.");
+        }
+    }
+
+    private static void ValidateNotificationEventMessage(NotificationEventMessage message)
+    {
+        if (message.UserId <= 0)
+        {
+            throw new InvalidDataException("UserId is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(message.EventKey) || message.EventKey.Length > 50)
+        {
+            throw new InvalidDataException("EventKey is required and cannot exceed 50 characters.");
+        }
+
+        if (string.IsNullOrWhiteSpace(message.Title) || message.Title.Length > 150)
+        {
+            throw new InvalidDataException("Notification title is required and cannot exceed 150 characters.");
+        }
+
+        if (string.IsNullOrWhiteSpace(message.Message) || message.Message.Length > 1000)
+        {
+            throw new InvalidDataException("Notification message is required and cannot exceed 1000 characters.");
+        }
+
+        if (message.OccurredAt == default)
+        {
+            throw new InvalidDataException("OccurredAt is required.");
         }
     }
 }

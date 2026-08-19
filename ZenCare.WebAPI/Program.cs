@@ -42,6 +42,7 @@ builder.Services.AddScoped<IPurchaseItemService, PurchaseItemService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<ICartItemService, CartItemService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<INotificationEventPublisher, NotificationEventPublisher>();
 builder.Services.AddScoped<IRecommendationLogService, RecommendationLogService>();
 builder.Services.AddScoped<IRecommendationService, RecommendationService>();
 builder.Services.AddScoped<IBusinessReportService, BusinessReportService>();

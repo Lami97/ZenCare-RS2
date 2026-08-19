@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Stripe;
 using ZenCare.Model.Enums;
 using ZenCare.Model.Exceptions;
+using ZenCare.Model.Messages;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
 using ZenCare.Model.SearchObjects;
@@ -14,10 +15,16 @@ namespace ZenCare.Services.Services
     public class PaymentService : BaseCRUDService<PaymentResponse, Database.Payment, PaymentInsertRequest, PaymentUpdateRequest, PaymentSearchObject>, IPaymentService
     {
         private readonly IConfiguration _configuration;
+        private readonly INotificationEventPublisher _notificationEventPublisher;
 
-        public PaymentService(ZenCareDbContext dbContext, IMapper mapper, IConfiguration configuration) : base(dbContext, mapper)
+        public PaymentService(
+            ZenCareDbContext dbContext,
+            IMapper mapper,
+            IConfiguration configuration,
+            INotificationEventPublisher notificationEventPublisher) : base(dbContext, mapper)
         {
             _configuration = configuration;
+            _notificationEventPublisher = notificationEventPublisher;
         }
 
         public override Task<PaymentResponse> InsertAsync(PaymentInsertRequest request)
@@ -252,7 +259,14 @@ namespace ZenCare.Services.Services
             await DbContext.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            return CreateConfirmResponse(purchaseEntity, payment);
+            var response = CreateConfirmResponse(purchaseEntity, payment);
+
+            if (paymentIntent.Status == "succeeded")
+            {
+                await PublishPaymentSucceededAsync(purchaseEntity, payment);
+            }
+
+            return response;
         }
 
         public async Task<PaymentRefundResponse> RefundPaymentAsync(int purchaseId, int userId)
@@ -304,7 +318,9 @@ namespace ZenCare.Services.Services
             {
                 if (localRefundState == LocalRefundState.Refunded)
                 {
-                    return CreateRefundResponse(purchaseEntity, payment, payment.UpdatedAt ?? purchaseEntity.UpdatedAt);
+                    var refundedAt = payment.UpdatedAt ?? purchaseEntity.UpdatedAt ?? DateTime.UtcNow;
+                    await PublishRefundCompletedAsync(purchaseEntity, payment, refundedAt);
+                    return CreateRefundResponse(purchaseEntity, payment, refundedAt);
                 }
 
                 return await PersistRefundedStateAsync(purchaseEntity, payment);
@@ -584,6 +600,7 @@ namespace ZenCare.Services.Services
 
             ValidateAlreadySuccessfulPaymentIntent(purchase, payment!, paymentIntent, expectedCurrency);
 
+            await PublishPaymentSucceededAsync(purchase, payment!);
             return CreateConfirmResponse(purchase, payment!);
         }
 
@@ -853,7 +870,37 @@ namespace ZenCare.Services.Services
             await DbContext.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            return CreateRefundResponse(purchase, payment, refundedAt);
+            var response = CreateRefundResponse(purchase, payment, refundedAt);
+            await PublishRefundCompletedAsync(purchase, payment, refundedAt);
+
+            return response;
+        }
+
+        private Task PublishPaymentSucceededAsync(Database.Purchase purchase, Database.Payment payment)
+        {
+            return _notificationEventPublisher.PublishAsync(new NotificationEventMessage
+            {
+                UserId = purchase.UserId,
+                EventKey = $"payment-succeeded:{payment.Id}",
+                Title = "Payment completed",
+                Message = $"Payment for purchase {purchase.PurchaseNumber} was completed successfully.",
+                OccurredAt = payment.PaidAt ?? DateTime.UtcNow
+            });
+        }
+
+        private Task PublishRefundCompletedAsync(
+            Database.Purchase purchase,
+            Database.Payment payment,
+            DateTime refundedAt)
+        {
+            return _notificationEventPublisher.PublishAsync(new NotificationEventMessage
+            {
+                UserId = purchase.UserId,
+                EventKey = $"payment-refunded:{payment.Id}",
+                Title = "Refund completed",
+                Message = $"Refund for purchase {purchase.PurchaseNumber} was completed successfully.",
+                OccurredAt = refundedAt
+            });
         }
 
         private static PaymentRefundResponse CreateRefundResponse(
