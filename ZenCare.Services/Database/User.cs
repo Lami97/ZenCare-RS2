@@ -46,4 +46,6 @@ public class User
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 
     public ICollection<ProductView> ProductViews { get; set; } = new List<ProductView>();
+
+    public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
 }

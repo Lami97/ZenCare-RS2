@@ -22,6 +22,7 @@ public class ZenCareDbContext : DbContext
     public DbSet<FAQCategory> FAQCategories { get; set; }
     public DbSet<Notification> Notifications { get; set; }
     public DbSet<Payment> Payments { get; set; }
+    public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
     public DbSet<Product> Products { get; set; }
     public DbSet<ProductCategory> ProductCategories { get; set; }
     public DbSet<ProductType> ProductTypes { get; set; }
@@ -61,6 +62,10 @@ public class ZenCareDbContext : DbContext
 
         modelBuilder.Entity<RevokedToken>()
             .HasIndex(rt => rt.Jti)
+            .IsUnique();
+
+        modelBuilder.Entity<PasswordResetToken>()
+            .HasIndex(prt => prt.TokenHash)
             .IsUnique();
 
         modelBuilder.Entity<EmployeeService>()
@@ -179,6 +184,12 @@ public class ZenCareDbContext : DbContext
             .HasOne(rt => rt.User)
             .WithMany()
             .HasForeignKey(rt => rt.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PasswordResetToken>()
+            .HasOne(prt => prt.User)
+            .WithMany(u => u.PasswordResetTokens)
+            .HasForeignKey(prt => prt.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Notification>()

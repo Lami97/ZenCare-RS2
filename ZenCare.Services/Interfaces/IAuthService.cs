@@ -7,6 +7,8 @@ namespace ZenCare.Services.Interfaces
     {
         Task<LoginResponse?> LoginAsync(LoginRequest request);
         Task<RegisterResponse> RegisterAsync(RegisterRequest request);
+        Task<ForgotPasswordResponse> ForgotPasswordAsync(ForgotPasswordRequest request);
+        Task<ResetPasswordResponse> ResetPasswordAsync(ResetPasswordRequest request);
         Task<LogoutResponse> LogoutAsync(int userId, string jti, DateTime expiresAt);
     }
 }

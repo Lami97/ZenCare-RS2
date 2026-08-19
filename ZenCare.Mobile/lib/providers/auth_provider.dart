@@ -3,11 +3,13 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/forgot_password_request.dart';
 import '../models/login_request.dart';
 import '../models/login_response.dart';
+import '../models/change_password_request.dart';
 import '../models/register_request.dart';
 import '../models/register_response.dart';
-import '../models/change_password_request.dart';
+import '../models/reset_password_request.dart';
 import '../models/update_profile_request.dart';
 import '../models/user.dart';
 import '../models/user_profile_response.dart';
@@ -26,12 +28,14 @@ class AuthProvider extends ChangeNotifier {
   bool _isInitializing = true;
   bool _isLoading = false;
   bool _isRegistering = false;
+  bool _isResettingPassword = false;
   String? _token;
   User? _user;
 
   bool get isInitializing => _isInitializing;
   bool get isLoading => _isLoading;
   bool get isRegistering => _isRegistering;
+  bool get isResettingPassword => _isResettingPassword;
   bool get isAuthenticated => _token != null && _user != null;
   User? get user => _user;
   String? get token => _token;
@@ -67,6 +71,28 @@ class AuthProvider extends ChangeNotifier {
       return await _authService!.register(request);
     } finally {
       _setRegistering(false);
+    }
+  }
+
+  Future<String> forgotPassword(String email) async {
+    _setResettingPassword(true);
+
+    try {
+      return await _authService!.forgotPassword(
+        ForgotPasswordRequest(email: email),
+      );
+    } finally {
+      _setResettingPassword(false);
+    }
+  }
+
+  Future<String> resetPassword(ResetPasswordRequest request) async {
+    _setResettingPassword(true);
+
+    try {
+      return await _authService!.resetPassword(request);
+    } finally {
+      _setResettingPassword(false);
     }
   }
 
@@ -211,6 +237,11 @@ class AuthProvider extends ChangeNotifier {
 
   void _setRegistering(bool value) {
     _isRegistering = value;
+    notifyListeners();
+  }
+
+  void _setResettingPassword(bool value) {
+    _isResettingPassword = value;
     notifyListeners();
   }
 }

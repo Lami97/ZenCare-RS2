@@ -94,6 +94,14 @@ Docker cita JWT vrijednosti iz `.env`, zato `JWT_SECRET_KEY` obavezno zamijeniti
 | `JWT_AUDIENCE` | JWT audience | Required |
 | `JWT_SECRET_KEY` | JWT signing key | Required |
 | `JWT_DURATION_IN_MINUTES` | Trajanje JWT tokena | Optional |
+| `PASSWORD_RESET_EXPIRY_MINUTES` | Trajanje jednokratnog reset tokena | Optional, default 15 |
+| `SMTP_HOST` | SMTP server za slanje reset tokena | Required za reset lozinke |
+| `SMTP_PORT` | SMTP port | Optional, default 587 |
+| `SMTP_USERNAME` | SMTP korisnicko ime | Required ako server zahtijeva autentifikaciju |
+| `SMTP_PASSWORD` | SMTP lozinka | Required ako server zahtijeva autentifikaciju |
+| `SMTP_USE_SSL` | Ukljucuje SSL/TLS za SMTP | Optional, default true |
+| `SMTP_FROM_ADDRESS` | Adresa posiljaoca reset poruke | Required za reset lozinke |
+| `SMTP_FROM_NAME` | Naziv posiljaoca | Optional, default ZenCare |
 | `SWAGGER_ENABLED` | Ukljucuje Swagger u Docker Production okruzenju | Optional |
 | `BOOTSTRAP_ADMIN_ENABLED` | Ukljucuje kreiranje prvog Admin korisnika | Optional |
 | `BOOTSTRAP_ADMIN_FIRST_NAME` | Ime bootstrap Admin korisnika | Required ako je bootstrap ukljucen |

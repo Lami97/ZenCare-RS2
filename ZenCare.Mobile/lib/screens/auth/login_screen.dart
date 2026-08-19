@@ -5,6 +5,7 @@ import '../../providers/auth_provider.dart';
 import '../../utils/api_exception.dart';
 import '../../widgets/error_dialog.dart';
 import '../../widgets/loading_button.dart';
+import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -122,7 +123,23 @@ class _LoginScreenState extends State<LoginScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 24),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: isLoading
+                            ? null
+                            : () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) =>
+                                        const ForgotPasswordScreen(),
+                                  ),
+                                );
+                              },
+                        child: const Text('Forgot password?'),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     LoadingButton(
                       isLoading: isLoading,
                       onPressed: _submit,

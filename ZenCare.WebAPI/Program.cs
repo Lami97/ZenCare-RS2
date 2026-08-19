@@ -48,6 +48,7 @@ builder.Services.AddScoped<IRecommendationService, RecommendationService>();
 builder.Services.AddScoped<IBusinessReportService, BusinessReportService>();
 builder.Services.AddScoped<ISupplierService, SupplierService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IPasswordResetEmailService, SmtpPasswordResetEmailService>();
 builder.Services.AddScoped<IBootstrapAdminService, BootstrapAdminService>();
 builder.Services.AddSingleton<IRabbitMqService, RabbitMqService>();
 
