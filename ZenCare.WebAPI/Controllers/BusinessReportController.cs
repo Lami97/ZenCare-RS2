@@ -33,6 +33,13 @@ public class BusinessReportController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("analytics")]
+    public async Task<ActionResult<BusinessAnalyticsResponse>> GetAnalytics([FromQuery] BusinessReportSearchObject? search)
+    {
+        var result = await _businessReportService.GetAnalyticsAsync(search);
+        return Ok(result);
+    }
+
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

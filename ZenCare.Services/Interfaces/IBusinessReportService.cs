@@ -6,5 +6,6 @@ namespace ZenCare.Services.Interfaces
 {
     public interface IBusinessReportService : ICRUDService<BusinessReportResponse, BusinessReportInsertRequest, BusinessReportUpdateRequest, BusinessReportSearchObject>
     {
+        Task<BusinessAnalyticsResponse> GetAnalyticsAsync(BusinessReportSearchObject? search = null);
     }
 }

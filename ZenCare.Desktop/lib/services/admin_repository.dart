@@ -1,4 +1,5 @@
 import '../models/admin_models.dart';
+import '../models/business_analytics.dart';
 import '../models/paged_result.dart';
 import 'api_service.dart';
 
@@ -43,6 +44,28 @@ class AdminRepository {
 
   Future<void> delete(AdminModule module, int id) async {
     await _apiService.delete('${module.endpoint}/$id');
+  }
+
+  Future<BusinessAnalytics> getBusinessAnalytics({
+    DateTime? dateFrom,
+    DateTime? dateTo,
+  }) async {
+    final json = await _apiService.getMap(
+      'BusinessReport/analytics',
+      queryParameters: {
+        'DateFrom': _dateQueryValue(dateFrom),
+        'DateTo': _dateQueryValue(dateTo),
+      },
+    );
+    return BusinessAnalytics.fromJson(json);
+  }
+
+  String? _dateQueryValue(DateTime? value) {
+    if (value == null) return null;
+    final year = value.year.toString().padLeft(4, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    final day = value.day.toString().padLeft(2, '0');
+    return '$year-$month-$day';
   }
 
   Future<List<LookupOption>> lookup(LookupConfig config) async {
