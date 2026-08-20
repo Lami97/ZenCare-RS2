@@ -50,6 +50,7 @@ builder.Services.AddScoped<ISupplierService, SupplierService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPasswordResetEmailService, SmtpPasswordResetEmailService>();
 builder.Services.AddScoped<IBootstrapAdminService, BootstrapAdminService>();
+builder.Services.AddScoped<IEvaluatorDataSeeder, EvaluatorDataSeeder>();
 builder.Services.AddSingleton<IRabbitMqService, RabbitMqService>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -125,6 +126,7 @@ var app = builder.Build();
 
 await ApplyDatabaseMigrationsAsync(app);
 await BootstrapAdminAsync(app);
+await SeedEvaluatorDataAsync(app);
 
 // Configure the HTTP request pipeline.
 var swaggerEnabled = app.Environment.IsDevelopment()
@@ -152,6 +154,13 @@ static async Task BootstrapAdminAsync(WebApplication app)
     using var scope = app.Services.CreateScope();
     var bootstrapAdminService = scope.ServiceProvider.GetRequiredService<IBootstrapAdminService>();
     await bootstrapAdminService.BootstrapAsync();
+}
+
+static async Task SeedEvaluatorDataAsync(WebApplication app)
+{
+    using var scope = app.Services.CreateScope();
+    var evaluatorDataSeeder = scope.ServiceProvider.GetRequiredService<IEvaluatorDataSeeder>();
+    await evaluatorDataSeeder.SeedAsync();
 }
 
 static async Task ApplyDatabaseMigrationsAsync(WebApplication app)
