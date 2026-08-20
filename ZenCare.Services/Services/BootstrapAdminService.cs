@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using ZenCare.Model.Constants;
 using ZenCare.Model.Enums;
 using ZenCare.Services.Database;
 using ZenCare.Services.Interfaces;
@@ -39,7 +40,7 @@ public class BootstrapAdminService : IBootstrapAdminService
         }
 
         var adminRole = await _dbContext.Roles
-            .FirstOrDefaultAsync(role => role.Name == "Admin" || role.RoleType == UserRoleType.Admin, cancellationToken);
+            .FirstOrDefaultAsync(role => role.Name == AppRoles.Admin || role.RoleType == UserRoleType.Admin, cancellationToken);
 
         if (adminRole == null)
         {

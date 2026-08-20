@@ -1,5 +1,6 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using ZenCare.Model.Constants;
 using ZenCare.Model.Enums;
 using ZenCare.Model.Exceptions;
 using ZenCare.Model.Requests;
@@ -257,7 +258,7 @@ namespace ZenCare.Services.Services
             var isValidClient = await DbContext.Users
                 .AnyAsync(u => u.Id == userId
                     && u.ClientProfile != null
-                    && u.UserRoles.Any(ur => ur.Role.Name == "Client" || ur.Role.RoleType == UserRoleType.Client));
+                    && u.UserRoles.Any(ur => ur.Role.Name == AppRoles.Client || ur.Role.RoleType == UserRoleType.Client));
 
             if (!isValidClient)
             {

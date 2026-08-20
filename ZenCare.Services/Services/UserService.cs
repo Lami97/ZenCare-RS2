@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
+using ZenCare.Model.Constants;
 using ZenCare.Model.Enums;
 using ZenCare.Model.Exceptions;
 using ZenCare.Model.Requests;
@@ -82,7 +83,7 @@ namespace ZenCare.Services.Services
             }
 
             var clientRole = await DbContext.Roles
-                .FirstOrDefaultAsync(role => role.Name == "Client" || role.RoleType == UserRoleType.Client);
+                .FirstOrDefaultAsync(role => role.Name == AppRoles.Client || role.RoleType == UserRoleType.Client);
 
             if (clientRole == null)
             {
@@ -274,10 +275,10 @@ namespace ZenCare.Services.Services
                     query = search.IsClient.Value
                         ? query.Where(u =>
                             u.ClientProfile != null &&
-                            u.UserRoles.Any(ur => ur.Role.Name == "Client" || ur.Role.RoleType == UserRoleType.Client))
+                            u.UserRoles.Any(ur => ur.Role.Name == AppRoles.Client || ur.Role.RoleType == UserRoleType.Client))
                         : query.Where(u =>
                             u.ClientProfile == null ||
-                            !u.UserRoles.Any(ur => ur.Role.Name == "Client" || ur.Role.RoleType == UserRoleType.Client));
+                            !u.UserRoles.Any(ur => ur.Role.Name == AppRoles.Client || ur.Role.RoleType == UserRoleType.Client));
                 }
             }
 

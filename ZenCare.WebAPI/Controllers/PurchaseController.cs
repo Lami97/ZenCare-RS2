@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 using ZenCare.Model.Exceptions;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
@@ -14,17 +13,21 @@ namespace ZenCare.WebAPI.Controllers;
 public class PurchaseController : ControllerBase
 {
     private readonly IPurchaseService _purchaseService;
+    private readonly ICurrentUserAccessor _currentUserAccessor;
 
-    public PurchaseController(IPurchaseService purchaseService)
+    public PurchaseController(
+        IPurchaseService purchaseService,
+        ICurrentUserAccessor currentUserAccessor)
     {
         _purchaseService = purchaseService;
+        _currentUserAccessor = currentUserAccessor;
     }
 
     [HttpGet("My")]
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = AppRoles.Client)]
     public async Task<ActionResult<PagedResult<PurchaseResponse>>> GetMy([FromQuery] PurchaseSearchObject? search)
     {
-        var userId = GetCurrentUserId();
+        var userId = _currentUserAccessor.GetUserId();
 
         if (userId == null)
         {
@@ -36,10 +39,10 @@ public class PurchaseController : ControllerBase
     }
 
     [HttpGet("My/{id}")]
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = AppRoles.Client)]
     public async Task<ActionResult<PurchaseResponse>> GetMyById(int id)
     {
-        var userId = GetCurrentUserId();
+        var userId = _currentUserAccessor.GetUserId();
 
         if (userId == null)
         {
@@ -57,7 +60,7 @@ public class PurchaseController : ControllerBase
         }
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpGet]
     public async Task<ActionResult<PagedResult<PurchaseResponse>>> GetAll([FromQuery] PurchaseSearchObject? search)
     {
@@ -65,7 +68,7 @@ public class PurchaseController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpGet("{id}")]
     public async Task<ActionResult<PurchaseResponse>> GetById(int id)
     {
@@ -73,7 +76,7 @@ public class PurchaseController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpGet("{id}/history")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -83,7 +86,7 @@ public class PurchaseController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -101,12 +104,12 @@ public class PurchaseController : ControllerBase
     }
 
     [HttpPost("My")]
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = AppRoles.Client)]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<PurchaseResponse>> CreateMy([FromBody] PurchaseInsertRequest request)
     {
-        var userId = GetCurrentUserId();
+        var userId = _currentUserAccessor.GetUserId();
 
         if (userId == null)
         {
@@ -125,12 +128,12 @@ public class PurchaseController : ControllerBase
     }
 
     [HttpPost("Checkout")]
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = AppRoles.Client)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<PurchaseResponse>> Checkout([FromBody] PurchaseCheckoutRequest request)
     {
-        var userId = GetCurrentUserId();
+        var userId = _currentUserAccessor.GetUserId();
 
         if (userId == null)
         {
@@ -149,14 +152,14 @@ public class PurchaseController : ControllerBase
     }
 
     [HttpPost("My/cancel/{id}")]
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = AppRoles.Client)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PurchaseResponse>> CancelMy(int id)
     {
-        var userId = GetCurrentUserId();
+        var userId = _currentUserAccessor.GetUserId();
 
         if (userId == null)
         {
@@ -178,14 +181,14 @@ public class PurchaseController : ControllerBase
         }
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PurchaseResponse>> Update(int id, [FromBody] PurchaseUpdateRequest request)
     {
-        var actorUserId = GetCurrentUserId();
+        var actorUserId = _currentUserAccessor.GetUserId();
 
         if (actorUserId == null)
         {
@@ -204,13 +207,13 @@ public class PurchaseController : ControllerBase
     }
 
     [HttpPut("My/{id}")]
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = AppRoles.Client)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PurchaseResponse>> UpdateMy(int id, [FromBody] PurchaseUpdateRequest request)
     {
-        var userId = GetCurrentUserId();
+        var userId = _currentUserAccessor.GetUserId();
 
         if (userId == null)
         {
@@ -232,7 +235,7 @@ public class PurchaseController : ControllerBase
         }
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -243,12 +246,12 @@ public class PurchaseController : ControllerBase
     }
 
     [HttpDelete("My/{id}")]
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = AppRoles.Client)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteMy(int id)
     {
-        var userId = GetCurrentUserId();
+        var userId = _currentUserAccessor.GetUserId();
 
         if (userId == null)
         {
@@ -266,10 +269,4 @@ public class PurchaseController : ControllerBase
         }
     }
 
-    private int? GetCurrentUserId()
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-        return int.TryParse(userIdClaim, out var userId) ? userId : null;
-    }
 }

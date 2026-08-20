@@ -8,7 +8,7 @@ using ZenCare.Services.Interfaces;
 namespace ZenCare.WebAPI.Controllers;
 
 [ApiController]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = AppRoles.Admin)]
 [Route("[controller]")]
 public class UserController : ControllerBase
 {

@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 using ZenCare.Model.Responses;
 using ZenCare.Services.Interfaces;
 
@@ -11,17 +10,21 @@ namespace ZenCare.WebAPI.Controllers;
 public class RecommendationController : ControllerBase
 {
     private readonly IRecommendationService _recommendationService;
+    private readonly ICurrentUserAccessor _currentUserAccessor;
 
-    public RecommendationController(IRecommendationService recommendationService)
+    public RecommendationController(
+        IRecommendationService recommendationService,
+        ICurrentUserAccessor currentUserAccessor)
     {
         _recommendationService = recommendationService;
+        _currentUserAccessor = currentUserAccessor;
     }
 
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = AppRoles.Client)]
     [HttpGet("My/products")]
     public async Task<ActionResult<List<RecommendationItemResponse>>> GetMyRecommendedProducts([FromQuery] int take = 5)
     {
-        var userId = GetCurrentUserId();
+        var userId = _currentUserAccessor.GetUserId();
 
         if (userId == null)
         {
@@ -32,11 +35,11 @@ public class RecommendationController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = AppRoles.Client)]
     [HttpGet("My/services")]
     public async Task<ActionResult<List<RecommendationItemResponse>>> GetMyRecommendedServices([FromQuery] int take = 5)
     {
-        var userId = GetCurrentUserId();
+        var userId = _currentUserAccessor.GetUserId();
 
         if (userId == null)
         {
@@ -47,7 +50,7 @@ public class RecommendationController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpGet("Products/{userId}")]
     public async Task<ActionResult<List<RecommendationItemResponse>>> GetRecommendedProducts(int userId, [FromQuery] int take = 5)
     {
@@ -55,7 +58,7 @@ public class RecommendationController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpGet("Services/{userId}")]
     public async Task<ActionResult<List<RecommendationItemResponse>>> GetRecommendedServices(int userId, [FromQuery] int take = 5)
     {
@@ -63,9 +66,4 @@ public class RecommendationController : ControllerBase
         return Ok(result);
     }
 
-    private int? GetCurrentUserId()
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return int.TryParse(userIdClaim, out var userId) ? userId : null;
-    }
 }

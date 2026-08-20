@@ -13,10 +13,14 @@ namespace ZenCare.WebAPI.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly ICurrentUserAccessor _currentUserAccessor;
 
-    public AuthController(IAuthService authService)
+    public AuthController(
+        IAuthService authService,
+        ICurrentUserAccessor currentUserAccessor)
     {
         _authService = authService;
+        _currentUserAccessor = currentUserAccessor;
     }
 
     [HttpPost("Login")]
@@ -65,7 +69,7 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<LogoutResponse>> Logout()
     {
-        var userId = GetCurrentUserId();
+        var userId = _currentUserAccessor.GetUserId();
         var jti = User.FindFirstValue(JwtRegisteredClaimNames.Jti);
         var expiresAt = GetTokenExpiration();
 
@@ -76,12 +80,6 @@ public class AuthController : ControllerBase
 
         var result = await _authService.LogoutAsync(userId.Value, jti, expiresAt.Value);
         return Ok(result);
-    }
-
-    private int? GetCurrentUserId()
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return int.TryParse(userIdClaim, out var userId) ? userId : null;
     }
 
     private DateTime? GetTokenExpiration()

@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
 using ZenCare.Model.SearchObjects;
@@ -13,17 +12,21 @@ namespace ZenCare.WebAPI.Controllers;
 public class PurchaseItemController : ControllerBase
 {
     private readonly IPurchaseItemService _purchaseItemService;
+    private readonly ICurrentUserAccessor _currentUserAccessor;
 
-    public PurchaseItemController(IPurchaseItemService purchaseItemService)
+    public PurchaseItemController(
+        IPurchaseItemService purchaseItemService,
+        ICurrentUserAccessor currentUserAccessor)
     {
         _purchaseItemService = purchaseItemService;
+        _currentUserAccessor = currentUserAccessor;
     }
 
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = AppRoles.Client)]
     [HttpGet("My")]
     public async Task<ActionResult<PagedResult<PurchaseItemResponse>>> GetMy([FromQuery] PurchaseItemSearchObject? search)
     {
-        var userId = GetCurrentUserId();
+        var userId = _currentUserAccessor.GetUserId();
 
         if (userId == null)
         {
@@ -34,11 +37,11 @@ public class PurchaseItemController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = AppRoles.Client)]
     [HttpGet("My/{id}")]
     public async Task<ActionResult<PurchaseItemResponse>> GetMyById(int id)
     {
-        var userId = GetCurrentUserId();
+        var userId = _currentUserAccessor.GetUserId();
 
         if (userId == null)
         {
@@ -49,7 +52,7 @@ public class PurchaseItemController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpGet]
     public async Task<ActionResult<PagedResult<PurchaseItemResponse>>> GetAll([FromQuery] PurchaseItemSearchObject? search)
     {
@@ -57,7 +60,7 @@ public class PurchaseItemController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpGet("{id}")]
     public async Task<ActionResult<PurchaseItemResponse>> GetById(int id)
     {
@@ -65,7 +68,7 @@ public class PurchaseItemController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -75,7 +78,7 @@ public class PurchaseItemController : ControllerBase
         return result;
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -86,7 +89,7 @@ public class PurchaseItemController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -96,9 +99,4 @@ public class PurchaseItemController : ControllerBase
         return NoContent();
     }
 
-    private int? GetCurrentUserId()
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return int.TryParse(userIdClaim, out var userId) ? userId : null;
-    }
 }

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using ZenCare.Model.Constants;
 using ZenCare.Model.Enums;
 using ZenCare.Services.Database;
 
@@ -335,9 +336,9 @@ public class ZenCareDbContext : DbContext
         var createdAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
         modelBuilder.Entity<Role>().HasData(
-            new Role { Id = 1, Name = "Admin", RoleType = UserRoleType.Admin, Description = "Administrator role", IsActive = true, CreatedAt = createdAt },
-            new Role { Id = 2, Name = "Employee", RoleType = UserRoleType.Employee, Description = "Employee role", IsActive = true, CreatedAt = createdAt },
-            new Role { Id = 3, Name = "Client", RoleType = UserRoleType.Client, Description = "Client role", IsActive = true, CreatedAt = createdAt }
+            new Role { Id = 1, Name = AppRoles.Admin, RoleType = UserRoleType.Admin, Description = "Administrator role", IsActive = true, CreatedAt = createdAt },
+            new Role { Id = 2, Name = AppRoles.Employee, RoleType = UserRoleType.Employee, Description = "Employee role", IsActive = true, CreatedAt = createdAt },
+            new Role { Id = 3, Name = AppRoles.Client, RoleType = UserRoleType.Client, Description = "Client role", IsActive = true, CreatedAt = createdAt }
         );
 
         modelBuilder.Entity<ServiceCategory>().HasData(

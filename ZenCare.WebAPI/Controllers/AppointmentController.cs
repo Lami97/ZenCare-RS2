@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 using ZenCare.Model.Exceptions;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
@@ -14,17 +13,21 @@ namespace ZenCare.WebAPI.Controllers;
 public class AppointmentController : ControllerBase
 {
     private readonly IAppointmentService _appointmentService;
+    private readonly ICurrentUserAccessor _currentUserAccessor;
 
-    public AppointmentController(IAppointmentService appointmentService)
+    public AppointmentController(
+        IAppointmentService appointmentService,
+        ICurrentUserAccessor currentUserAccessor)
     {
         _appointmentService = appointmentService;
+        _currentUserAccessor = currentUserAccessor;
     }
 
     [HttpGet("My")]
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = AppRoles.Client)]
     public async Task<ActionResult<PagedResult<AppointmentResponse>>> GetMy([FromQuery] AppointmentSearchObject? search)
     {
-        var userId = GetCurrentUserId();
+        var userId = _currentUserAccessor.GetUserId();
 
         if (userId == null)
         {
@@ -36,10 +39,10 @@ public class AppointmentController : ControllerBase
     }
 
     [HttpGet("My/{id}")]
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = AppRoles.Client)]
     public async Task<ActionResult<AppointmentResponse>> GetMyById(int id)
     {
-        var userId = GetCurrentUserId();
+        var userId = _currentUserAccessor.GetUserId();
 
         if (userId == null)
         {
@@ -58,7 +61,7 @@ public class AppointmentController : ControllerBase
     }
 
     [HttpGet("My/available-employees")]
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = AppRoles.Client)]
     public async Task<ActionResult<List<AppointmentEmployeeOptionResponse>>> GetAvailableEmployees(
         [FromQuery] int wellnessServiceId,
         [FromQuery] DateTime? appointmentDate,
@@ -84,7 +87,7 @@ public class AppointmentController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
-    [Authorize(Roles = "Employee,Admin")]
+    [Authorize(Roles = AppRoles.AdminOrEmployee)]
     [HttpGet]
     public async Task<ActionResult<PagedResult<AppointmentResponse>>> GetAll([FromQuery] AppointmentSearchObject? search)
     {
@@ -92,7 +95,7 @@ public class AppointmentController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "Employee,Admin")]
+    [Authorize(Roles = AppRoles.AdminOrEmployee)]
     [HttpGet("{id}")]
     public async Task<ActionResult<AppointmentResponse>> GetById(int id)
     {
@@ -100,7 +103,7 @@ public class AppointmentController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "Employee,Admin")]
+    [Authorize(Roles = AppRoles.AdminOrEmployee)]
     [HttpGet("{id}/history")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -111,12 +114,12 @@ public class AppointmentController : ControllerBase
     }
 
     [HttpPost("My")]
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = AppRoles.Client)]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<AppointmentResponse>> CreateMy([FromBody] AppointmentInsertRequest request)
     {
-        var userId = GetCurrentUserId();
+        var userId = _currentUserAccessor.GetUserId();
 
         if (userId == null)
         {
@@ -134,7 +137,7 @@ public class AppointmentController : ControllerBase
         }
     }
 
-    [Authorize(Roles = "Employee,Admin")]
+    [Authorize(Roles = AppRoles.AdminOrEmployee)]
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -152,13 +155,13 @@ public class AppointmentController : ControllerBase
     }
 
     [HttpPut("My/{id}")]
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = AppRoles.Client)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<AppointmentResponse>> UpdateMy(int id, [FromBody] AppointmentUpdateRequest request)
     {
-        var userId = GetCurrentUserId();
+        var userId = _currentUserAccessor.GetUserId();
 
         if (userId == null)
         {
@@ -181,14 +184,14 @@ public class AppointmentController : ControllerBase
     }
 
     [HttpPost("My/cancel/{id}")]
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = AppRoles.Client)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<AppointmentResponse>> CancelMy(int id, [FromBody] AppointmentCancelRequest request)
     {
-        var userId = GetCurrentUserId();
+        var userId = _currentUserAccessor.GetUserId();
 
         if (userId == null)
         {
@@ -210,14 +213,14 @@ public class AppointmentController : ControllerBase
         }
     }
 
-    [Authorize(Roles = "Employee,Admin")]
+    [Authorize(Roles = AppRoles.AdminOrEmployee)]
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<AppointmentResponse>> Update(int id, [FromBody] AppointmentUpdateRequest request)
     {
-        var actorUserId = GetCurrentUserId();
+        var actorUserId = _currentUserAccessor.GetUserId();
 
         if (actorUserId == null)
         {
@@ -235,7 +238,7 @@ public class AppointmentController : ControllerBase
         }
     }
 
-    [Authorize(Roles = "Employee,Admin")]
+    [Authorize(Roles = AppRoles.AdminOrEmployee)]
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -245,10 +248,4 @@ public class AppointmentController : ControllerBase
         return NoContent();
     }
 
-    private int? GetCurrentUserId()
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-        return int.TryParse(userIdClaim, out var userId) ? userId : null;
-    }
 }

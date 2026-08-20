@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
 using ZenCare.Services.Interfaces;
@@ -12,20 +11,24 @@ namespace ZenCare.WebAPI.Controllers;
 public class ProfileController : ControllerBase
 {
     private readonly IUserService _userService;
+    private readonly ICurrentUserAccessor _currentUserAccessor;
 
-    public ProfileController(IUserService userService)
+    public ProfileController(
+        IUserService userService,
+        ICurrentUserAccessor currentUserAccessor)
     {
         _userService = userService;
+        _currentUserAccessor = currentUserAccessor;
     }
 
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = AppRoles.Client)]
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<UserResponse>> GetMyProfile()
     {
-        var userId = GetCurrentUserId();
+        var userId = _currentUserAccessor.GetUserId();
 
         if (userId == null)
         {
@@ -36,7 +39,7 @@ public class ProfileController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = AppRoles.Client)]
     [HttpPut]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -44,7 +47,7 @@ public class ProfileController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<UserResponse>> UpdateMyProfile([FromBody] UpdateMyProfileRequest request)
     {
-        var userId = GetCurrentUserId();
+        var userId = _currentUserAccessor.GetUserId();
 
         if (userId == null)
         {
@@ -55,7 +58,7 @@ public class ProfileController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = AppRoles.Client)]
     [HttpPut("/User/My/password")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -63,7 +66,7 @@ public class ProfileController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ChangePasswordResponse>> ChangeMyPassword([FromBody] ChangePasswordRequest request)
     {
-        var userId = GetCurrentUserId();
+        var userId = _currentUserAccessor.GetUserId();
 
         if (userId == null)
         {
@@ -74,9 +77,4 @@ public class ProfileController : ControllerBase
         return Ok(result);
     }
 
-    private int? GetCurrentUserId()
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return int.TryParse(userIdClaim, out var userId) ? userId : null;
-    }
 }

@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 using ZenCare.Model.Exceptions;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
@@ -14,21 +13,25 @@ namespace ZenCare.WebAPI.Controllers;
 public class PaymentController : ControllerBase
 {
     private readonly IPaymentService _paymentService;
+    private readonly ICurrentUserAccessor _currentUserAccessor;
 
-    public PaymentController(IPaymentService paymentService)
+    public PaymentController(
+        IPaymentService paymentService,
+        ICurrentUserAccessor currentUserAccessor)
     {
         _paymentService = paymentService;
+        _currentUserAccessor = currentUserAccessor;
     }
 
     [HttpPost("My/create-intent/{purchaseId}")]
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = AppRoles.Client)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PaymentIntentResponse>> CreatePaymentIntent(int purchaseId)
     {
-        var userId = GetCurrentUserId();
+        var userId = _currentUserAccessor.GetUserId();
 
         if (userId == null)
         {
@@ -51,14 +54,14 @@ public class PaymentController : ControllerBase
     }
 
     [HttpPost("My/confirm/{purchaseId}")]
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = AppRoles.Client)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PaymentConfirmResponse>> ConfirmPayment(int purchaseId)
     {
-        var userId = GetCurrentUserId();
+        var userId = _currentUserAccessor.GetUserId();
 
         if (userId == null)
         {
@@ -81,14 +84,14 @@ public class PaymentController : ControllerBase
     }
 
     [HttpPost("My/refund/{purchaseId}")]
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = AppRoles.Client)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PaymentRefundResponse>> RefundPayment(int purchaseId)
     {
-        var userId = GetCurrentUserId();
+        var userId = _currentUserAccessor.GetUserId();
 
         if (userId == null)
         {
@@ -110,11 +113,11 @@ public class PaymentController : ControllerBase
         }
     }
 
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = AppRoles.Client)]
     [HttpGet("My")]
     public async Task<ActionResult<PagedResult<PaymentResponse>>> GetMy([FromQuery] PaymentSearchObject? search)
     {
-        var userId = GetCurrentUserId();
+        var userId = _currentUserAccessor.GetUserId();
 
         if (userId == null)
         {
@@ -125,11 +128,11 @@ public class PaymentController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "Client")]
+    [Authorize(Roles = AppRoles.Client)]
     [HttpGet("My/{id}")]
     public async Task<ActionResult<PaymentResponse>> GetMyById(int id)
     {
-        var userId = GetCurrentUserId();
+        var userId = _currentUserAccessor.GetUserId();
 
         if (userId == null)
         {
@@ -140,7 +143,7 @@ public class PaymentController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpGet]
     public async Task<ActionResult<PagedResult<PaymentResponse>>> GetAll([FromQuery] PaymentSearchObject? search)
     {
@@ -148,7 +151,7 @@ public class PaymentController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpGet("{id}")]
     public async Task<ActionResult<PaymentResponse>> GetById(int id)
     {
@@ -156,9 +159,4 @@ public class PaymentController : ControllerBase
         return Ok(result);
     }
 
-    private int? GetCurrentUserId()
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return int.TryParse(userIdClaim, out var userId) ? userId : null;
-    }
 }
