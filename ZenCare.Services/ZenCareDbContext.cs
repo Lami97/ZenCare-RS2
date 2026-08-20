@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ZenCare.Model.Constants;
 using ZenCare.Model.Enums;
 using ZenCare.Services.Database;
@@ -333,6 +334,8 @@ public class ZenCareDbContext : DbContext
             .HasForeignKey(f => f.FAQCategoryId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        ConfigureUtcTimestampKinds(modelBuilder);
+
         var createdAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
         modelBuilder.Entity<Role>().HasData(
@@ -379,5 +382,49 @@ public class ZenCareDbContext : DbContext
             new FAQCategory { Id = 4, Name = "Wellness usluge", IsActive = true, CreatedAt = createdAt },
             new FAQCategory { Id = 5, Name = "Korisnički račun", IsActive = true, CreatedAt = createdAt }
         );
+    }
+
+    private static void ConfigureUtcTimestampKinds(ModelBuilder modelBuilder)
+    {
+        var utcTimestampNames = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "ChangedAt",
+            "CreatedAt",
+            "ExpiresAt",
+            "LastLoginAt",
+            "LastViewedAt",
+            "PaidAt",
+            "RevokedAt",
+            "SentAt",
+            "UpdatedAt",
+            "UsedAt"
+        };
+
+        var dateTimeConverter = new ValueConverter<DateTime, DateTime>(
+            value => DateTime.SpecifyKind(value, DateTimeKind.Utc),
+            value => DateTime.SpecifyKind(value, DateTimeKind.Utc));
+        var nullableDateTimeConverter = new ValueConverter<DateTime?, DateTime?>(
+            value => value.HasValue
+                ? DateTime.SpecifyKind(value.Value, DateTimeKind.Utc)
+                : value,
+            value => value.HasValue
+                ? DateTime.SpecifyKind(value.Value, DateTimeKind.Utc)
+                : value);
+
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            foreach (var property in entityType.GetProperties()
+                .Where(property => utcTimestampNames.Contains(property.Name)))
+            {
+                if (property.ClrType == typeof(DateTime))
+                {
+                    property.SetValueConverter(dateTimeConverter);
+                }
+                else if (property.ClrType == typeof(DateTime?))
+                {
+                    property.SetValueConverter(nullableDateTimeConverter);
+                }
+            }
+        }
     }
 }

@@ -10,8 +10,14 @@ namespace ZenCare.Services.Services
 {
     public class EmployeeService : BaseCRUDService<EmployeeResponse, Database.Employee, EmployeeInsertRequest, EmployeeUpdateRequest, EmployeeSearchObject>, IEmployeeService
     {
-        public EmployeeService(ZenCareDbContext dbContext, IMapper mapper) : base(dbContext, mapper)
+        private readonly TimeZoneInfo _businessTimeZone;
+
+        public EmployeeService(
+            ZenCareDbContext dbContext,
+            IMapper mapper,
+            TimeZoneInfo businessTimeZone) : base(dbContext, mapper)
         {
+            _businessTimeZone = businessTimeZone;
         }
 
         public override Task<EmployeeResponse> InsertAsync(EmployeeInsertRequest request)
@@ -76,9 +82,11 @@ namespace ZenCare.Services.Services
             return Task.FromResult(query);
         }
 
-        private static void ValidateHireDate(DateTime? hireDate)
+        private void ValidateHireDate(DateTime? hireDate)
         {
-            if (hireDate.HasValue && hireDate.Value.Date > DateTime.UtcNow.Date)
+            var businessToday = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _businessTimeZone).Date;
+
+            if (hireDate.HasValue && hireDate.Value.Date > businessToday)
             {
                 throw new BusinessException("Hire date cannot be in the future.");
             }

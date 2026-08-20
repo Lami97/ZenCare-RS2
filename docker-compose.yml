@@ -65,6 +65,7 @@
       JwtToken__SecretKey: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY}
       JwtToken__DurationInMinutes: ${JWT_DURATION_IN_MINUTES:-60}
       Cors__AllowedOrigins__0: ${CORS_ALLOWED_ORIGIN:-http://localhost:5281}
+      BusinessTime__TimeZoneId: ${BUSINESS_TIME_ZONE_ID:-Europe/Sarajevo}
       PasswordReset__ExpiryMinutes: ${PASSWORD_RESET_EXPIRY_MINUTES:-15}
       Smtp__Host: ${SMTP_HOST:-}
       Smtp__Port: ${SMTP_PORT:-587}

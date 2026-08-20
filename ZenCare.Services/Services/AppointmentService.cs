@@ -13,13 +13,16 @@ namespace ZenCare.Services.Services
     public class AppointmentService : BaseCRUDService<AppointmentResponse, Database.Appointment, AppointmentInsertRequest, AppointmentUpdateRequest, AppointmentSearchObject>, IAppointmentService
     {
         private readonly INotificationEventPublisher _notificationEventPublisher;
+        private readonly TimeZoneInfo _businessTimeZone;
 
         public AppointmentService(
             ZenCareDbContext dbContext,
             IMapper mapper,
-            INotificationEventPublisher notificationEventPublisher) : base(dbContext, mapper)
+            INotificationEventPublisher notificationEventPublisher,
+            TimeZoneInfo businessTimeZone) : base(dbContext, mapper)
         {
             _notificationEventPublisher = notificationEventPublisher;
+            _businessTimeZone = businessTimeZone;
         }
 
         public override async Task<AppointmentResponse> InsertAsync(AppointmentInsertRequest request)
@@ -560,9 +563,9 @@ namespace ZenCare.Services.Services
             }
         }
 
-        private static void ValidateFutureAppointmentTime(DateTime appointmentDate, TimeSpan startTime)
+        private void ValidateFutureAppointmentTime(DateTime appointmentDate, TimeSpan startTime)
         {
-            var now = DateTime.Now;
+            var now = GetBusinessNow();
             var appointmentDay = appointmentDate.Date;
 
             if (appointmentDay < now.Date)
@@ -578,7 +581,7 @@ namespace ZenCare.Services.Services
             }
         }
 
-        private static void ValidateAppointmentCancellation(Database.Appointment appointment, string? cancellationReason)
+        private void ValidateAppointmentCancellation(Database.Appointment appointment, string? cancellationReason)
         {
             if (string.IsNullOrWhiteSpace(cancellationReason))
             {
@@ -600,7 +603,7 @@ namespace ZenCare.Services.Services
                 throw new BusinessException("Only future pending or confirmed appointments can be cancelled.");
             }
 
-            if (GetAppointmentStartDateTime(appointment.AppointmentDate, appointment.StartTime) <= DateTime.Now)
+            if (GetAppointmentStartDateTime(appointment.AppointmentDate, appointment.StartTime) <= GetBusinessNow())
             {
                 throw new BusinessException("Only future pending or confirmed appointments can be cancelled.");
             }
@@ -663,13 +666,13 @@ namespace ZenCare.Services.Services
             }
         }
 
-        private static void ValidateAppointmentStatusTiming(
+        private void ValidateAppointmentStatusTiming(
             AppointmentStatus status,
             DateTime appointmentDate,
             TimeSpan startTime,
             TimeSpan endTime)
         {
-            var now = DateTime.Now;
+            var now = GetBusinessNow();
 
             if (status == AppointmentStatus.Completed &&
                 GetAppointmentEndDateTime(appointmentDate, endTime) > now)
@@ -682,6 +685,11 @@ namespace ZenCare.Services.Services
             {
                 throw new BusinessException("An appointment cannot be marked as no-show before its scheduled time.");
             }
+        }
+
+        private DateTime GetBusinessNow()
+        {
+            return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _businessTimeZone);
         }
     }
 }

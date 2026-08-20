@@ -25,6 +25,7 @@ var developmentJwtFallbackApplied = ApplyDevelopmentJwtDefaults(
     developmentJwtAudience,
     developmentJwtDurationInMinutes);
 var jwtSettings = GetValidatedJwtSettings(builder.Configuration);
+var businessTimeZone = GetBusinessTimeZone(builder.Configuration, builder.Environment);
 
 var allowedCorsOrigins = builder.Configuration
     .GetSection("Cors:AllowedOrigins")
@@ -42,6 +43,7 @@ builder.Services.AddDbContext<ZenCareDbContext>(options =>
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserAccessor, HttpCurrentUserAccessor>();
+builder.Services.AddSingleton(businessTimeZone);
 
 builder.Services.AddAutoMapper(_ => { }, typeof(RoleProfile).Assembly, typeof(ServiceCategoryProfile).Assembly, typeof(ProductCategoryProfile).Assembly, typeof(ProductTypeProfile).Assembly, typeof(UnitOfMeasureProfile).Assembly, typeof(FAQCategoryProfile).Assembly, typeof(FAQProfile).Assembly, typeof(ServiceProfile).Assembly, typeof(ProductProfile).Assembly, typeof(UserProfile).Assembly, typeof(UserRoleProfile).Assembly, typeof(ClientProfileProfile).Assembly, typeof(EmployeeProfile).Assembly, typeof(EmployeeServiceProfile).Assembly, typeof(AppointmentProfile).Assembly, typeof(PaymentProfile).Assembly, typeof(ReviewProfile).Assembly, typeof(PurchaseProfile).Assembly, typeof(PurchaseItemProfile).Assembly, typeof(CartProfile).Assembly, typeof(CartItemProfile).Assembly, typeof(NotificationProfile).Assembly, typeof(RecommendationLogProfile).Assembly, typeof(BusinessReportProfile).Assembly, typeof(SupplierProfile).Assembly);
 
@@ -192,6 +194,39 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+static TimeZoneInfo GetBusinessTimeZone(
+    IConfiguration configuration,
+    IHostEnvironment environment)
+{
+    var timeZoneId = configuration["BusinessTime:TimeZoneId"];
+
+    if (string.IsNullOrWhiteSpace(timeZoneId))
+    {
+        if (environment.IsDevelopment())
+        {
+            return TimeZoneInfo.Local;
+        }
+
+        throw new InvalidOperationException(
+            "Business time zone is not configured. Set BusinessTime__TimeZoneId.");
+    }
+
+    try
+    {
+        return TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+    }
+    catch (TimeZoneNotFoundException ex)
+    {
+        throw new InvalidOperationException(
+            $"Business time zone '{timeZoneId}' was not found on this system.", ex);
+    }
+    catch (InvalidTimeZoneException ex)
+    {
+        throw new InvalidOperationException(
+            $"Business time zone '{timeZoneId}' is invalid.", ex);
+    }
+}
 
 static bool ApplyDevelopmentJwtDefaults(
     ConfigurationManager configuration,

@@ -176,7 +176,7 @@ public partial class ReportsForm : Form
         {
             var document = new SimplePdfDocument();
             document.AddTitle("ZenCare Appointment Summary");
-            document.AddText($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm}");
+            document.AddText($"Generated: {DateTime.UtcNow.ToLocalTime():yyyy-MM-dd HH:mm}");
 
             document.AddSection("Appointment status counts");
             document.AddTable(new[]
@@ -216,7 +216,7 @@ public partial class ReportsForm : Form
         {
             var document = new SimplePdfDocument();
             document.AddTitle("ZenCare Business Statistics");
-            document.AddText($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm}");
+            document.AddText($"Generated: {DateTime.UtcNow.ToLocalTime():yyyy-MM-dd HH:mm}");
 
             document.AddSection("General statistics");
             document.AddTable(new[]

@@ -277,7 +277,7 @@ public partial class AppointmentDetailsForm : Form
 
     private bool ValidateFutureSchedule()
     {
-        var now = DateTime.Now;
+        var now = DateTime.UtcNow.ToLocalTime();
         var appointmentDate = GetSelectedAppointmentDate();
         var appointmentStart = DateTime.SpecifyKind(appointmentDate.Add(dtpStartTime.Value.TimeOfDay), DateTimeKind.Unspecified);
 

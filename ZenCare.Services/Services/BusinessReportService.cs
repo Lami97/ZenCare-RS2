@@ -11,8 +11,14 @@ namespace ZenCare.Services.Services
 {
     public class BusinessReportService : BaseCRUDService<BusinessReportResponse, Database.BusinessReport, BusinessReportInsertRequest, BusinessReportUpdateRequest, BusinessReportSearchObject>, IBusinessReportService
     {
-        public BusinessReportService(ZenCareDbContext dbContext, IMapper mapper) : base(dbContext, mapper)
+        private readonly TimeZoneInfo _businessTimeZone;
+
+        public BusinessReportService(
+            ZenCareDbContext dbContext,
+            IMapper mapper,
+            TimeZoneInfo businessTimeZone) : base(dbContext, mapper)
         {
+            _businessTimeZone = businessTimeZone;
         }
 
         public override async Task<BusinessReportResponse> GetByIdAsync(int id)
@@ -32,10 +38,10 @@ namespace ZenCare.Services.Services
         public async Task<BusinessAnalyticsResponse> GetAnalyticsAsync(BusinessReportSearchObject? search = null)
         {
             var dateFrom = search?.DateFrom.HasValue == true
-                ? DateTime.SpecifyKind(search.DateFrom.Value.Date, DateTimeKind.Utc)
+                ? DateTime.SpecifyKind(search.DateFrom.Value.Date, DateTimeKind.Unspecified)
                 : (DateTime?)null;
             var dateTo = search?.DateTo.HasValue == true
-                ? DateTime.SpecifyKind(search.DateTo.Value.Date, DateTimeKind.Utc)
+                ? DateTime.SpecifyKind(search.DateTo.Value.Date, DateTimeKind.Unspecified)
                 : (DateTime?)null;
 
             if (dateFrom.HasValue && dateTo.HasValue && dateFrom > dateTo)
@@ -44,6 +50,12 @@ namespace ZenCare.Services.Services
             }
 
             var dateToExclusive = dateTo?.AddDays(1);
+            var timestampFromUtc = dateFrom.HasValue
+                ? TimeZoneInfo.ConvertTimeToUtc(dateFrom.Value, _businessTimeZone)
+                : (DateTime?)null;
+            var timestampToExclusiveUtc = dateToExclusive.HasValue
+                ? TimeZoneInfo.ConvertTimeToUtc(dateToExclusive.Value, _businessTimeZone)
+                : (DateTime?)null;
             var appointments = DbContext.Appointments.AsNoTracking();
             if (dateFrom.HasValue)
             {
@@ -55,13 +67,13 @@ namespace ZenCare.Services.Services
             }
 
             var purchases = DbContext.Purchases.AsNoTracking();
-            if (dateFrom.HasValue)
+            if (timestampFromUtc.HasValue)
             {
-                purchases = purchases.Where(purchase => purchase.CreatedAt >= dateFrom.Value);
+                purchases = purchases.Where(purchase => purchase.CreatedAt >= timestampFromUtc.Value);
             }
-            if (dateToExclusive.HasValue)
+            if (timestampToExclusiveUtc.HasValue)
             {
-                purchases = purchases.Where(purchase => purchase.CreatedAt < dateToExclusive.Value);
+                purchases = purchases.Where(purchase => purchase.CreatedAt < timestampToExclusiveUtc.Value);
             }
 
             var successfulPurchases = DbContext.Purchases
@@ -70,13 +82,13 @@ namespace ZenCare.Services.Services
                     purchase.Status == PurchaseStatus.Completed
                     && purchase.PaymentStatus == PaymentStatus.Succeeded
                     && purchase.PaidAt.HasValue);
-            if (dateFrom.HasValue)
+            if (timestampFromUtc.HasValue)
             {
-                successfulPurchases = successfulPurchases.Where(purchase => purchase.PaidAt >= dateFrom.Value);
+                successfulPurchases = successfulPurchases.Where(purchase => purchase.PaidAt >= timestampFromUtc.Value);
             }
-            if (dateToExclusive.HasValue)
+            if (timestampToExclusiveUtc.HasValue)
             {
-                successfulPurchases = successfulPurchases.Where(purchase => purchase.PaidAt < dateToExclusive.Value);
+                successfulPurchases = successfulPurchases.Where(purchase => purchase.PaidAt < timestampToExclusiveUtc.Value);
             }
 
             var completedAppointments = appointments.Where(appointment => appointment.Status == AppointmentStatus.Completed);
