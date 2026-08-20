@@ -54,8 +54,8 @@
       ASPNETCORE_URLS: http://+:8080
       Swagger__Enabled: ${SWAGGER_ENABLED:-true}
       ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=ZenCareDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False
-      RabbitMQ__Host: rabbitmq
-      RabbitMQ__Port: 5672
+      RabbitMQ__Host: ${RABBITMQ_HOST:-rabbitmq}
+      RabbitMQ__Port: ${RABBITMQ_PORT:-5672}
       RabbitMQ__Username: ${RABBITMQ_USERNAME:?Set RABBITMQ_USERNAME}
       RabbitMQ__Password: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD}
       Stripe__SecretKey: ${STRIPE_SECRET_KEY:?Set STRIPE_SECRET_KEY}
@@ -63,7 +63,8 @@
       JwtToken__Issuer: ${JWT_ISSUER:?Set JWT_ISSUER}
       JwtToken__Audience: ${JWT_AUDIENCE:?Set JWT_AUDIENCE}
       JwtToken__SecretKey: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY}
-      JwtToken__DurationInMinutes: ${JWT_DURATION_IN_MINUTES:-480}
+      JwtToken__DurationInMinutes: ${JWT_DURATION_IN_MINUTES:-60}
+      Cors__AllowedOrigins__0: ${CORS_ALLOWED_ORIGIN:-http://localhost:5281}
       PasswordReset__ExpiryMinutes: ${PASSWORD_RESET_EXPIRY_MINUTES:-15}
       Smtp__Host: ${SMTP_HOST:-}
       Smtp__Port: ${SMTP_PORT:-587}
@@ -97,8 +98,8 @@
     environment:
       DOTNET_ENVIRONMENT: Production
       ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=ZenCareDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False
-      RabbitMQ__Host: rabbitmq
-      RabbitMQ__Port: 5672
+      RabbitMQ__Host: ${RABBITMQ_HOST:-rabbitmq}
+      RabbitMQ__Port: ${RABBITMQ_PORT:-5672}
       RabbitMQ__Username: ${RABBITMQ_USERNAME:?Set RABBITMQ_USERNAME}
       RabbitMQ__Password: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD}
     networks:

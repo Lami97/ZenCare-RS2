@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using ZenCare.Services;
 using ZenCare.Services.Interfaces;
@@ -12,6 +13,27 @@ using ZenCare.Services.Services;
 using ZenCare.WebAPI.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
+const string corsPolicyName = "ConfiguredOrigins";
+const string developmentJwtIssuer = "ZenCare";
+const string developmentJwtAudience = "ZenCareUsers";
+const string developmentJwtDurationInMinutes = "60";
+
+var developmentJwtFallbackApplied = ApplyDevelopmentJwtDefaults(
+    builder.Configuration,
+    builder.Environment,
+    developmentJwtIssuer,
+    developmentJwtAudience,
+    developmentJwtDurationInMinutes);
+var jwtSettings = GetValidatedJwtSettings(builder.Configuration);
+
+var allowedCorsOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>()?
+    .Where(origin => !string.IsNullOrWhiteSpace(origin))
+    .Select(origin => origin.Trim().TrimEnd('/'))
+    .Distinct(StringComparer.OrdinalIgnoreCase)
+    .ToArray()
+    ?? Array.Empty<string>();
 
 // Add services to the container.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -63,9 +85,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     {
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidIssuer = builder.Configuration["JwtToken:Issuer"],
-            ValidAudience = builder.Configuration["JwtToken:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtToken:SecretKey"] ?? string.Empty)),
+            ValidIssuer = jwtSettings.Issuer,
+            ValidAudience = jwtSettings.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.SecretKey)),
             ValidateIssuer = true,
             ValidateAudience = true,
             ValidateLifetime = true,
@@ -99,6 +121,18 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 builder.Services.AddAuthorization();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(corsPolicyName, policy =>
+    {
+        if (allowedCorsOrigins.Length > 0)
+        {
+            policy.WithOrigins(allowedCorsOrigins)
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        }
+    });
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -127,6 +161,12 @@ builder.Services.AddControllers();
 
 var app = builder.Build();
 
+if (developmentJwtFallbackApplied)
+{
+    app.Logger.LogWarning(
+        "Development-only JWT fallback configuration is active. Configure JwtToken values through environment variables or User Secrets to override it.");
+}
+
 await ApplyDatabaseMigrationsAsync(app);
 await BootstrapAdminAsync(app);
 await SeedEvaluatorDataAsync(app);
@@ -145,12 +185,86 @@ if (swaggerEnabled)
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseHttpsRedirection();
+app.UseCors(corsPolicyName);
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
 app.Run();
+
+static bool ApplyDevelopmentJwtDefaults(
+    ConfigurationManager configuration,
+    IHostEnvironment environment,
+    string issuer,
+    string audience,
+    string durationInMinutes)
+{
+    if (!environment.IsDevelopment())
+    {
+        return false;
+    }
+
+    var defaults = new Dictionary<string, string?>
+    {
+        ["JwtToken:Issuer"] = issuer,
+        ["JwtToken:Audience"] = audience,
+        ["JwtToken:SecretKey"] = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
+        ["JwtToken:DurationInMinutes"] = durationInMinutes
+    };
+
+    var missingDefaults = defaults
+        .Where(setting => string.IsNullOrWhiteSpace(configuration[setting.Key]))
+        .ToDictionary(setting => setting.Key, setting => setting.Value);
+
+    if (missingDefaults.Count == 0)
+    {
+        return false;
+    }
+
+    configuration.AddInMemoryCollection(missingDefaults);
+    return true;
+}
+
+static (string Issuer, string Audience, string SecretKey) GetValidatedJwtSettings(
+    IConfiguration configuration)
+{
+    var issuer = configuration["JwtToken:Issuer"];
+    var audience = configuration["JwtToken:Audience"];
+    var secretKey = configuration["JwtToken:SecretKey"];
+    var duration = configuration["JwtToken:DurationInMinutes"];
+
+    var missingSettings = new[]
+    {
+        (Name: "JwtToken:Issuer", Value: issuer),
+        (Name: "JwtToken:Audience", Value: audience),
+        (Name: "JwtToken:SecretKey", Value: secretKey),
+        (Name: "JwtToken:DurationInMinutes", Value: duration)
+    }
+    .Where(setting => string.IsNullOrWhiteSpace(setting.Value))
+    .Select(setting => setting.Name)
+    .ToArray();
+
+    if (missingSettings.Length > 0)
+    {
+        throw new InvalidOperationException(
+            $"JWT configuration is incomplete. Configure: {string.Join(", ", missingSettings)}.");
+    }
+
+    if (!int.TryParse(duration, out var durationInMinutes) || durationInMinutes <= 0)
+    {
+        throw new InvalidOperationException(
+            "JWT configuration is invalid. JwtToken:DurationInMinutes must be a positive integer.");
+    }
+
+    if (Encoding.UTF8.GetByteCount(secretKey!) < 32)
+    {
+        throw new InvalidOperationException(
+            "JWT configuration is invalid. JwtToken:SecretKey must contain at least 32 UTF-8 bytes.");
+    }
+
+    return (issuer!, audience!, secretKey!);
+}
 
 static async Task BootstrapAdminAsync(WebApplication app)
 {

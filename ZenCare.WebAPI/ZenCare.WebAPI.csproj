@@ -4,6 +4,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>ZenCare-WebAPI-6d24d663-08a1-44d7-bb9b-836f564f36d8</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
