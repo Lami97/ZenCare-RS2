@@ -1,9 +1,10 @@
 using System.Text;
 using System.Text.Json;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using ZenCare.Services.Configuration;
 using ZenCare.Services.Interfaces;
 
 namespace ZenCare.Services.Services
@@ -25,15 +26,15 @@ namespace ZenCare.Services.Services
             { NotificationQueueName, "notification" }
         };
 
-        private readonly IConfiguration _configuration;
+        private readonly RabbitMqSettings? _settings;
         private readonly ILogger<RabbitMqService> _logger;
         private IConnection? _connection;
         private IChannel? _channel;
 
-        public RabbitMqService(IConfiguration configuration, ILogger<RabbitMqService> logger)
+        public RabbitMqService(IOptions<RabbitMqOptions> options, ILogger<RabbitMqService> logger)
         {
-            _configuration = configuration;
             _logger = logger;
+            _settings = CreateSettings(options.Value);
         }
 
         public bool IsConnected => _connection?.IsOpen == true && _channel?.IsOpen == true;
@@ -45,9 +46,7 @@ namespace ZenCare.Services.Services
                 return;
             }
 
-            var settings = GetSettings();
-
-            if (settings == null)
+            if (_settings == null)
             {
                 _logger.LogWarning("RabbitMQ is not configured. Set RabbitMQ__Host, RabbitMQ__Port, RabbitMQ__Username and RabbitMQ__Password.");
                 return;
@@ -59,10 +58,10 @@ namespace ZenCare.Services.Services
 
                 var factory = new ConnectionFactory
                 {
-                    HostName = settings.Host,
-                    Port = settings.Port,
-                    UserName = settings.Username,
-                    Password = settings.Password
+                    HostName = _settings.Host,
+                    Port = _settings.Port,
+                    UserName = _settings.Username,
+                    Password = _settings.Password
                 };
 
                 _connection = await factory.CreateConnectionAsync(cancellationToken);
@@ -198,28 +197,23 @@ namespace ZenCare.Services.Services
             }
         }
 
-        private RabbitMqSettings? GetSettings()
+        private RabbitMqSettings? CreateSettings(RabbitMqOptions options)
         {
-            var host = _configuration["RabbitMQ:Host"];
-            var portValue = _configuration["RabbitMQ:Port"];
-            var username = _configuration["RabbitMQ:Username"];
-            var password = _configuration["RabbitMQ:Password"];
-
-            if (string.IsNullOrWhiteSpace(host)
-                || string.IsNullOrWhiteSpace(portValue)
-                || string.IsNullOrWhiteSpace(username)
-                || string.IsNullOrWhiteSpace(password))
+            if (string.IsNullOrWhiteSpace(options.Host)
+                || string.IsNullOrWhiteSpace(options.Port)
+                || string.IsNullOrWhiteSpace(options.Username)
+                || string.IsNullOrWhiteSpace(options.Password))
             {
                 return null;
             }
 
-            if (!int.TryParse(portValue, out var port))
+            if (!int.TryParse(options.Port, out var port))
             {
                 _logger.LogWarning("RabbitMQ port configuration is invalid.");
                 return null;
             }
 
-            return new RabbitMqSettings(host, port, username, password);
+            return new RabbitMqSettings(options.Host, port, options.Username, options.Password);
         }
 
         private async Task DisposeConnectionAsync()

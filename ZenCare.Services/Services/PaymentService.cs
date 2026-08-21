@@ -1,6 +1,6 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Stripe;
 using ZenCare.Model.Enums;
 using ZenCare.Model.Exceptions;
@@ -8,22 +8,27 @@ using ZenCare.Model.Messages;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
 using ZenCare.Model.SearchObjects;
+using ZenCare.Services.Configuration;
 using ZenCare.Services.Interfaces;
 
 namespace ZenCare.Services.Services
 {
     public class PaymentService : BaseCRUDService<PaymentResponse, Database.Payment, PaymentInsertRequest, PaymentUpdateRequest, PaymentSearchObject>, IPaymentService
     {
-        private readonly IConfiguration _configuration;
+        private readonly string? _stripeSecretKey;
+        private readonly string _stripeCurrency;
         private readonly INotificationEventPublisher _notificationEventPublisher;
 
         public PaymentService(
             ZenCareDbContext dbContext,
             IMapper mapper,
-            IConfiguration configuration,
+            IOptions<StripeOptions> stripeOptions,
             INotificationEventPublisher notificationEventPublisher) : base(dbContext, mapper)
         {
-            _configuration = configuration;
+            _stripeSecretKey = stripeOptions.Value.SecretKey;
+            _stripeCurrency = string.IsNullOrWhiteSpace(stripeOptions.Value.Currency)
+                ? "usd"
+                : stripeOptions.Value.Currency.Trim().ToLowerInvariant();
             _notificationEventPublisher = notificationEventPublisher;
         }
 
@@ -480,21 +485,17 @@ namespace ZenCare.Services.Services
 
         private string GetStripeSecretKey()
         {
-            var stripeSecretKey = _configuration["Stripe:SecretKey"];
-
-            if (string.IsNullOrWhiteSpace(stripeSecretKey))
+            if (string.IsNullOrWhiteSpace(_stripeSecretKey))
             {
                 throw new BusinessException("Stripe secret key is not configured.");
             }
 
-            return stripeSecretKey;
+            return _stripeSecretKey;
         }
 
         private string GetStripeCurrency()
         {
-            var currency = _configuration["Stripe:Currency"];
-
-            return string.IsNullOrWhiteSpace(currency) ? "usd" : currency.Trim().ToLowerInvariant();
+            return _stripeCurrency;
         }
 
         private static void ValidatePurchaseForIntent(Database.Purchase? purchase, int purchaseId, int userId)

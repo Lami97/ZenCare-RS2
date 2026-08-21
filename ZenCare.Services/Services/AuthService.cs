@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.Data;
 using System.IdentityModel.Tokens.Jwt;
@@ -11,6 +11,7 @@ using ZenCare.Model.Exceptions;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
 using ZenCare.Services.Database;
+using ZenCare.Services.Configuration;
 using ZenCare.Services.Interfaces;
 using ZenCare.Services.Security;
 
@@ -19,20 +20,35 @@ namespace ZenCare.Services.Services
     public class AuthService : IAuthService
     {
         private readonly ZenCareDbContext _dbContext;
-        private readonly IConfiguration _configuration;
+        private readonly string? _jwtIssuer;
+        private readonly string? _jwtAudience;
+        private readonly string? _jwtSecretKey;
+        private readonly int _tokenDurationInMinutes;
+        private readonly int _passwordResetExpiryInMinutes;
         private readonly IUserService _userService;
         private readonly IPasswordResetEmailService _passwordResetEmailService;
         private readonly ILogger<AuthService> _logger;
 
         public AuthService(
             ZenCareDbContext dbContext,
-            IConfiguration configuration,
+            IOptions<JwtOptions> jwtOptions,
+            IOptions<PasswordResetOptions> passwordResetOptions,
             IUserService userService,
             IPasswordResetEmailService passwordResetEmailService,
             ILogger<AuthService> logger)
         {
             _dbContext = dbContext;
-            _configuration = configuration;
+            var jwtSettings = jwtOptions.Value;
+            _jwtIssuer = jwtSettings.Issuer;
+            _jwtAudience = jwtSettings.Audience;
+            _jwtSecretKey = jwtSettings.SecretKey;
+            _tokenDurationInMinutes = int.TryParse(jwtSettings.DurationInMinutes, out var durationInMinutes)
+                ? durationInMinutes
+                : 60;
+            _passwordResetExpiryInMinutes = int.TryParse(passwordResetOptions.Value.ExpiryMinutes, out var expiryInMinutes)
+                && expiryInMinutes > 0
+                    ? expiryInMinutes
+                    : 15;
             _userService = userService;
             _passwordResetEmailService = passwordResetEmailService;
             _logger = logger;
@@ -55,7 +71,7 @@ namespace ZenCare.Services.Services
                 .Where(role => !string.IsNullOrWhiteSpace(role))
                 .ToList();
 
-            var expiresAt = DateTime.UtcNow.AddMinutes(GetTokenDurationInMinutes());
+            var expiresAt = DateTime.UtcNow.AddMinutes(_tokenDurationInMinutes);
             var token = GenerateToken(user, roles, expiresAt);
 
             user.LastLoginAt = DateTime.UtcNow;
@@ -129,7 +145,7 @@ namespace ZenCare.Services.Services
                         UserId = user.Id,
                         TokenHash = HashResetToken(rawToken),
                         CreatedAt = now,
-                        ExpiresAt = now.AddMinutes(GetPasswordResetExpiryInMinutes())
+                        ExpiresAt = now.AddMinutes(_passwordResetExpiryInMinutes)
                     };
 
                     _dbContext.PasswordResetTokens.Add(resetToken);
@@ -258,11 +274,7 @@ namespace ZenCare.Services.Services
 
         private string GenerateToken(Database.User user, List<string> roles, DateTime expiresAt)
         {
-            var issuer = _configuration["JwtToken:Issuer"];
-            var audience = _configuration["JwtToken:Audience"];
-            var secretKey = _configuration["JwtToken:SecretKey"];
-
-            if (string.IsNullOrWhiteSpace(secretKey))
+            if (string.IsNullOrWhiteSpace(_jwtSecretKey))
             {
                 throw new InvalidOperationException("JWT SecretKey is not configured.");
             }
@@ -277,33 +289,17 @@ namespace ZenCare.Services.Services
 
             claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
-            var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+            var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSecretKey));
             var signingCredentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
-                issuer: issuer,
-                audience: audience,
+                issuer: _jwtIssuer,
+                audience: _jwtAudience,
                 claims: claims,
                 expires: expiresAt,
                 signingCredentials: signingCredentials);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
-        }
-
-        private int GetTokenDurationInMinutes()
-        {
-            var configuredValue = _configuration["JwtToken:DurationInMinutes"];
-
-            return int.TryParse(configuredValue, out var durationInMinutes) ? durationInMinutes : 60;
-        }
-
-        private int GetPasswordResetExpiryInMinutes()
-        {
-            var configuredValue = _configuration["PasswordReset:ExpiryMinutes"];
-
-            return int.TryParse(configuredValue, out var expiryInMinutes) && expiryInMinutes > 0
-                ? expiryInMinutes
-                : 15;
         }
 
         private static string GenerateResetToken()

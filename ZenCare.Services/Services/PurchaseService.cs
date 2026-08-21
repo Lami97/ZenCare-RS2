@@ -1,7 +1,7 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Stripe;
 using System.Text.Json;
 using ZenCare.Model.Enums;
@@ -10,6 +10,7 @@ using ZenCare.Model.Messages;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
 using ZenCare.Model.SearchObjects;
+using ZenCare.Services.Configuration;
 using ZenCare.Services.Interfaces;
 
 namespace ZenCare.Services.Services
@@ -18,7 +19,7 @@ namespace ZenCare.Services.Services
     {
         private readonly IRabbitMqService _rabbitMqService;
         private readonly INotificationEventPublisher _notificationEventPublisher;
-        private readonly IConfiguration _configuration;
+        private readonly string? _stripeSecretKey;
         private readonly ILogger<PurchaseService> _logger;
 
         public PurchaseService(
@@ -26,12 +27,12 @@ namespace ZenCare.Services.Services
             IMapper mapper,
             IRabbitMqService rabbitMqService,
             INotificationEventPublisher notificationEventPublisher,
-            IConfiguration configuration,
+            IOptions<StripeOptions> stripeOptions,
             ILogger<PurchaseService> logger) : base(dbContext, mapper)
         {
             _rabbitMqService = rabbitMqService;
             _notificationEventPublisher = notificationEventPublisher;
-            _configuration = configuration;
+            _stripeSecretKey = stripeOptions.Value.SecretKey;
             _logger = logger;
         }
 
@@ -539,14 +540,12 @@ namespace ZenCare.Services.Services
 
         private string GetStripeSecretKey()
         {
-            var stripeSecretKey = _configuration["Stripe:SecretKey"];
-
-            if (string.IsNullOrWhiteSpace(stripeSecretKey))
+            if (string.IsNullOrWhiteSpace(_stripeSecretKey))
             {
                 throw new BusinessException("Stripe secret key is not configured.");
             }
 
-            return stripeSecretKey;
+            return _stripeSecretKey;
         }
 
         private static bool IsCancellablePaymentIntent(PaymentIntent paymentIntent)
