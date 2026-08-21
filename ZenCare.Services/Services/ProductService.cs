@@ -21,7 +21,11 @@ namespace ZenCare.Services.Services
 
         public override async Task<ProductResponse> InsertAsync(ProductInsertRequest request)
         {
-            await ValidateReferencesAsync(request.SupplierId);
+            await ValidateReferencesAsync(
+                request.ProductCategoryId,
+                request.ProductTypeId,
+                request.UnitOfMeasureId,
+                request.SupplierId);
 
             var entity = Mapper.Map<Database.Product>(request);
             entity.CreatedAt = DateTime.UtcNow;
@@ -41,7 +45,11 @@ namespace ZenCare.Services.Services
                 throw new NotFoundException(nameof(Database.Product), id);
             }
 
-            await ValidateReferencesAsync(request.SupplierId);
+            await ValidateReferencesAsync(
+                request.ProductCategoryId,
+                request.ProductTypeId,
+                request.UnitOfMeasureId,
+                request.SupplierId);
 
             Mapper.Map(request, entity);
             entity.UpdatedAt = DateTime.UtcNow;
@@ -160,8 +168,27 @@ namespace ZenCare.Services.Services
             }
         }
 
-        private async Task ValidateReferencesAsync(int supplierId)
+        private async Task ValidateReferencesAsync(
+            int productCategoryId,
+            int productTypeId,
+            int unitOfMeasureId,
+            int supplierId)
         {
+            if (!await DbContext.ProductCategories.AnyAsync(category => category.Id == productCategoryId))
+            {
+                throw new BusinessException("The selected product category does not exist.");
+            }
+
+            if (!await DbContext.ProductTypes.AnyAsync(type => type.Id == productTypeId))
+            {
+                throw new BusinessException("The selected product type does not exist.");
+            }
+
+            if (!await DbContext.UnitOfMeasures.AnyAsync(unit => unit.Id == unitOfMeasureId))
+            {
+                throw new BusinessException("The selected unit of measure does not exist.");
+            }
+
             if (!await DbContext.Suppliers.AnyAsync(s => s.Id == supplierId))
             {
                 throw new BusinessException("The selected supplier does not exist.");

@@ -16,6 +16,7 @@ namespace ZenCare.Services.Services
 
         public override async Task<EmployeeServiceResponse> InsertAsync(EmployeeServiceInsertRequest request)
         {
+            await EnsureReferencesExistAsync(request.EmployeeId, request.WellnessServiceId);
             await EnsureAssignmentIsUniqueAsync(request.EmployeeId, request.WellnessServiceId);
 
             return await base.InsertAsync(request);
@@ -23,6 +24,7 @@ namespace ZenCare.Services.Services
 
         public override async Task<EmployeeServiceResponse> UpdateAsync(int id, EmployeeServiceUpdateRequest request)
         {
+            await EnsureReferencesExistAsync(request.EmployeeId, request.WellnessServiceId);
             await EnsureAssignmentIsUniqueAsync(request.EmployeeId, request.WellnessServiceId, id);
 
             return await base.UpdateAsync(id, request);
@@ -87,6 +89,19 @@ namespace ZenCare.Services.Services
             if (assignmentExists)
             {
                 throw new BusinessException("This employee is already assigned to the selected service.");
+            }
+        }
+
+        private async Task EnsureReferencesExistAsync(int employeeId, int wellnessServiceId)
+        {
+            if (!await DbContext.Employees.AnyAsync(employee => employee.Id == employeeId))
+            {
+                throw new BusinessException("The selected employee does not exist.");
+            }
+
+            if (!await DbContext.WellnessServices.AnyAsync(service => service.Id == wellnessServiceId))
+            {
+                throw new BusinessException("The selected wellness service does not exist.");
             }
         }
     }

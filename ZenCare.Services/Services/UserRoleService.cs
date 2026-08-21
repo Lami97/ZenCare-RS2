@@ -16,6 +16,7 @@ namespace ZenCare.Services.Services
 
         public override async Task<UserRoleResponse> InsertAsync(UserRoleInsertRequest request)
         {
+            await EnsureReferencesExistAsync(request.UserId, request.RoleId);
             await EnsureAssignmentIsUniqueAsync(request.UserId, request.RoleId);
 
             return await base.InsertAsync(request);
@@ -23,6 +24,7 @@ namespace ZenCare.Services.Services
 
         public override async Task<UserRoleResponse> UpdateAsync(int id, UserRoleUpdateRequest request)
         {
+            await EnsureReferencesExistAsync(request.UserId, request.RoleId);
             await EnsureAssignmentIsUniqueAsync(request.UserId, request.RoleId, id);
 
             return await base.UpdateAsync(id, request);
@@ -86,6 +88,19 @@ namespace ZenCare.Services.Services
             if (assignmentExists)
             {
                 throw new BusinessException("This user already has the selected role.");
+            }
+        }
+
+        private async Task EnsureReferencesExistAsync(int userId, int roleId)
+        {
+            if (!await DbContext.Users.AnyAsync(user => user.Id == userId))
+            {
+                throw new BusinessException("The selected user does not exist.");
+            }
+
+            if (!await DbContext.Roles.AnyAsync(role => role.Id == roleId))
+            {
+                throw new BusinessException("The selected role does not exist.");
             }
         }
     }

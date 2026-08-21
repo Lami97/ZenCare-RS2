@@ -15,6 +15,18 @@ namespace ZenCare.Services.Services
         {
         }
 
+        public override async Task<ServiceResponse> InsertAsync(ServiceInsertRequest request)
+        {
+            await EnsureServiceCategoryExistsAsync(request.ServiceCategoryId);
+            return await base.InsertAsync(request);
+        }
+
+        public override async Task<ServiceResponse> UpdateAsync(int id, ServiceUpdateRequest request)
+        {
+            await EnsureServiceCategoryExistsAsync(request.ServiceCategoryId);
+            return await base.UpdateAsync(id, request);
+        }
+
         public override async Task<ServiceResponse> GetByIdAsync(int id)
         {
             var entity = await DbContext.WellnessServices
@@ -57,6 +69,14 @@ namespace ZenCare.Services.Services
             query = query.Include(s => s.ServiceCategory);
 
             return Task.FromResult(query);
+        }
+
+        private async Task EnsureServiceCategoryExistsAsync(int serviceCategoryId)
+        {
+            if (!await DbContext.ServiceCategories.AnyAsync(category => category.Id == serviceCategoryId))
+            {
+                throw new BusinessException("The selected service category does not exist.");
+            }
         }
     }
 }

@@ -14,6 +14,18 @@ namespace ZenCare.Services.Services
         {
         }
 
+        public override async Task<FAQResponse> InsertAsync(FAQInsertRequest request)
+        {
+            await EnsureFAQCategoryExistsAsync(request.FAQCategoryId);
+            return await base.InsertAsync(request);
+        }
+
+        public override async Task<FAQResponse> UpdateAsync(int id, FAQUpdateRequest request)
+        {
+            await EnsureFAQCategoryExistsAsync(request.FAQCategoryId);
+            return await base.UpdateAsync(id, request);
+        }
+
         public override async Task<PagedResult<FAQResponse>> GetAllAsync(FAQSearchObject? search = null)
         {
             search ??= new FAQSearchObject();
@@ -68,6 +80,14 @@ namespace ZenCare.Services.Services
             query = query.Include(f => f.FAQCategory);
 
             return Task.FromResult(query);
+        }
+
+        private async Task EnsureFAQCategoryExistsAsync(int faqCategoryId)
+        {
+            if (!await DbContext.FAQCategories.AnyAsync(category => category.Id == faqCategoryId))
+            {
+                throw new BusinessException("The selected FAQ category does not exist.");
+            }
         }
     }
 }

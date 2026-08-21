@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using ZenCare.Model.Exceptions;
 
 namespace ZenCare.WebAPI.Middleware;
@@ -29,6 +30,14 @@ public class ExceptionHandlingMiddleware
         {
             _logger.LogWarning(ex, "Business rule validation failed.");
             await WriteErrorResponseAsync(context, StatusCodes.Status400BadRequest, ex.Message);
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogWarning(ex, "Database update conflict.");
+            await WriteErrorResponseAsync(
+                context,
+                StatusCodes.Status409Conflict,
+                "The operation could not be completed because it conflicts with existing or related data.");
         }
         catch (Exception ex)
         {
