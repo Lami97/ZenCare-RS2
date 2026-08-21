@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.Extensions.Caching.Memory;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
 using ZenCare.Model.SearchObjects;
@@ -6,9 +7,9 @@ using ZenCare.Services.Interfaces;
 
 namespace ZenCare.Services.Services
 {
-    public class FAQCategoryService : BaseCRUDService<FAQCategoryResponse, Database.FAQCategory, FAQCategoryInsertRequest, FAQCategoryUpdateRequest, FAQCategorySearchObject>, IFAQCategoryService
+    public class FAQCategoryService : CachedReferenceCRUDService<FAQCategoryResponse, Database.FAQCategory, FAQCategoryInsertRequest, FAQCategoryUpdateRequest, FAQCategorySearchObject>, IFAQCategoryService
     {
-        public FAQCategoryService(ZenCareDbContext dbContext, IMapper mapper) : base(dbContext, mapper)
+        public FAQCategoryService(ZenCareDbContext dbContext, IMapper mapper, IMemoryCache cache) : base(dbContext, mapper, cache)
         {
         }
 

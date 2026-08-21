@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.Extensions.Caching.Memory;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
 using ZenCare.Model.SearchObjects;
@@ -6,9 +7,9 @@ using ZenCare.Services.Interfaces;
 
 namespace ZenCare.Services.Services
 {
-    public class UnitOfMeasureService : BaseCRUDService<UnitOfMeasureResponse, Database.UnitOfMeasure, UnitOfMeasureInsertRequest, UnitOfMeasureUpdateRequest, UnitOfMeasureSearchObject>, IUnitOfMeasureService
+    public class UnitOfMeasureService : CachedReferenceCRUDService<UnitOfMeasureResponse, Database.UnitOfMeasure, UnitOfMeasureInsertRequest, UnitOfMeasureUpdateRequest, UnitOfMeasureSearchObject>, IUnitOfMeasureService
     {
-        public UnitOfMeasureService(ZenCareDbContext dbContext, IMapper mapper) : base(dbContext, mapper)
+        public UnitOfMeasureService(ZenCareDbContext dbContext, IMapper mapper, IMemoryCache cache) : base(dbContext, mapper, cache)
         {
         }
 

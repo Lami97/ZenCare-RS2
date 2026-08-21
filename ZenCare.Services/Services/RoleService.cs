@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.Extensions.Caching.Memory;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
 using ZenCare.Model.SearchObjects;
@@ -6,9 +7,9 @@ using ZenCare.Services.Interfaces;
 
 namespace ZenCare.Services.Services
 {
-    public class RoleService : BaseCRUDService<RoleResponse, Database.Role, RoleInsertRequest, RoleUpdateRequest, RoleSearchObject>, IRoleService
+    public class RoleService : CachedReferenceCRUDService<RoleResponse, Database.Role, RoleInsertRequest, RoleUpdateRequest, RoleSearchObject>, IRoleService
     {
-        public RoleService(ZenCareDbContext dbContext, IMapper mapper) : base(dbContext, mapper)
+        public RoleService(ZenCareDbContext dbContext, IMapper mapper, IMemoryCache cache) : base(dbContext, mapper, cache)
         {
         }
 

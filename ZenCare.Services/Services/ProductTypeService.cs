@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.Extensions.Caching.Memory;
 using ZenCare.Model.Requests;
 using ZenCare.Model.Responses;
 using ZenCare.Model.SearchObjects;
@@ -6,9 +7,9 @@ using ZenCare.Services.Interfaces;
 
 namespace ZenCare.Services.Services
 {
-    public class ProductTypeService : BaseCRUDService<ProductTypeResponse, Database.ProductType, ProductTypeInsertRequest, ProductTypeUpdateRequest, ProductTypeSearchObject>, IProductTypeService
+    public class ProductTypeService : CachedReferenceCRUDService<ProductTypeResponse, Database.ProductType, ProductTypeInsertRequest, ProductTypeUpdateRequest, ProductTypeSearchObject>, IProductTypeService
     {
-        public ProductTypeService(ZenCareDbContext dbContext, IMapper mapper) : base(dbContext, mapper)
+        public ProductTypeService(ZenCareDbContext dbContext, IMapper mapper, IMemoryCache cache) : base(dbContext, mapper, cache)
         {
         }
 
