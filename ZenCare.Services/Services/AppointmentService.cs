@@ -220,18 +220,31 @@ namespace ZenCare.Services.Services
             return result;
         }
 
-        public async Task<List<AppointmentStatusHistoryResponse>> GetStatusHistoryAsync(int id)
+        public async Task<PagedResult<AppointmentStatusHistoryResponse>> GetStatusHistoryAsync(
+            int id,
+            PagedSearchObject? search)
         {
             if (!await DbContext.Appointments.AnyAsync(appointment => appointment.Id == id))
             {
                 throw new NotFoundException(nameof(Database.Appointment), id);
             }
 
-            return await DbContext.AppointmentStatusHistories
+            var query = DbContext.AppointmentStatusHistories
                 .AsNoTracking()
-                .Where(history => history.AppointmentId == id)
+                .Where(history => history.AppointmentId == id);
+
+            int? totalCount = null;
+            if (search?.IncludeTotalCount == true)
+            {
+                totalCount = await query.CountAsync();
+            }
+
+            var (page, pageSize) = BaseSearchObject.NormalizePagination(search);
+            var items = await query
                 .OrderBy(history => history.ChangedAt)
                 .ThenBy(history => history.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .Select(history => new AppointmentStatusHistoryResponse
                 {
                     Id = history.Id,
@@ -247,6 +260,12 @@ namespace ZenCare.Services.Services
                     Reason = history.Reason
                 })
                 .ToListAsync();
+
+            return new PagedResult<AppointmentStatusHistoryResponse>
+            {
+                Items = items,
+                TotalCount = totalCount
+            };
         }
 
         private static string GetAppointmentStatusChangeDescription(AppointmentStatus status)

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ZenCare.Model.Responses;
+using ZenCare.Model.SearchObjects;
 using ZenCare.Services.Interfaces;
 
 namespace ZenCare.WebAPI.Controllers;
@@ -22,7 +23,8 @@ public class RecommendationController : ControllerBase
 
     [Authorize(Roles = AppRoles.Client)]
     [HttpGet("My/products")]
-    public async Task<ActionResult<List<RecommendationItemResponse>>> GetMyRecommendedProducts([FromQuery] int take = 5)
+    public async Task<ActionResult<PagedResult<RecommendationItemResponse>>> GetMyRecommendedProducts(
+        [FromQuery] RecommendationSearchObject? search)
     {
         var userId = _currentUserAccessor.GetUserId();
 
@@ -31,13 +33,14 @@ public class RecommendationController : ControllerBase
             return Unauthorized();
         }
 
-        var result = await _recommendationService.GetRecommendedProductsAsync(userId.Value, take);
+        var result = await _recommendationService.GetRecommendedProductsAsync(userId.Value, search);
         return Ok(result);
     }
 
     [Authorize(Roles = AppRoles.Client)]
     [HttpGet("My/services")]
-    public async Task<ActionResult<List<RecommendationItemResponse>>> GetMyRecommendedServices([FromQuery] int take = 5)
+    public async Task<ActionResult<PagedResult<RecommendationItemResponse>>> GetMyRecommendedServices(
+        [FromQuery] RecommendationSearchObject? search)
     {
         var userId = _currentUserAccessor.GetUserId();
 
@@ -46,23 +49,27 @@ public class RecommendationController : ControllerBase
             return Unauthorized();
         }
 
-        var result = await _recommendationService.GetRecommendedServicesAsync(userId.Value, take);
+        var result = await _recommendationService.GetRecommendedServicesAsync(userId.Value, search);
         return Ok(result);
     }
 
     [Authorize(Roles = AppRoles.Admin)]
     [HttpGet("Products/{userId}")]
-    public async Task<ActionResult<List<RecommendationItemResponse>>> GetRecommendedProducts(int userId, [FromQuery] int take = 5)
+    public async Task<ActionResult<PagedResult<RecommendationItemResponse>>> GetRecommendedProducts(
+        int userId,
+        [FromQuery] RecommendationSearchObject? search)
     {
-        var result = await _recommendationService.GetRecommendedProductsAsync(userId, take);
+        var result = await _recommendationService.GetRecommendedProductsAsync(userId, search);
         return Ok(result);
     }
 
     [Authorize(Roles = AppRoles.Admin)]
     [HttpGet("Services/{userId}")]
-    public async Task<ActionResult<List<RecommendationItemResponse>>> GetRecommendedServices(int userId, [FromQuery] int take = 5)
+    public async Task<ActionResult<PagedResult<RecommendationItemResponse>>> GetRecommendedServices(
+        int userId,
+        [FromQuery] RecommendationSearchObject? search)
     {
-        var result = await _recommendationService.GetRecommendedServicesAsync(userId, take);
+        var result = await _recommendationService.GetRecommendedServicesAsync(userId, search);
         return Ok(result);
     }
 

@@ -11,6 +11,6 @@ namespace ZenCare.Services.Interfaces
         Task<PurchaseResponse> UpdateWithActorAsync(int id, int actorUserId, PurchaseUpdateRequest request);
         Task<PurchaseResponse> CheckoutAsync(int userId, PurchaseCheckoutRequest request);
         Task<PurchaseResponse> CancelMyAsync(int id, int userId);
-        Task<List<PurchaseStatusHistoryResponse>> GetStatusHistoryAsync(int id);
+        Task<PagedResult<PurchaseStatusHistoryResponse>> GetStatusHistoryAsync(int id, PagedSearchObject? search);
     }
 }

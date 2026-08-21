@@ -107,9 +107,11 @@ public class AppointmentController : ControllerBase
     [HttpGet("{id}/history")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<List<AppointmentStatusHistoryResponse>>> GetHistory(int id)
+    public async Task<ActionResult<PagedResult<AppointmentStatusHistoryResponse>>> GetHistory(
+        int id,
+        [FromQuery] PagedSearchObject? search)
     {
-        var result = await _appointmentService.GetStatusHistoryAsync(id);
+        var result = await _appointmentService.GetStatusHistoryAsync(id, search);
         return Ok(result);
     }
 

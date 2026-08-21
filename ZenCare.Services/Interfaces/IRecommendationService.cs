@@ -1,11 +1,16 @@
 using ZenCare.Model.Responses;
+using ZenCare.Model.SearchObjects;
 
 namespace ZenCare.Services.Interfaces
 {
     public interface IRecommendationService
     {
-        Task<List<RecommendationItemResponse>> GetRecommendedProductsAsync(int userId, int take = 5);
+        Task<PagedResult<RecommendationItemResponse>> GetRecommendedProductsAsync(
+            int userId,
+            RecommendationSearchObject? search = null);
 
-        Task<List<RecommendationItemResponse>> GetRecommendedServicesAsync(int userId, int take = 5);
+        Task<PagedResult<RecommendationItemResponse>> GetRecommendedServicesAsync(
+            int userId,
+            RecommendationSearchObject? search = null);
     }
 }

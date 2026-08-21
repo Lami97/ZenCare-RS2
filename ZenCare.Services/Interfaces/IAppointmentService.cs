@@ -13,7 +13,7 @@ namespace ZenCare.Services.Interfaces
         Task<AppointmentResponse> UpdateMyAsync(int id, int userId, AppointmentUpdateRequest request);
         Task<AppointmentResponse> UpdateWithActorAsync(int id, int actorUserId, AppointmentUpdateRequest request);
         Task<AppointmentResponse> CancelMyAsync(int id, int userId, AppointmentCancelRequest request);
-        Task<List<AppointmentStatusHistoryResponse>> GetStatusHistoryAsync(int id);
+        Task<PagedResult<AppointmentStatusHistoryResponse>> GetStatusHistoryAsync(int id, PagedSearchObject? search);
         Task<List<AppointmentEmployeeOptionResponse>> GetAvailableEmployeeOptionsAsync(int wellnessServiceId, DateTime? appointmentDate, TimeSpan? startTime, TimeSpan? endTime, int? page, int? pageSize);
     }
 }

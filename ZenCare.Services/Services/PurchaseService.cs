@@ -233,18 +233,31 @@ namespace ZenCare.Services.Services
             return await GetByIdAsync(purchase.Id);
         }
 
-        public async Task<List<PurchaseStatusHistoryResponse>> GetStatusHistoryAsync(int id)
+        public async Task<PagedResult<PurchaseStatusHistoryResponse>> GetStatusHistoryAsync(
+            int id,
+            PagedSearchObject? search)
         {
             if (!await DbContext.Purchases.AnyAsync(purchase => purchase.Id == id))
             {
                 throw new NotFoundException(nameof(Database.Purchase), id);
             }
 
-            return await DbContext.PurchaseStatusHistories
+            var query = DbContext.PurchaseStatusHistories
                 .AsNoTracking()
-                .Where(history => history.PurchaseId == id)
+                .Where(history => history.PurchaseId == id);
+
+            int? totalCount = null;
+            if (search?.IncludeTotalCount == true)
+            {
+                totalCount = await query.CountAsync();
+            }
+
+            var (page, pageSize) = BaseSearchObject.NormalizePagination(search);
+            var items = await query
                 .OrderBy(history => history.ChangedAt)
                 .ThenBy(history => history.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .Select(history => new PurchaseStatusHistoryResponse
                 {
                     Id = history.Id,
@@ -262,6 +275,12 @@ namespace ZenCare.Services.Services
                     Reason = history.Reason
                 })
                 .ToListAsync();
+
+            return new PagedResult<PurchaseStatusHistoryResponse>
+            {
+                Items = items,
+                TotalCount = totalCount
+            };
         }
 
         private void AddPurchaseStatusHistory(

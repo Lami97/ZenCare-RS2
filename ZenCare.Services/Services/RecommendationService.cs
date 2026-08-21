@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ZenCare.Model.Enums;
 using ZenCare.Model.Responses;
+using ZenCare.Model.SearchObjects;
 using ZenCare.Services.Database;
 using ZenCare.Services.Interfaces;
 
@@ -9,7 +10,6 @@ namespace ZenCare.Services.Services
     public class RecommendationService : IRecommendationService
     {
         private const int DefaultTake = 5;
-        private const int MaxTake = 50;
         private const decimal PurchaseCategoryBoost = 12m;
         private const decimal PurchaseSupplierBoost = 10m;
         private const decimal PurchaseTypeBoost = 8m;
@@ -31,9 +31,11 @@ namespace ZenCare.Services.Services
             _dbContext = dbContext;
         }
 
-        public async Task<List<RecommendationItemResponse>> GetRecommendedProductsAsync(int userId, int take = DefaultTake)
+        public async Task<PagedResult<RecommendationItemResponse>> GetRecommendedProductsAsync(
+            int userId,
+            RecommendationSearchObject? search = null)
         {
-            take = NormalizeTake(take);
+            var (page, pageSize) = NormalizePagination(search);
 
             var purchasedPreferences = await _dbContext.PurchaseItems
                 .AsNoTracking()
@@ -122,7 +124,7 @@ namespace ZenCare.Services.Services
                 .Where(p => p.Status == ProductStatus.Active && p.StockQuantity > 0)
                 .ToListAsync();
 
-            var recommendations = products
+            var rankedRecommendations = products
                 .Select(product => BuildProductRecommendation(
                     product,
                     purchasePreferenceIds,
@@ -131,18 +133,27 @@ namespace ZenCare.Services.Services
                     popularityStats,
                     reviewStats))
                 .OrderByDescending(x => x.Score)
-                .ThenBy(x => x.Name)
-                .Take(take)
+                .ThenBy(x => x.Name);
+
+            var recommendations = rankedRecommendations
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToList();
 
             await LogRecommendations(userId, recommendations, isProductRecommendation: true);
 
-            return recommendations;
+            return new PagedResult<RecommendationItemResponse>
+            {
+                Items = recommendations,
+                TotalCount = search?.IncludeTotalCount == true ? products.Count : null
+            };
         }
 
-        public async Task<List<RecommendationItemResponse>> GetRecommendedServicesAsync(int userId, int take = DefaultTake)
+        public async Task<PagedResult<RecommendationItemResponse>> GetRecommendedServicesAsync(
+            int userId,
+            RecommendationSearchObject? search = null)
         {
-            take = NormalizeTake(take);
+            var (page, pageSize) = NormalizePagination(search);
 
             var preferredServiceCategoryIds = await _dbContext.Appointments
                 .AsNoTracking()
@@ -191,16 +202,23 @@ namespace ZenCare.Services.Services
                             s.Status != ServiceStatus.Archived)
                 .ToListAsync();
 
-            var recommendations = services
+            var rankedRecommendations = services
                 .Select(service => BuildServiceRecommendation(service, preferredCategoryIds, popularityStats, reviewStats))
                 .OrderByDescending(x => x.Score)
-                .ThenBy(x => x.Name)
-                .Take(take)
+                .ThenBy(x => x.Name);
+
+            var recommendations = rankedRecommendations
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToList();
 
             await LogRecommendations(userId, recommendations, isProductRecommendation: false);
 
-            return recommendations;
+            return new PagedResult<RecommendationItemResponse>
+            {
+                Items = recommendations,
+                TotalCount = search?.IncludeTotalCount == true ? services.Count : null
+            };
         }
 
         private static RecommendationItemResponse BuildProductRecommendation(
@@ -373,14 +391,22 @@ namespace ZenCare.Services.Services
             }
         }
 
-        private static int NormalizeTake(int take)
+        private static (int Page, int PageSize) NormalizePagination(RecommendationSearchObject? search)
         {
-            if (take <= 0)
+            var page = search?.Page ?? BaseSearchObject.DefaultPage;
+            var pageSize = search?.PageSize ?? search?.Take ?? DefaultTake;
+
+            if (page <= 0)
             {
-                return DefaultTake;
+                page = BaseSearchObject.DefaultPage;
             }
 
-            return Math.Min(take, MaxTake);
+            if (pageSize <= 0)
+            {
+                pageSize = DefaultTake;
+            }
+
+            return (page, Math.Min(pageSize, BaseSearchObject.MaxPageSize));
         }
 
         private sealed record ProductPopularityStats(int Quantity, int Count);
