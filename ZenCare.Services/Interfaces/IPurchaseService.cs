@@ -4,14 +4,11 @@ using ZenCare.Model.SearchObjects;
 
 namespace ZenCare.Services.Interfaces
 {
-    public interface IPurchaseService : ICRUDService<PurchaseResponse, PurchaseInsertRequest, PurchaseUpdateRequest, PurchaseSearchObject>
+    public interface IPurchaseService : IReadService<PurchaseResponse, PurchaseSearchObject>
     {
         Task<PagedResult<PurchaseResponse>> GetMyAsync(int userId, PurchaseSearchObject? search);
         Task<PurchaseResponse> GetMyByIdAsync(int id, int userId);
-        Task<PurchaseResponse> InsertMyAsync(int userId, PurchaseInsertRequest request);
-        Task<PurchaseResponse> UpdateMyAsync(int id, int userId, PurchaseUpdateRequest request);
         Task<PurchaseResponse> UpdateWithActorAsync(int id, int actorUserId, PurchaseUpdateRequest request);
-        Task DeleteMyAsync(int id, int userId);
         Task<PurchaseResponse> CheckoutAsync(int userId, PurchaseCheckoutRequest request);
         Task<PurchaseResponse> CancelMyAsync(int id, int userId);
         Task<List<PurchaseStatusHistoryResponse>> GetStatusHistoryAsync(int id);

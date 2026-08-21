@@ -86,47 +86,6 @@ public class PurchaseController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = AppRoles.Admin)]
-    [HttpPost]
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<PurchaseResponse>> Create([FromBody] PurchaseInsertRequest request)
-    {
-        try
-        {
-            var result = await _purchaseService.InsertAsync(request);
-            return result;
-        }
-        catch (BusinessException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-    }
-
-    [HttpPost("My")]
-    [Authorize(Roles = AppRoles.Client)]
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<PurchaseResponse>> CreateMy([FromBody] PurchaseInsertRequest request)
-    {
-        var userId = _currentUserAccessor.GetUserId();
-
-        if (userId == null)
-        {
-            return Unauthorized();
-        }
-
-        try
-        {
-            var result = await _purchaseService.InsertMyAsync(userId.Value, request);
-            return result;
-        }
-        catch (BusinessException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-    }
-
     [HttpPost("Checkout")]
     [Authorize(Roles = AppRoles.Client)]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -203,69 +162,6 @@ public class PurchaseController : ControllerBase
         catch (BusinessException ex)
         {
             return BadRequest(ex.Message);
-        }
-    }
-
-    [HttpPut("My/{id}")]
-    [Authorize(Roles = AppRoles.Client)]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<PurchaseResponse>> UpdateMy(int id, [FromBody] PurchaseUpdateRequest request)
-    {
-        var userId = _currentUserAccessor.GetUserId();
-
-        if (userId == null)
-        {
-            return Unauthorized();
-        }
-
-        try
-        {
-            var result = await _purchaseService.UpdateMyAsync(id, userId.Value, request);
-            return Ok(result);
-        }
-        catch (NotFoundException)
-        {
-            return NotFound();
-        }
-        catch (BusinessException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-    }
-
-    [Authorize(Roles = AppRoles.Admin)]
-    [HttpDelete("{id}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Delete(int id)
-    {
-        await _purchaseService.DeleteAsync(id);
-        return NoContent();
-    }
-
-    [HttpDelete("My/{id}")]
-    [Authorize(Roles = AppRoles.Client)]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteMy(int id)
-    {
-        var userId = _currentUserAccessor.GetUserId();
-
-        if (userId == null)
-        {
-            return Unauthorized();
-        }
-
-        try
-        {
-            await _purchaseService.DeleteMyAsync(id, userId.Value);
-            return NoContent();
-        }
-        catch (NotFoundException)
-        {
-            return NotFound();
         }
     }
 

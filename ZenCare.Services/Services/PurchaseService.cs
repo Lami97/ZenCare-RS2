@@ -35,18 +35,14 @@ namespace ZenCare.Services.Services
             _logger = logger;
         }
 
-        public override async Task<PurchaseResponse> InsertAsync(PurchaseInsertRequest request)
-        {
-            ValidateGenericPurchaseInsert(request);
-            ValidatePurchaseRequest(request.PurchaseNumber, request.TotalAmount, request.Status, request.PaymentStatus);
+        public override Task<PurchaseResponse> InsertAsync(PurchaseInsertRequest request) =>
+            throw new BusinessException("Purchases can only be created through the checkout workflow.");
 
-            return await base.InsertAsync(request);
-        }
+        public override Task<PurchaseResponse> UpdateAsync(int id, PurchaseUpdateRequest request) =>
+            throw new BusinessException("Purchases can only be updated through an authorized workflow.");
 
-        public override async Task<PurchaseResponse> UpdateAsync(int id, PurchaseUpdateRequest request)
-        {
-            return await UpdateCoreAsync(id, request, null);
-        }
+        public override Task DeleteAsync(int id) =>
+            throw new BusinessException("Purchases cannot be deleted. Use the cancellation or refund workflow.");
 
         public async Task<PurchaseResponse> UpdateWithActorAsync(
             int id,
@@ -71,7 +67,7 @@ namespace ZenCare.Services.Services
             var previousStatus = entity.Status;
             var previousPaymentStatus = entity.PaymentStatus;
 
-            ValidateGenericPurchaseUpdate(entity, request);
+            ValidateAdminPurchaseUpdate(entity, request);
             PreservePaymentEvidence(entity, request);
             ValidatePurchaseRequest(request.PurchaseNumber, request.TotalAmount, request.Status, request.PaymentStatus);
             ValidatePurchaseStatusTransition(entity.Status, request.Status);
@@ -119,42 +115,6 @@ namespace ZenCare.Services.Services
             var entity = await GetClientPurchaseEntityAsync(id, userId);
 
             return Mapper.Map<PurchaseResponse>(entity);
-        }
-
-        public async Task<PurchaseResponse> InsertMyAsync(int userId, PurchaseInsertRequest request)
-        {
-            request.UserId = userId;
-
-            return await InsertAsync(request);
-        }
-
-        public async Task<PurchaseResponse> UpdateMyAsync(int id, int userId, PurchaseUpdateRequest request)
-        {
-            var entity = await GetClientPurchaseEntityAsync(id, userId);
-
-            if (request.Status != entity.Status)
-            {
-                throw new BusinessException("Purchase status can only be changed through the payment, cancellation, or fulfillment workflow.");
-            }
-
-            request.Id = id;
-            request.UserId = userId;
-
-            return await UpdateAsync(id, request);
-        }
-
-        public async Task DeleteMyAsync(int id, int userId)
-        {
-            var entity = await DbContext.Purchases
-                .FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
-
-            if (entity == null)
-            {
-                throw new NotFoundException(nameof(Database.Purchase), id);
-            }
-
-            DbContext.Purchases.Remove(entity);
-            await DbContext.SaveChangesAsync();
         }
 
         public async Task<PurchaseResponse> CheckoutAsync(int userId, PurchaseCheckoutRequest request)
@@ -604,31 +564,16 @@ namespace ZenCare.Services.Services
             ValidatePaymentStatus(status, paymentStatus);
         }
 
-        private static void ValidateGenericPurchaseInsert(PurchaseInsertRequest request)
+        private static void ValidateAdminPurchaseUpdate(Database.Purchase entity, PurchaseUpdateRequest request)
         {
-            if (request.Status is not PurchaseStatus.Draft and not PurchaseStatus.PendingPayment ||
-                request.PaymentStatus != PaymentStatus.Pending)
+            if (request.PaymentStatus != entity.PaymentStatus)
             {
-                throw new BusinessException("Purchases can only be created in Draft or PendingPayment status with Pending payment status.");
+                throw new BusinessException("Payment status can only be changed through the payment or refund workflow.");
             }
 
-            if (!string.IsNullOrWhiteSpace(request.StripePaymentIntentId) || request.PaidAt.HasValue)
+            if (request.Status != entity.Status && !IsFulfillmentTransition(entity.Status, request.Status))
             {
-                throw new BusinessException("Stripe payment details can only be set through the payment workflow.");
-            }
-        }
-
-        private static void ValidateGenericPurchaseUpdate(Database.Purchase entity, PurchaseUpdateRequest request)
-        {
-            if (entity.Status != request.Status && request.Status is PurchaseStatus.Paid or PurchaseStatus.Refunded)
-            {
-                throw new BusinessException("Paid and refunded statuses can only be set through the payment workflow.");
-            }
-
-            if (entity.PaymentStatus != request.PaymentStatus &&
-                request.PaymentStatus is PaymentStatus.Succeeded or PaymentStatus.Refunded)
-            {
-                throw new BusinessException("Succeeded and refunded payment statuses can only be set through the payment workflow.");
+                throw new BusinessException("Purchase status can only be changed through the payment, cancellation, refund, or fulfillment workflow.");
             }
 
             if (request.TotalAmount != entity.TotalAmount)
@@ -646,6 +591,18 @@ namespace ZenCare.Services.Services
             {
                 throw new BusinessException("Payment date can only be set through the payment workflow.");
             }
+        }
+
+        private static bool IsFulfillmentTransition(PurchaseStatus currentStatus, PurchaseStatus newStatus)
+        {
+            return currentStatus switch
+            {
+                PurchaseStatus.Paid => newStatus == PurchaseStatus.Processing,
+                PurchaseStatus.Processing => newStatus is PurchaseStatus.ReadyForPickup or PurchaseStatus.Shipped,
+                PurchaseStatus.ReadyForPickup => newStatus == PurchaseStatus.Completed,
+                PurchaseStatus.Shipped => newStatus == PurchaseStatus.Completed,
+                _ => false
+            };
         }
 
         private static void PreservePaymentEvidence(Database.Purchase entity, PurchaseUpdateRequest request)

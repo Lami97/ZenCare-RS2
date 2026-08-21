@@ -678,6 +678,7 @@ final adminModules = <AdminModule>[
     title: 'Appointments',
     endpoint: 'Appointment',
     entityName: 'appointment',
+    canDelete: false,
     filters: [
       FilterField(
         key: 'UserId',
@@ -860,6 +861,7 @@ final adminModules = <AdminModule>[
     endpoint: 'Purchase',
     entityName: 'purchase',
     canAdd: false,
+    canDelete: false,
     searchKey: 'PurchaseNumber',
     searchLabel: 'Search by purchase number',
     filters: [

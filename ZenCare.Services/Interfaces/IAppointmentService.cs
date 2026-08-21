@@ -4,8 +4,9 @@ using ZenCare.Model.SearchObjects;
 
 namespace ZenCare.Services.Interfaces
 {
-    public interface IAppointmentService : ICRUDService<AppointmentResponse, AppointmentInsertRequest, AppointmentUpdateRequest, AppointmentSearchObject>
+    public interface IAppointmentService : IReadService<AppointmentResponse, AppointmentSearchObject>
     {
+        Task<AppointmentResponse> InsertAsync(AppointmentInsertRequest request);
         Task<PagedResult<AppointmentResponse>> GetMyAsync(int userId, AppointmentSearchObject? search);
         Task<AppointmentResponse> GetMyByIdAsync(int id, int userId);
         Task<AppointmentResponse> InsertMyAsync(int userId, AppointmentInsertRequest request);

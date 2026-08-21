@@ -53,6 +53,9 @@ namespace ZenCare.Services.Services
             return await UpdateCoreAsync(id, request, null);
         }
 
+        public override Task DeleteAsync(int id) =>
+            throw new BusinessException("Appointments cannot be deleted. Use the cancellation or status workflow.");
+
         public async Task<AppointmentResponse> UpdateWithActorAsync(
             int id,
             int actorUserId,

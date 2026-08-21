@@ -238,14 +238,4 @@ public class AppointmentController : ControllerBase
         }
     }
 
-    [Authorize(Roles = AppRoles.AdminOrEmployee)]
-    [HttpDelete("{id}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Delete(int id)
-    {
-        await _appointmentService.DeleteAsync(id);
-        return NoContent();
-    }
-
 }
