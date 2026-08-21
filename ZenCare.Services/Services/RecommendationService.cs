@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ZenCare.Model.Enums;
 using ZenCare.Model.Responses;
 using ZenCare.Model.SearchObjects;
@@ -25,10 +26,14 @@ namespace ZenCare.Services.Services
         private const decimal ReviewCountWeight = 0.5m;
 
         private readonly ZenCareDbContext _dbContext;
+        private readonly ILogger<RecommendationService> _logger;
 
-        public RecommendationService(ZenCareDbContext dbContext)
+        public RecommendationService(
+            ZenCareDbContext dbContext,
+            ILogger<RecommendationService> logger)
         {
             _dbContext = dbContext;
+            _logger = logger;
         }
 
         public async Task<PagedResult<RecommendationItemResponse>> GetRecommendedProductsAsync(
@@ -382,12 +387,20 @@ namespace ZenCare.Services.Services
                 _dbContext.RecommendationLogs.AddRange(logs);
                 await _dbContext.SaveChangesAsync();
             }
-            catch
+            catch (Exception exception)
             {
                 foreach (var log in logs)
                 {
                     _dbContext.Entry(log).State = EntityState.Detached;
                 }
+
+                _logger.LogWarning(
+                    exception,
+                    "Recommendation log persistence failed for user {UserId}. Type: {RecommendationType}; result count: {ResultCount}; operation: {OperationName}. Recommendations will still be returned.",
+                    userId,
+                    isProductRecommendation ? "Product" : "Service",
+                    logs.Count,
+                    nameof(LogRecommendations));
             }
         }
 
