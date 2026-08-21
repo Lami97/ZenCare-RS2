@@ -64,7 +64,7 @@ namespace ZenCare.Services.Services
             }
 
             ValidateQuantity(request.Quantity);
-            ValidatePurchaseCanBeModified(existingEntity.Purchase);
+            await ValidatePurchaseCanBeModifiedAsync(existingEntity.Purchase);
 
             var targetPurchase = existingEntity.PurchaseId == request.PurchaseId
                 ? existingEntity.Purchase
@@ -145,7 +145,7 @@ namespace ZenCare.Services.Services
                 throw new NotFoundException(nameof(Database.PurchaseItem), id);
             }
 
-            ValidatePurchaseCanBeModified(existingEntity.Purchase);
+            await ValidatePurchaseCanBeModifiedAsync(existingEntity.Purchase);
 
             var purchaseId = existingEntity.PurchaseId;
             existingEntity.Product.StockQuantity += existingEntity.Quantity;
@@ -248,13 +248,20 @@ namespace ZenCare.Services.Services
                 throw new BusinessException("Purchase was not found.");
             }
 
-            ValidatePurchaseCanBeModified(purchase);
+            await ValidatePurchaseCanBeModifiedAsync(purchase);
             return purchase;
         }
 
-        private static void ValidatePurchaseCanBeModified(Database.Purchase purchase)
+        private async Task ValidatePurchaseCanBeModifiedAsync(Database.Purchase purchase)
         {
-            if (purchase.Status is not PurchaseStatus.Draft and not PurchaseStatus.PendingPayment)
+            var paymentProcessingStarted = !string.IsNullOrWhiteSpace(purchase.StripePaymentIntentId) ||
+                await DbContext.Payments.AnyAsync(payment =>
+                    payment.PurchaseId == purchase.Id &&
+                    payment.StripePaymentIntentId != null &&
+                    payment.StripePaymentIntentId != string.Empty);
+
+            if ((purchase.Status is not PurchaseStatus.Draft and not PurchaseStatus.PendingPayment) ||
+                paymentProcessingStarted)
             {
                 throw new BusinessException("Purchase items cannot be modified after payment processing has started.");
             }
