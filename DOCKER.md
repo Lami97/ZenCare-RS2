@@ -91,6 +91,7 @@ The `.env.example` file contains the required keys:
 
 ```text
 MSSQL_SA_PASSWORD=CHANGE_ME
+MSSQL_DATABASE=210143
 RABBITMQ_USERNAME=guest
 RABBITMQ_PASSWORD=guest
 STRIPE_SECRET_KEY=sk_test_CHANGE_ME
@@ -121,13 +122,13 @@ BOOTSTRAP_ADMIN_PASSWORD=CHANGE_ME_TO_A_STRONG_PASSWORD
 Host connection:
 
 ```text
-Server=localhost,1433;Database=ZenCareDb;User Id=sa;Password=<MSSQL_SA_PASSWORD>;TrustServerCertificate=True;Encrypt=False
+Server=localhost,1433;Database=210143;User Id=sa;Password=<MSSQL_SA_PASSWORD>;TrustServerCertificate=True;Encrypt=False
 ```
 
 Inside Docker, API and Worker use:
 
 ```text
-Server=sqlserver,1433;Database=ZenCareDb;User Id=sa;Password=<MSSQL_SA_PASSWORD>;TrustServerCertificate=True;Encrypt=False
+Server=sqlserver,1433;Database=210143;User Id=sa;Password=<MSSQL_SA_PASSWORD>;TrustServerCertificate=True;Encrypt=False
 ```
 
 The API applies existing EF migrations on startup with retry handling, so a fresh SQL Server container receives the current schema and migration seed data.

@@ -53,6 +53,7 @@ Edit `.env` and replace every `CHANGE_ME` value that applies to the intended tes
 | Variable | Purpose |
 | --- | --- |
 | `MSSQL_SA_PASSWORD` | Local SQL Server `sa` password; use a password accepted by SQL Server complexity rules |
+| `MSSQL_DATABASE` | Evaluator database name; defaults to the student index `210143` |
 | `RABBITMQ_HOST`, `RABBITMQ_PORT` | RabbitMQ container host and AMQP port |
 | `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD` | RabbitMQ and Management UI credentials |
 | `JWT_ISSUER`, `JWT_AUDIENCE`, `JWT_SECRET_KEY`, `JWT_DURATION_IN_MINUTES` | JWT validation/signing settings; use a strong local test signing key |
@@ -73,7 +74,7 @@ The recommended evaluator path is Docker Compose. A direct `dotnet run` does not
 Example User Secrets configuration with placeholders:
 
 ```cmd
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost,1433;Database=ZenCareDb;User Id=sa;Password=<your-local-password>;TrustServerCertificate=True;Encrypt=False" --project ZenCare.WebAPI
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost,1433;Database=210143;User Id=sa;Password=<your-local-password>;TrustServerCertificate=True;Encrypt=False" --project ZenCare.WebAPI
 dotnet user-secrets set "JwtToken:SecretKey" "<your-long-local-test-secret>" --project ZenCare.WebAPI
 dotnet run --project ZenCare.WebAPI
 ```
@@ -207,12 +208,12 @@ Registration and login do not require SMTP. To test password-reset email deliver
 ## Database Initialization
 
 - Engine: Microsoft SQL Server 2022 in Docker.
-- Compose database: `ZenCareDb`.
+- Compose database: `210143` (the student index without the `IB` prefix).
 - The API waits/retries for SQL Server, applies existing EF Core migrations, then runs optional bootstrap Admin logic and the idempotent evaluator seed.
 - SQL Server data persists in the `sqlserver-data` named volume; RabbitMQ data persists in `rabbitmq-data`.
 - A direct local API uses whichever database is supplied through `ConnectionStrings__DefaultConnection`.
 
-The current Compose database name is `ZenCareDb`. The official RSII index-based database naming check remains a separate pre-submission item and is intentionally not changed by this documentation update.
+The Compose database name is configured through `MSSQL_DATABASE` and defaults to the required student index `210143`.
 
 ## Build and Verification
 

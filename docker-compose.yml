@@ -53,7 +53,7 @@
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
       Swagger__Enabled: ${SWAGGER_ENABLED:-true}
-      ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=ZenCareDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False
+      ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=${MSSQL_DATABASE:-210143};User Id=sa;Password=${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False
       RabbitMQ__Host: ${RABBITMQ_HOST:-rabbitmq}
       RabbitMQ__Port: ${RABBITMQ_PORT:-5672}
       RabbitMQ__Username: ${RABBITMQ_USERNAME:?Set RABBITMQ_USERNAME}
@@ -98,7 +98,7 @@
         condition: service_healthy
     environment:
       DOTNET_ENVIRONMENT: Production
-      ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=ZenCareDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False
+      ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=${MSSQL_DATABASE:-210143};User Id=sa;Password=${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False
       RabbitMQ__Host: ${RABBITMQ_HOST:-rabbitmq}
       RabbitMQ__Port: ${RABBITMQ_PORT:-5672}
       RabbitMQ__Username: ${RABBITMQ_USERNAME:?Set RABBITMQ_USERNAME}
