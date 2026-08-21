@@ -1,254 +1,257 @@
 # ZenCare
 
-ZenCare je RSII seminarski projekat za wellness centar. Rjesenje sadrzi .NET backend, WinForms administraciju, Flutter mobilnu aplikaciju za klijente, Worker servis, SQL Server bazu, RabbitMQ poruke i Stripe sandbox placanje.
+ZenCare is an RSII seminar project for managing a wellness center. It combines a .NET 9 REST API, a Flutter Windows administration application, a Flutter Android client application, SQL Server, RabbitMQ, a background Worker, Stripe test payments, reporting, notifications, and recommendations.
 
-## O projektu
+## Implemented Applications
 
-ZenCare pokriva administraciju wellness usluga, proizvoda, korisnika, zaposlenika, termina, kupovina, recenzija, FAQ sadrzaja, dobavljaca, izvjestaja i preporuka. Klijentska mobilna aplikacija podrzava registraciju/prijavu, profil, proizvode, korpu, checkout, Stripe placanje/refund, termine, recenzije i preporuke.
-
-## Tehnologije
-
-- .NET 9 WebAPI, Services, Model i Common projekti
-- Entity Framework Core 9 i SQL Server
-- JWT Bearer autentifikacija i role-based autorizacija
-- WinForms `net9.0-windows` administracija
-- Flutter/Dart mobilna aplikacija
-- Provider, Dio, SharedPreferences i flutter_stripe u mobilnoj aplikaciji
-- RabbitMQ za backend event messaging
-- Worker servis za pozadinsku obradu poruka
-- Docker Compose za API, Worker, SQL Server i RabbitMQ
-- Swagger/OpenAPI za testiranje API-ja
-- AutoMapper za DTO mapiranja
-
-## Arhitektura / projekti
-
-| Projekat | Uloga |
+| Project | Responsibility |
 | --- | --- |
-| `ZenCare.WebAPI` | REST API, autentifikacija, autorizacija, Swagger, startup migracije i bootstrap admin |
-| `ZenCare.Services` | EF Core DbContext, entiteti, poslovna logika, mapiranja, RabbitMQ i Stripe integracija |
-| `ZenCare.Model` | DTO modeli, request/response klase, search objekti, enum-i i poruke |
-| `ZenCare.Common` | Zajednicki .NET helper/common projekat |
-| `ZenCare.WinUI` | WinForms administrativna desktop aplikacija |
-| `ZenCare.Mobile` | Flutter mobilna aplikacija za klijente |
-| `ZenCare.Worker` | BackgroundService koji konzumira RabbitMQ poruke |
+| `ZenCare.WebAPI` | REST API, JWT authentication/authorization, EF Core migrations, evaluator seed, Swagger, Stripe and RabbitMQ publishing |
+| `ZenCare.Services` | Business logic, EF Core data access, validation, mappings, security and integrations |
+| `ZenCare.Model` | Request/response DTOs, search objects, enums and shared contracts |
+| `ZenCare.Common` | Shared .NET helpers |
+| `ZenCare.Desktop` | Required Flutter Windows administration application (Admin role) |
+| `ZenCare.Mobile` | Required Flutter Android client application (Client role) |
+| `ZenCare.Worker` | Separate RabbitMQ consumer that persists purchase/workflow notifications |
+| `ZenCare.WinUI` | Legacy administration client retained in the solution; it is not the required evaluator desktop application |
 
-## Funkcionalnosti
+## Main Features
 
-### Mobilna aplikacija
+- Admin management of users, roles, employees, employee-service assignments, services, products, suppliers, appointments, purchases, reviews, FAQ data, and related reference data.
+- Server-side search, filtering, pagination, validation, ownership checks, and workflow state transitions.
+- Business analytics in Flutter Desktop, including printable/exportable PDF reports.
+- Client registration, login, profile management, password reset, and server-side token revocation on logout.
+- Mobile service discovery, appointment booking/cancellation, product browsing, cart, checkout, purchase history, reviews, recommendations, and notifications.
+- Real Stripe test-mode PaymentIntent verification and refund workflow.
+- RabbitMQ messages processed by a separate Worker container.
+- Content-based product recommendations using purchase, view, category, supplier, and review signals.
 
-- Registracija i prijava klijenta
-- JWT cuvanje sesije i automatski Bearer header
-- Profil, edit profila, promjena lozinke i logout
-- Pregled proizvoda, detalji proizvoda, korpa i historija kupovina
-- Checkout iz korpe, Stripe PaymentIntent placanje, potvrda placanja, refund i otkazivanje neplacene narudzbe
-- Pregled, kreiranje i otkazivanje vlastitih termina
-- Kreiranje recenzija za dozvoljene termine/proizvode
-- Pregled preporuka za proizvode i usluge sa objasnjenjem razloga
+## Prerequisites
 
-### WinUI administracija
+- Git
+- Docker Desktop with Docker Compose
+- .NET 9 SDK (for local build verification or direct API development)
+- Flutter SDK with Windows desktop support
+- Visual Studio Windows desktop C++ workload required by Flutter Windows
+- Android Studio/SDK and an Android emulator or physical Android device
+- A Stripe test account to exercise payment and refund workflows
+- An SMTP test account only if password-reset email delivery will be evaluated
 
-WinUI se koristi za administratorski rad nad modulima:
+## Configuration
 
-- Product Categories, Product Types, Units, Products, Suppliers
-- Service Categories, Services, Employees i Employee-Service veze kroz postojece forme
-- Users, User Roles, Appointments, Reviews
-- Purchases, Purchase Items, FAQ Categories, FAQ
-- Reports sa prikazom statistika i PDF exportima
-
-### Backend / Worker
-
-- CRUD API za domenske module
-- Klijentski `/My` endpointi za vlasnistvo nad terminima, kupovinama, korpom, placanjima, recenzijama, profilom i notifikacijama
-- Centralizovana obrada `BusinessException` gresaka
-- Automatske EF migracije pri startu API-ja
-- Idempotentni bootstrap Admin korisnik za svjezu bazu
-- RabbitMQ purchase event publisher i Worker consumer koji kreira notifikaciju za vlasnika kupovine
-
-## Preduslovi
-
-- .NET SDK 9
-- Docker Desktop
-- Flutter SDK, ako se pokrece mobilna aplikacija
-- Android emulator ili fizicki uredjaj za Flutter Mobile
-- Stripe test/sandbox nalog za placanje
-
-## Konfiguracija okruzenja
-
-Kreirati lokalni `.env` iz primjera:
+Create the local Compose environment file from the tracked template:
 
 ```cmd
+cd /d "C:\path\to\ZenCare"
 copy .env.example .env
 ```
 
-Popuniti lokalne/test vrijednosti u `.env`. Fajl `.env` se ne smije commitovati.
-Docker cita JWT vrijednosti iz `.env`, zato `JWT_SECRET_KEY` obavezno zamijeniti jakom lokalnom/test vrijednoscu. Za direktno lokalno pokretanje WebAPI-ja bez Dockera, `JwtToken__SecretKey` treba dati kroz environment variable ili .NET User Secrets, npr. `dotnet user-secrets set "JwtToken:SecretKey" "<your-local-secret>"`.
+Edit `.env` and replace every `CHANGE_ME` value that applies to the intended test. The local `.env` file is ignored by Git and must never be committed or included unencrypted in a release.
 
-| Varijabla | Svrha | Required / Optional |
-| --- | --- | --- |
-| `MSSQL_SA_PASSWORD` | Lozinka za SQL Server `sa` korisnika u Dockeru | Required |
-| `RABBITMQ_USERNAME` | RabbitMQ korisnicko ime | Required |
-| `RABBITMQ_PASSWORD` | RabbitMQ lozinka | Required |
-| `STRIPE_SECRET_KEY` | Stripe sandbox secret key za backend PaymentIntent/refund | Required za placanje |
-| `STRIPE_CURRENCY` | Stripe valuta, default u compose je `usd` | Optional |
-| `JWT_ISSUER` | JWT issuer | Required |
-| `JWT_AUDIENCE` | JWT audience | Required |
-| `JWT_SECRET_KEY` | JWT signing key | Required |
-| `JWT_DURATION_IN_MINUTES` | Trajanje JWT tokena | Optional |
-| `PASSWORD_RESET_EXPIRY_MINUTES` | Trajanje jednokratnog reset tokena | Optional, default 15 |
-| `SMTP_HOST` | SMTP server za slanje reset tokena | Required za reset lozinke |
-| `SMTP_PORT` | SMTP port | Optional, default 587 |
-| `SMTP_USERNAME` | SMTP korisnicko ime | Required ako server zahtijeva autentifikaciju |
-| `SMTP_PASSWORD` | SMTP lozinka | Required ako server zahtijeva autentifikaciju |
-| `SMTP_USE_SSL` | Ukljucuje SSL/TLS za SMTP | Optional, default true |
-| `SMTP_FROM_ADDRESS` | Adresa posiljaoca reset poruke | Required za reset lozinke |
-| `SMTP_FROM_NAME` | Naziv posiljaoca | Optional, default ZenCare |
-| `SWAGGER_ENABLED` | Ukljucuje Swagger u Docker Production okruzenju | Optional |
-| `BOOTSTRAP_ADMIN_ENABLED` | Ukljucuje kreiranje prvog Admin korisnika | Optional |
-| `BOOTSTRAP_ADMIN_FIRST_NAME` | Ime bootstrap Admin korisnika | Required ako je bootstrap ukljucen |
-| `BOOTSTRAP_ADMIN_LAST_NAME` | Prezime bootstrap Admin korisnika | Required ako je bootstrap ukljucen |
-| `BOOTSTRAP_ADMIN_EMAIL` | Email bootstrap Admin korisnika | Required ako je bootstrap ukljucen |
-| `BOOTSTRAP_ADMIN_USERNAME` | Username bootstrap Admin korisnika | Required ako je bootstrap ukljucen |
-| `BOOTSTRAP_ADMIN_PASSWORD` | Lozinka bootstrap Admin korisnika | Required ako je bootstrap ukljucen |
+### Docker / Compose Values
 
-Mobilna aplikacija koristi compile-time konfiguraciju:
+| Variable | Purpose |
+| --- | --- |
+| `MSSQL_SA_PASSWORD` | Local SQL Server `sa` password; use a password accepted by SQL Server complexity rules |
+| `RABBITMQ_HOST`, `RABBITMQ_PORT` | RabbitMQ container host and AMQP port |
+| `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD` | RabbitMQ and Management UI credentials |
+| `JWT_ISSUER`, `JWT_AUDIENCE`, `JWT_SECRET_KEY`, `JWT_DURATION_IN_MINUTES` | JWT validation/signing settings; use a strong local test signing key |
+| `STRIPE_SECRET_KEY`, `STRIPE_CURRENCY` | Backend Stripe test secret key and currency |
+| `CORS_ALLOWED_ORIGIN` | Explicit allowed browser origin |
+| `BUSINESS_TIME_ZONE_ID` | Business time zone; Compose defaults to `Europe/Sarajevo` |
+| `PASSWORD_RESET_EXPIRY_MINUTES` | Password-reset token lifetime |
+| `SMTP_*` | SMTP delivery settings; required only for a real password-reset email test |
+| `SWAGGER_ENABLED` | Enables Swagger in the Compose Production environment |
+| `BOOTSTRAP_ADMIN_*` | Optional first-admin bootstrap; evaluator accounts do not depend on it |
 
-- `API_BASE_URL`, default: `http://10.0.2.2:5281` za Android emulator
-- `STRIPE_PUBLISHABLE_KEY`, default placeholder: `pk_test_CHANGE_ME`
+The evaluator data seeder already creates an Admin account. For the standard evaluator scenario, either set `BOOTSTRAP_ADMIN_ENABLED=false` or provide a separate strong local password for the optional bootstrap Admin. Never leave a placeholder password enabled in a shared environment.
 
-Za fizicki Android uredjaj koristiti host IP racunara, npr:
+### Direct Local WebAPI Development
+
+The recommended evaluator path is Docker Compose. A direct `dotnet run` does not automatically load the root `.env`; provide `ConnectionStrings__DefaultConnection` through an environment variable or .NET User Secrets. In the Development environment, ZenCare creates an in-memory JWT development fallback when JWT values are absent. Production/Compose still requires the explicit JWT values above.
+
+Example User Secrets configuration with placeholders:
 
 ```cmd
-flutter run -d <device-id> --dart-define=API_BASE_URL=http://<host-ip>:5281 --dart-define=STRIPE_PUBLISHABLE_KEY=<stripe-publishable-key>
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost,1433;Database=ZenCareDb;User Id=sa;Password=<your-local-password>;TrustServerCertificate=True;Encrypt=False" --project ZenCare.WebAPI
+dotnet user-secrets set "JwtToken:SecretKey" "<your-long-local-test-secret>" --project ZenCare.WebAPI
+dotnet run --project ZenCare.WebAPI
 ```
 
-## Brzo pokretanje projekta
+Do not run the Compose `api` service and a direct local WebAPI simultaneously on port `5281`.
 
-### 1. Docker / backend
+## Quick Start
+
+### 1. Start Infrastructure, API, and Worker
+
+From the repository root:
 
 ```cmd
 copy .env.example .env
+docker compose config --quiet
 docker compose up -d --build
 docker compose ps
 ```
 
-API i Worker koriste SQL Server i RabbitMQ iz Docker Compose mreze. API automatski primjenjuje postojece EF migracije pri startu i nakon toga pokrece bootstrap Admin logiku ako je ukljucena.
+Compose starts all four required services:
 
-### 2. Swagger
+| Service | Address / port |
+| --- | --- |
+| API and Swagger | `http://localhost:5281` / `http://localhost:5281/swagger` |
+| SQL Server | `localhost,1433` |
+| RabbitMQ AMQP | `localhost:5672` |
+| RabbitMQ Management | `http://localhost:15672` |
+| Worker | No host port; runs as `zencare-worker` |
 
-Swagger je dostupan na:
-
-```text
-http://localhost:5281/swagger
-```
-
-Docker API radi sa `ASPNETCORE_ENVIRONMENT=Production`, a Swagger se ukljucuje preko `SWAGGER_ENABLED` / `Swagger__Enabled`. Swagger ima Bearer JWT autorizaciju.
-
-### 3. WinUI
-
-Prvo mora raditi backend na `http://localhost:5281`.
+The Worker is already started by Compose and must not also be started manually. Useful checks:
 
 ```cmd
-dotnet run --project ZenCare.WinUI
+docker compose logs -f api
+docker compose logs -f worker
 ```
 
-WinUI starta kroz `LoginForm` i koristi `http://localhost:5281` kao API base URL. Namijenjen je prvenstveno Admin korisniku.
+### 2. Start Flutter Desktop
 
-### 4. Flutter Mobile
+The API must already be reachable at `http://localhost:5281`.
+
+```cmd
+cd ZenCare.Desktop
+flutter pub get
+flutter run -d windows --dart-define=API_BASE_URL=http://localhost:5281
+```
+
+`API_BASE_URL` is mandatory for `ZenCare.Desktop`. Sign in with the seeded Admin account from the credentials table below.
+
+### 3. Start Flutter Mobile
+
+List devices and use the reported Android device identifier:
 
 ```cmd
 cd ZenCare.Mobile
 flutter pub get
 flutter devices
-flutter run -d <device-id>
+flutter run -d <android-device-id> --dart-define=API_BASE_URL=http://10.0.2.2:5281 --dart-define=STRIPE_PUBLISHABLE_KEY=<your-stripe-test-publishable-key>
 ```
 
-Android emulator koristi default API URL `http://10.0.2.2:5281`. Za fizicki uredjaj pokrenuti aplikaciju sa `--dart-define=API_BASE_URL=http://<host-ip>:5281`.
+`10.0.2.2` is the Android emulator address for the host machine. For a physical device, replace it with the development computer's reachable LAN address, for example `http://192.168.1.20:5281`. The backend Stripe secret key and Mobile publishable key must be test keys from the same Stripe account. A real test publishable key is required for PaymentSheet; the tracked fallback is intentionally only `pk_test_CHANGE_ME`.
 
-## Demo korisnici
+## Evaluator Accounts
 
-Migracije seedaju role `Admin`, `Employee` i `Client`, ali ne seedaju fiksne demo korisnike sa javno dokumentovanom lozinkom.
+The API runs an idempotent evaluator seed after applying migrations. These deterministic test accounts are created automatically on a fresh database:
 
-Za svjezu Docker bazu koristi se bootstrap Admin iz `.env` ako je `BOOTSTRAP_ADMIN_ENABLED=true`. Username, email i lozinka su vrijednosti koje unesete lokalno u `.env`.
+| Application / context | Role | Username | Password |
+| --- | --- | --- | --- |
+| Flutter Desktop | Admin | `evaluator.admin` | `Demo123!` |
+| API/Swagger role testing | Employee | `evaluator.employee` | `Demo123!` |
+| API/Swagger role testing | Employee | `evaluator.employee2` | `Demo123!` |
+| Flutter Mobile | Client | `evaluator.client` | `Demo123!` |
+| Flutter Mobile | Client | `evaluator.client2` | `Demo123!` |
 
-Klijenti se mogu kreirati javnom registracijom kroz mobilnu aplikaciju ili endpoint `POST /Auth/Register`. Admin takodjer moze kreirati klijenta kroz `POST /User/Admin/create-client`.
+Flutter Desktop intentionally accepts only the Admin role. Flutter Mobile is the Client application. Employee accounts support the Employee-authorized API/appointment scenarios; ZenCare does not claim a separate Employee client application.
 
-## Autentifikacija i logout
+## Seeded Demo Data
 
-Login koristi `POST /Auth/Login` i vraca JWT sa `ClaimTypes.NameIdentifier`, `ClaimTypes.Name`, `ClaimTypes.Role` za svaku rolu i `jti` identifikatorom tokena. Endpointi su zasticeni kombinacijom JWT autentifikacije, rola i `/My` ownership provjera.
+The idempotent evaluator scenario includes:
 
-Logout koristi `POST /Auth/Logout`. Token koji je poslan na logout se upisuje u `RevokedTokens`; isti JWT nakon toga vise ne prolazi autorizaciju, dok novi login izdaje novi vazeci JWT.
+- 5 users across Admin, Employee, and Client roles
+- 2 available employees and 4 employee-service assignments
+- 3 active wellness services and 4 active products
+- 2 suppliers and Client carts
+- 5 appointments covering Completed, Cancelled, and NoShow history
+- 4 purchases covering Completed/Succeeded and Cancelled states
+- eligible appointment/product reviews, product-view signals, FAQ entries, and Client notifications
+- data used by reports, analytics, and recommendations
 
-## RabbitMQ
+The seeded completed purchases support history, reports, review eligibility, and recommendations. To verify the real Stripe integration, create a new cart/checkout purchase and complete it with Stripe test-mode payment data.
 
-Docker Compose pokrece RabbitMQ na:
+## Suggested Evaluation Flow
 
-- AMQP: `localhost:5672`
-- Management UI: `http://localhost:15672`
+### Admin / Flutter Desktop
 
-Backend deklarise durable direct exchange `zencare.events` i queue-ove:
+1. Sign in as `evaluator.admin`.
+2. Verify searchable/paginated management modules and employee-service assignments.
+3. Inspect appointments, purchase fulfillment, reviews, notifications, and seeded history.
+4. Open business analytics and generate the available PDF reports.
 
-- `appointment-events`
-- `purchase-events`
-- `payment-events`
-- `notification-events`
+### Client / Flutter Mobile
 
-Checkout nakon uspjesnog commit-a baze objavljuje `PurchaseCreatedMessage` na routing key `purchase`. `ZenCare.Worker` konzumira `purchase-events`, validira poruku i kreira notifikaciju tipa `Purchase` za vlasnika kupovine. Ako RabbitMQ nije dostupan, API loguje upozorenje i ne vraca infrastrukturne detalje klijentu.
+1. Sign in as `evaluator.client` or register a new Client.
+2. Browse/search services and products; inspect details and recommendations.
+3. Book and cancel an eligible future appointment through the supported workflow.
+4. Add a product to the cart, checkout, and complete payment with Stripe test data.
+5. Inspect purchase history, reviews, profile, and notifications.
 
-## Placanje / Stripe
+### Employee / API
 
-Stripe sandbox integracija je backend + mobile tok:
+Use `evaluator.employee` in Swagger to verify only the Employee-authorized appointment/status operations. Employee-service assignment writes remain Admin-only.
 
-- `POST /Payment/My/create-intent/{purchaseId}` kreira ili vraca postojeci PaymentIntent za vlastitu kupovinu
-- `POST /Payment/My/confirm/{purchaseId}` cita status PaymentIntent-a iz Stripe-a i azurira purchase/payment statuse
-- `POST /Payment/My/refund/{purchaseId}` pokrece puni Stripe refund za placenu vlastitu kupovinu
+## External Integrations
 
-Backend nikada ne prima iznos placanja od klijenta; iznos se cita iz `Purchase.TotalAmount`. Secret key se cita iz `Stripe__SecretKey` / `STRIPE_SECRET_KEY`, a mobilna aplikacija treba publishable key preko `STRIPE_PUBLISHABLE_KEY`.
+### Stripe
 
-Za testiranje koristiti Stripe test/sandbox podatke iz vlastitog Stripe naloga i sluzbene Stripe test-mode dokumentacije. Ne upisivati tajne kljuceve u repozitorij.
+- Backend: configure `STRIPE_SECRET_KEY` in `.env` with a Stripe test secret key.
+- Mobile: provide the matching test publishable key through `--dart-define=STRIPE_PUBLISHABLE_KEY=...`.
+- The Client checkout uses Stripe PaymentSheet; the backend retrieves and verifies Stripe state before marking payment successful.
+- Refunds use the Stripe test API. No real Stripe key belongs in Git.
 
-## Sistem preporuke
+### RabbitMQ and Worker
 
-ZenCare ima hibridni weighted-rule sistem preporuke za proizvode i usluge:
+Compose starts `rabbitmq:3.13.7-management` and the separate `zencare-worker` container. The Worker consumes purchase and notification events and persists user notifications; it performs real database work rather than log-only processing.
 
-- historija kupovina/termina za content preference signale
-- popularnost kroz PurchaseItems i Appointments
-- boost iz odobrenih recenzija/ocjena
-- objasnjiv `Reason` za svaku preporuku
-- logovanje isporucenih preporuka u `RecommendationLogs`
-- mobilni prikaz preporucenih proizvoda/usluga
+Open `http://localhost:15672` and sign in with `RABBITMQ_USERNAME` / `RABBITMQ_PASSWORD` from the local `.env`. More container details are in [DOCKER.md](DOCKER.md).
 
-Detalji algoritma, tezina, fallback logike i ogranicenja su u dokumentu:
+### SMTP / Password Reset
 
-[Detaljna dokumentacija sistema preporuke](recommender-dokumentacija.md)
+Registration and login do not require SMTP. To test password-reset email delivery, replace the `SMTP_*` placeholders with credentials for a safe test SMTP account. Do not commit those credentials.
 
-## Preporuceni testni scenarij
+## Database Initialization
 
-1. Pokrenuti Docker infrastrukturu: `docker compose up -d --build`.
-2. Otvoriti Swagger na `http://localhost:5281/swagger`.
-3. Prijaviti se bootstrap Admin korisnikom iz lokalnog `.env`.
-4. U WinUI provjeriti administraciju proizvoda, usluga, korisnika, zaposlenika, termina, recenzija, kupovina, FAQ-a, dobavljaca i izvjestaja.
-5. U mobilnoj aplikaciji registrovati novog Client korisnika ili se prijaviti postojecim client nalogom.
-6. Pregledati proizvode, dodati proizvod u korpu i uraditi checkout.
-7. Kreirati Stripe PaymentIntent, testirati uspjesno placanje i refund u sandbox rezimu.
-8. Kreirati termin koristeci Service Category -> Service -> Employee tok.
-9. Otkazati dozvoljeni buduci termin i provjeriti poruku.
-10. Kreirati recenziju kada backend pravila dozvole eligibilnost.
-11. Otvoriti preporuke i provjeriti naziv, score i `Reason`.
-12. Testirati logout: JWT radi prije logouta, `POST /Auth/Logout` ga revoke-uje, isti JWT poslije logouta vraca 401.
+- Engine: Microsoft SQL Server 2022 in Docker.
+- Compose database: `ZenCareDb`.
+- The API waits/retries for SQL Server, applies existing EF Core migrations, then runs optional bootstrap Admin logic and the idempotent evaluator seed.
+- SQL Server data persists in the `sqlserver-data` named volume; RabbitMQ data persists in `rabbitmq-data`.
+- A direct local API uses whichever database is supplied through `ConnectionStrings__DefaultConnection`.
 
-## Dodatna dokumentacija
+The current Compose database name is `ZenCareDb`. The official RSII index-based database naming check remains a separate pre-submission item and is intentionally not changed by this documentation update.
 
-- [Docker dokumentacija](DOCKER.md)
-- [Detaljna dokumentacija sistema preporuke](recommender-dokumentacija.md)
+## Build and Verification
 
-## Zaustavljanje projekta
+From the repository root:
+
+```cmd
+dotnet build ZenCare.sln
+docker compose config --quiet
+```
+
+Flutter checks:
+
+```cmd
+cd ZenCare.Desktop
+flutter analyze
+flutter test
+
+cd ..\ZenCare.Mobile
+flutter analyze
+flutter test
+```
+
+## Stop or Reset Local Containers
+
+Stop containers while preserving data:
 
 ```cmd
 docker compose down
 ```
 
-Za brisanje Docker SQL Server i RabbitMQ podataka:
+Remove containers and the named database/RabbitMQ volumes only when an intentional fresh-database test is required:
 
 ```cmd
 docker compose down -v
 ```
+
+`docker compose down -v` permanently removes local Docker data. The next API startup recreates the schema and evaluator data through migrations and seeding.
+
+## Additional Documentation
+
+- [Docker setup](DOCKER.md)
+- [Recommendation system](recommender-dokumentacija.md)
