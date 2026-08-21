@@ -34,8 +34,8 @@ ZenCare is an RSII seminar project for managing a wellness center. It combines a
 - Flutter SDK with Windows desktop support
 - Visual Studio Windows desktop C++ workload required by Flutter Windows
 - Android Studio/SDK and an Android emulator or physical Android device
-- A Stripe test account to exercise payment and refund workflows
-- An SMTP test account only if password-reset email delivery will be evaluated
+- Matching Stripe test keys from the protected evaluator configuration package to exercise payment and refund workflows
+- Working SMTP test sender settings from the protected package only if password-reset email delivery will be evaluated
 
 ## Configuration
 
@@ -58,6 +58,7 @@ Edit `.env` and replace every `CHANGE_ME` value that applies to the intended tes
 | `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD` | RabbitMQ and Management UI credentials |
 | `JWT_ISSUER`, `JWT_AUDIENCE`, `JWT_SECRET_KEY`, `JWT_DURATION_IN_MINUTES` | JWT validation/signing settings; use a strong local test signing key |
 | `STRIPE_SECRET_KEY`, `STRIPE_CURRENCY` | Backend Stripe test secret key and currency |
+| `STRIPE_PUBLISHABLE_KEY` | Matching Mobile test publishable key; Compose ignores it, but it is supplied to Flutter with `--dart-define` |
 | `CORS_ALLOWED_ORIGIN` | Explicit allowed browser origin |
 | `BUSINESS_TIME_ZONE_ID` | Business time zone; Compose defaults to `Europe/Sarajevo` |
 | `PASSWORD_RESET_EXPIRY_MINUTES` | Password-reset token lifetime |
@@ -66,6 +67,12 @@ Edit `.env` and replace every `CHANGE_ME` value that applies to the intended tes
 | `BOOTSTRAP_ADMIN_*` | Optional first-admin bootstrap; evaluator accounts do not depend on it |
 
 The evaluator data seeder already creates an Admin account. For the standard evaluator scenario, either set `BOOTSTRAP_ADMIN_ENABLED=false` or provide a separate strong local password for the optional bootstrap Admin. Never leave a placeholder password enabled in a shared environment.
+
+### Protected Evaluator Configuration
+
+The official submission requires an encrypted `.env-tajne.zip` in the repository root, beside the location where `.env` is used. The archive must contain the complete working evaluator `.env`, including matching Stripe test keys and working SMTP test settings if SMTP delivery will be demonstrated. Protect the archive with the submission password and provide that password through DLWMS as instructed by the course.
+
+Before submission, prepare the archive from the working local configuration. Do not commit the unencrypted `.env` or include it in the build ZIP or GitHub Release. SMTP credentials and passwords must remain in protected configuration and never be committed to Git. A dedicated test SMTP account is recommended, but an existing working SMTP account is also acceptable when its credentials are protected. The tracked `.env.example` remains placeholder-only.
 
 ### Direct Local WebAPI Development
 
@@ -85,10 +92,11 @@ Do not run the Compose `api` service and a direct local WebAPI simultaneously on
 
 ### 1. Start Infrastructure, API, and Worker
 
-From the repository root:
+For evaluator testing, extract `.env` from the supplied `.env-tajne.zip` into the repository root using the password provided through DLWMS. For ordinary development without the protected package, copy `.env.example` to `.env` and replace its placeholders.
+
+Then run from the repository root:
 
 ```cmd
-copy .env.example .env
 docker compose config --quiet
 docker compose up -d --build
 docker compose ps
@@ -131,10 +139,18 @@ List devices and use the reported Android device identifier:
 cd ZenCare.Mobile
 flutter pub get
 flutter devices
-flutter run -d <android-device-id> --dart-define=API_BASE_URL=http://10.0.2.2:5281 --dart-define=STRIPE_PUBLISHABLE_KEY=<your-stripe-test-publishable-key>
+flutter run -d <android-device-id> --dart-define=API_BASE_URL=http://10.0.2.2:5281 --dart-define=STRIPE_PUBLISHABLE_KEY=<matching-test-publishable-key-from-.env-tajne.zip>
 ```
 
 `10.0.2.2` is the Android emulator address for the host machine. For a physical device, replace it with the development computer's reachable LAN address, for example `http://192.168.1.20:5281`. The backend Stripe secret key and Mobile publishable key must be test keys from the same Stripe account. A real test publishable key is required for PaymentSheet; the tracked fallback is intentionally only `pk_test_CHANGE_ME`.
+
+For the evaluator release APK, embed the same protected test publishable key at build time:
+
+```cmd
+flutter build apk --release --dart-define=API_BASE_URL=http://10.0.2.2:5281 --dart-define=STRIPE_PUBLISHABLE_KEY=<matching-test-publishable-key-from-.env-tajne.zip>
+```
+
+The publishable key is client-side configuration and is embedded in the APK. The Stripe secret key remains backend-only in the protected `.env`. When the protected package and prebuilt APK are supplied, the evaluator does not need to create a Stripe account.
 
 ## Evaluator Accounts
 
@@ -190,10 +206,12 @@ Use `evaluator.employee` in Swagger to verify only the Employee-authorized appoi
 
 ### Stripe
 
-- Backend: configure `STRIPE_SECRET_KEY` in `.env` with a Stripe test secret key.
-- Mobile: provide the matching test publishable key through `--dart-define=STRIPE_PUBLISHABLE_KEY=...`.
+- Backend: extract the protected evaluator `.env`; Compose receives `STRIPE_SECRET_KEY` from it.
+- Mobile source run: provide the matching `STRIPE_PUBLISHABLE_KEY` from the protected package through `--dart-define`.
+- Mobile release: build the APK with that publishable key as shown above; never embed the backend secret key.
 - The Client checkout uses Stripe PaymentSheet; the backend retrieves and verifies Stripe state before marking payment successful.
 - Refunds use the Stripe test API. No real Stripe key belongs in Git.
+- Both values must be test-mode keys from the same Stripe account. The evaluator should not substitute an unrelated publishable key.
 
 ### RabbitMQ and Worker
 
@@ -203,7 +221,9 @@ Open `http://localhost:15672` and sign in with `RABBITMQ_USERNAME` / `RABBITMQ_P
 
 ### SMTP / Password Reset
 
-Registration and login do not require SMTP. To test password-reset email delivery, replace the `SMTP_*` placeholders with credentials for a safe test SMTP account. Do not commit those credentials.
+Registration and login do not require SMTP. To demonstrate real reset-email delivery, the protected evaluator `.env` must contain working SMTP test sender settings. A dedicated test account is recommended but not mandatory; an existing working SMTP account is acceptable when its credentials remain protected and never enter Git.
+
+The seeded evaluator addresses are intentionally non-deliverable demo addresses. For an end-to-end reset test, register a temporary Client with a reachable email address controlled by the evaluator, request a reset for that account, use the delivered token in Mobile, and then sign in with the new password. The neutral forgot-password response does not prove email delivery when the address does not belong to an active account.
 
 ## Database Initialization
 
