@@ -163,7 +163,7 @@ The API runs an idempotent evaluator seed after applying migrations. These deter
 | Flutter Mobile | Client | `evaluator.client` | `Demo123!` |
 | Flutter Mobile | Client | `evaluator.client2` | `Demo123!` |
 
-Flutter Desktop intentionally accepts only the Admin role. Flutter Mobile is the Client application. Employee accounts support the Employee-authorized API/appointment scenarios; ZenCare does not claim a separate Employee client application.
+Flutter Desktop intentionally accepts only the Admin role. Flutter Mobile is the Client application. Employee accounts are included for role-authorization verification; ZenCare does not claim a separate Employee client application.
 
 ## Seeded Demo Data
 
@@ -197,9 +197,9 @@ The seeded completed purchases support history, reports, review eligibility, and
 4. Add a product to the cart, checkout, and complete payment with Stripe test data.
 5. Inspect purchase history, reviews, profile, and notifications.
 
-### Employee / API
+### Employee Authorization / API
 
-Use `evaluator.employee` in Swagger to verify only the Employee-authorized appointment/status operations. Employee-service assignment writes remain Admin-only.
+Use `evaluator.employee` in Swagger to verify that administrative Appointment, Notification, and EmployeeService write endpoints return `403 Forbidden`. Employee accounts do not have a separate client application.
 
 ## External Integrations
 

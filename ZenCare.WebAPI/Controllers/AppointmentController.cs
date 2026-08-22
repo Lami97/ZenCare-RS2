@@ -87,7 +87,7 @@ public class AppointmentController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
-    [Authorize(Roles = AppRoles.AdminOrEmployee)]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpGet]
     public async Task<ActionResult<PagedResult<AppointmentResponse>>> GetAll([FromQuery] AppointmentSearchObject? search)
     {
@@ -95,7 +95,7 @@ public class AppointmentController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = AppRoles.AdminOrEmployee)]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpGet("{id}")]
     public async Task<ActionResult<AppointmentResponse>> GetById(int id)
     {
@@ -103,7 +103,7 @@ public class AppointmentController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = AppRoles.AdminOrEmployee)]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpGet("{id}/history")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -139,7 +139,7 @@ public class AppointmentController : ControllerBase
         }
     }
 
-    [Authorize(Roles = AppRoles.AdminOrEmployee)]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -215,7 +215,7 @@ public class AppointmentController : ControllerBase
         }
     }
 
-    [Authorize(Roles = AppRoles.AdminOrEmployee)]
+    [Authorize(Roles = AppRoles.Admin)]
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
