@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../config/app_config.dart';
+import '../models/admin_models.dart';
 import '../models/paged_result.dart';
 import '../utils/api_exception.dart';
 
@@ -44,59 +45,73 @@ class ApiService {
   void setUnauthorizedHandler(void Function()? handler) =>
       _onUnauthorized = handler;
 
-  Future<Map<String, dynamic>> getMap(
+  Future<T> getObject<T>(
     String path, {
-    Map<String, dynamic>? queryParameters,
+    Map<String, Object?>? queryParameters,
+    required T Function(JsonMap json) decode,
   }) async {
     try {
-      final response = await _dio.get<dynamic>(
+      final response = await _dio.get<Object?>(
         _normalizePath(path),
         queryParameters: _cleanQuery(queryParameters),
       );
-      return Map<String, dynamic>.from(response.data as Map);
+      return decode(_asJsonMap(response.data));
     } on DioException catch (error) {
       throw _toApiException(error);
     }
   }
 
-  Future<PagedResult> getPaged(
+  Future<PagedResult<T>> getPaged<T>(
     String path, {
-    Map<String, dynamic>? queryParameters,
+    Map<String, Object?>? queryParameters,
+    required T Function(JsonMap json) decodeItem,
   }) async {
     try {
-      final response = await _dio.get<dynamic>(
+      final response = await _dio.get<Object?>(
         _normalizePath(path),
         queryParameters: _cleanQuery(queryParameters),
       );
-      return PagedResult.fromJson(response.data);
+      return PagedResult.fromJson(response.data, decodeItem);
     } on DioException catch (error) {
       throw _toApiException(error);
     }
   }
 
-  Future<Map<String, dynamic>> postMap(String path, {Object? data}) async {
+  Future<T> postObject<T>(
+    String path, {
+    Object? data,
+    required T Function(JsonMap json) decode,
+  }) async {
     try {
-      final response = await _dio.post<dynamic>(
+      final response = await _dio.post<Object?>(
         _normalizePath(path),
         data: data,
       );
-      return response.data is Map
-          ? Map<String, dynamic>.from(response.data as Map)
-          : <String, dynamic>{};
+      return decode(_asJsonMap(response.data));
     } on DioException catch (error) {
       throw _toApiException(error);
     }
   }
 
-  Future<Map<String, dynamic>> putMap(String path, {Object? data}) async {
+  Future<T> putObject<T>(
+    String path, {
+    Object? data,
+    required T Function(JsonMap json) decode,
+  }) async {
     try {
-      final response = await _dio.put<dynamic>(
+      final response = await _dio.put<Object?>(
         _normalizePath(path),
         data: data,
       );
-      return response.data is Map
-          ? Map<String, dynamic>.from(response.data as Map)
-          : <String, dynamic>{};
+      return decode(_asJsonMap(response.data));
+    } on DioException catch (error) {
+      throw _toApiException(error);
+    }
+  }
+
+  Future<void> post(String path, {Object? data}) async {
+    try {
+      await _dio.post<Object?>(_normalizePath(path), data: data);
     } on DioException catch (error) {
       throw _toApiException(error);
     }
@@ -104,7 +119,7 @@ class ApiService {
 
   Future<void> delete(String path) async {
     try {
-      await _dio.delete<dynamic>(_normalizePath(path));
+      await _dio.delete<Object?>(_normalizePath(path));
     } on DioException catch (error) {
       throw _toApiException(error);
     }
@@ -118,9 +133,9 @@ class ApiService {
     return trimmed.startsWith('/') ? trimmed : '/$trimmed';
   }
 
-  Map<String, dynamic>? _cleanQuery(Map<String, dynamic>? query) {
+  Map<String, Object?>? _cleanQuery(Map<String, Object?>? query) {
     if (query == null) return null;
-    final cleaned = <String, dynamic>{};
+    final cleaned = <String, Object?>{};
     for (final entry in query.entries) {
       final value = entry.value;
       if (value == null) continue;
@@ -128,6 +143,11 @@ class ApiService {
       cleaned[entry.key] = value;
     }
     return cleaned;
+  }
+
+  JsonMap _asJsonMap(Object? data) {
+    if (data is Map) return JsonMap.from(data);
+    throw const FormatException('The API response was not a JSON object.');
   }
 
   ApiException _toApiException(DioException error) {

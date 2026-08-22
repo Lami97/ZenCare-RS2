@@ -1,34 +1,40 @@
-class PagedResult {
-  PagedResult({required this.items, this.totalCount});
+import 'admin_models.dart';
 
-  final List<Map<String, dynamic>> items;
+class PagedResult<T> {
+  const PagedResult({required this.items, this.totalCount});
+
+  final List<T> items;
   final int? totalCount;
 
-  factory PagedResult.fromJson(dynamic data) {
+  factory PagedResult.fromJson(
+    Object? data,
+    T Function(JsonMap json) decodeItem,
+  ) {
     if (data is List) {
       return PagedResult(
         items: data
             .whereType<Map>()
-            .map((e) => Map<String, dynamic>.from(e))
+            .map((item) => decodeItem(JsonMap.from(item)))
             .toList(),
       );
     }
 
-    if (data is Map<String, dynamic>) {
-      final rawItems = data['items'];
+    if (data is Map) {
+      final json = JsonMap.from(data);
+      final rawItems = json['items'];
       return PagedResult(
         items: rawItems is List
             ? rawItems
                   .whereType<Map>()
-                  .map((e) => Map<String, dynamic>.from(e))
+                  .map((item) => decodeItem(JsonMap.from(item)))
                   .toList()
-            : [],
-        totalCount: data['totalCount'] is int
-            ? data['totalCount'] as int
-            : int.tryParse(data['totalCount']?.toString() ?? ''),
+            : const [],
+        totalCount: json['totalCount'] == null
+            ? null
+            : jsonInt(json['totalCount']),
       );
     }
 
-    return PagedResult(items: []);
+    return const PagedResult(items: []);
   }
 }

@@ -1,4 +1,14 @@
 import '../models/admin_models.dart';
+import '../models/appointment_dtos.dart';
+import '../models/employee_dtos.dart';
+import '../models/faq_dtos.dart';
+import '../models/product_dtos.dart';
+import '../models/purchase_dtos.dart';
+import '../models/reference_dtos.dart';
+import '../models/review_dtos.dart';
+import '../models/service_dtos.dart';
+import '../models/supplier_dtos.dart';
+import '../models/user_dtos.dart';
 import '../utils/formatters.dart';
 
 const activeFilter = FilterField(
@@ -9,101 +19,89 @@ const activeFilter = FilterField(
   booleanFalseLabel: 'Inactive',
 );
 
-String _userLookupLabel(Map<String, dynamic> item) {
-  final name = displayName(item);
-  final username = item['username']?.toString();
-  return username == null || username.isEmpty || username == name
-      ? name
-      : '$name ($username)';
-}
+String _userLabel(UserDto user) =>
+    user.fullName.isEmpty || user.fullName == user.username
+    ? user.username
+    : '${user.fullName} (${user.username})';
 
-final usersLookup = LookupConfig(
+final usersLookup = typedLookup<UserDto>(
   endpoint: 'User',
-  valueKey: 'id',
-  labelBuilder: _userLookupLabel,
+  decoder: UserDto.fromJson,
+  labelBuilder: _userLabel,
 );
-
-final appointmentClientsLookup = LookupConfig(
+final appointmentClientsLookup = typedLookup<UserDto>(
   endpoint: 'User',
-  valueKey: 'id',
-  labelBuilder: _userLookupLabel,
+  decoder: UserDto.fromJson,
+  labelBuilder: _userLabel,
   queryParameters: const {'IsClient': true},
 );
-
-final rolesLookup = LookupConfig(
+final rolesLookup = typedLookup<RoleDto>(
   endpoint: 'Role',
-  valueKey: 'id',
-  labelBuilder: itemLabel,
+  decoder: RoleDto.fromJson,
+  labelBuilder: (item) => item.name,
 );
-final productCategoriesLookup = LookupConfig(
+final productCategoriesLookup = typedLookup<ProductCategoryDto>(
   endpoint: 'ProductCategory',
-  valueKey: 'id',
-  labelBuilder: itemLabel,
+  decoder: ProductCategoryDto.fromJson,
+  labelBuilder: (item) => item.name,
 );
-final productTypesLookup = LookupConfig(
+final productTypesLookup = typedLookup<ProductTypeDto>(
   endpoint: 'ProductType',
-  valueKey: 'id',
-  labelBuilder: itemLabel,
+  decoder: ProductTypeDto.fromJson,
+  labelBuilder: (item) => item.name,
 );
-final unitsLookup = LookupConfig(
+final unitsLookup = typedLookup<UnitOfMeasureDto>(
   endpoint: 'UnitOfMeasure',
-  valueKey: 'id',
-  labelBuilder: itemLabel,
+  decoder: UnitOfMeasureDto.fromJson,
+  labelBuilder: (item) => item.name,
 );
-final suppliersLookup = LookupConfig(
+final suppliersLookup = typedLookup<SupplierDto>(
   endpoint: 'Supplier',
-  valueKey: 'id',
-  labelBuilder: itemLabel,
+  decoder: SupplierDto.fromJson,
+  labelBuilder: (item) => item.name,
 );
-final serviceCategoriesLookup = LookupConfig(
+final serviceCategoriesLookup = typedLookup<ServiceCategoryDto>(
   endpoint: 'ServiceCategory',
-  valueKey: 'id',
-  labelBuilder: itemLabel,
+  decoder: ServiceCategoryDto.fromJson,
+  labelBuilder: (item) => item.name,
 );
-final servicesLookup = LookupConfig(
+final servicesLookup = typedLookup<WellnessServiceDto>(
   endpoint: 'Service',
-  valueKey: 'id',
-  labelBuilder: itemLabel,
+  decoder: WellnessServiceDto.fromJson,
+  labelBuilder: (item) => item.name,
 );
-final employeesLookup = LookupConfig(
+final employeesLookup = typedLookup<EmployeeDto>(
   endpoint: 'Employee',
-  valueKey: 'id',
-  labelBuilder: (item) {
-    final employeeName = item['employeeName']?.toString().trim();
-    if (employeeName != null && employeeName.isNotEmpty) return employeeName;
-    return textValue(item['userName']);
-  },
+  decoder: EmployeeDto.fromJson,
+  labelBuilder: (item) =>
+      item.employeeName.isEmpty ? item.userName : item.employeeName,
 );
-final productsLookup = LookupConfig(
+final productsLookup = typedLookup<ProductDto>(
   endpoint: 'Product',
-  valueKey: 'id',
-  labelBuilder: itemLabel,
+  decoder: ProductDto.fromJson,
+  labelBuilder: (item) => item.name,
 );
-final purchasesLookup = LookupConfig(
+final purchasesLookup = typedLookup<PurchaseDto>(
   endpoint: 'Purchase',
-  valueKey: 'id',
-  labelBuilder: (item) => textValue(item['purchaseNumber'] ?? item['id']),
+  decoder: PurchaseDto.fromJson,
+  labelBuilder: (item) => item.purchaseNumber,
 );
-final appointmentsLookup = LookupConfig(
+final appointmentsLookup = typedLookup<AppointmentDto>(
   endpoint: 'Appointment',
-  valueKey: 'id',
-  labelBuilder: (item) {
-    final client = textValue(item['userName']);
-    final service = textValue(item['serviceName']);
-    final date = dateValue(item['appointmentDate']);
-    return '$client - $service - $date';
-  },
+  decoder: AppointmentDto.fromJson,
+  labelBuilder: (item) =>
+      '${item.userName} - ${item.serviceName} - ${dateValue(item.appointmentDate)}',
 );
-final completedAppointmentsLookup = LookupConfig(
+final completedAppointmentsLookup = typedLookup<AppointmentDto>(
   endpoint: 'Appointment',
-  valueKey: 'id',
+  decoder: AppointmentDto.fromJson,
   labelBuilder: appointmentsLookup.labelBuilder,
   queryParameters: const {'Status': 4},
 );
-final faqCategoriesLookup = LookupConfig(
+final faqCategoriesLookup = typedLookup<FaqCategoryDto>(
   endpoint: 'FAQCategory',
-  valueKey: 'id',
-  labelBuilder: itemLabel,
+  decoder: FaqCategoryDto.fromJson,
+  labelBuilder: (item) => item.name,
 );
 
 const appointmentStatuses = [
@@ -160,50 +158,134 @@ const nameDescActiveFields = [
   AdminField(key: 'isActive', label: 'Active', type: AdminFieldType.boolean),
 ];
 
-List<AdminColumn> nameDescActiveColumns() => [
-  AdminColumn(label: 'Name', value: (x) => textValue(x['name'])),
-  AdminColumn(
+List<AdminColumn> _referenceColumns<T extends NamedReferenceDto>() => [
+  typedColumn<T>(label: 'Name', value: (item) => textValue(item.name)),
+  typedColumn<T>(
     label: 'Description',
-    value: (x) => textValue(x['description'] ?? x['abbreviation']),
+    value: (item) => textValue(item.description),
   ),
-  AdminColumn(label: 'Active', value: (x) => textValue(x['isActive'])),
+  typedColumn<T>(label: 'Active', value: (item) => textValue(item.isActive)),
 ];
 
+AdminModule _referenceModule<T extends NamedReferenceDto>({
+  required String title,
+  required String endpoint,
+  required String entityName,
+  required T Function(JsonMap) decoder,
+  required AdminWriteDto Function(AdminFormValues) insert,
+  required AdminWriteDto Function(int, AdminFormValues) update,
+}) => AdminModule(
+  title: title,
+  endpoint: endpoint,
+  entityName: entityName,
+  searchKey: 'Name',
+  searchLabel: 'Search by name',
+  filters: const [activeFilter],
+  columns: _referenceColumns<T>(),
+  fields: nameDescActiveFields,
+  decoder: decoder,
+  buildInsert: insert,
+  buildUpdate: update,
+);
+
+T _referenceInsert<T extends AdminWriteDto>(
+  AdminFormValues values,
+  T Function(String, String?, bool) create,
+) => create(
+  values.requiredString('name'),
+  values.string('description'),
+  values.boolean('isActive'),
+);
+
+T _referenceUpdate<T extends AdminWriteDto>(
+  int id,
+  AdminFormValues values,
+  T Function(int, String, String?, bool) create,
+) => create(
+  id,
+  values.requiredString('name'),
+  values.string('description'),
+  values.boolean('isActive'),
+);
+
 final adminModules = <AdminModule>[
-  AdminModule(
+  _referenceModule<ProductCategoryDto>(
     title: 'Product Categories',
     endpoint: 'ProductCategory',
     entityName: 'Product category',
-    searchKey: 'Name',
-    searchLabel: 'Search by name',
-    filters: const [activeFilter],
-    columns: nameDescActiveColumns(),
-    fields: nameDescActiveFields,
+    decoder: ProductCategoryDto.fromJson,
+    insert: (v) => _referenceInsert(
+      v,
+      (name, description, active) => ProductCategoryInsertDto(
+        name: name,
+        description: description,
+        isActive: active,
+      ),
+    ),
+    update: (id, v) => _referenceUpdate(
+      id,
+      v,
+      (id, name, description, active) => ProductCategoryUpdateDto(
+        id: id,
+        name: name,
+        description: description,
+        isActive: active,
+      ),
+    ),
   ),
-  AdminModule(
+  _referenceModule<ProductTypeDto>(
     title: 'Product Types',
     endpoint: 'ProductType',
     entityName: 'Product type',
-    searchKey: 'Name',
-    searchLabel: 'Search by name',
-    filters: const [activeFilter],
-    columns: nameDescActiveColumns(),
-    fields: nameDescActiveFields,
+    decoder: ProductTypeDto.fromJson,
+    insert: (v) => _referenceInsert(
+      v,
+      (name, description, active) => ProductTypeInsertDto(
+        name: name,
+        description: description,
+        isActive: active,
+      ),
+    ),
+    update: (id, v) => _referenceUpdate(
+      id,
+      v,
+      (id, name, description, active) => ProductTypeUpdateDto(
+        id: id,
+        name: name,
+        description: description,
+        isActive: active,
+      ),
+    ),
   ),
-  AdminModule(
+  _referenceModule<UnitOfMeasureDto>(
     title: 'Units of Measure',
     endpoint: 'UnitOfMeasure',
     entityName: 'unit of measure',
-    searchKey: 'Name',
-    searchLabel: 'Search by name',
-    filters: const [activeFilter],
-    columns: nameDescActiveColumns(),
-    fields: nameDescActiveFields,
+    decoder: UnitOfMeasureDto.fromJson,
+    insert: (v) => _referenceInsert(
+      v,
+      (name, description, active) => UnitOfMeasureInsertDto(
+        name: name,
+        description: description,
+        isActive: active,
+      ),
+    ),
+    update: (id, v) => _referenceUpdate(
+      id,
+      v,
+      (id, name, description, active) => UnitOfMeasureUpdateDto(
+        id: id,
+        name: name,
+        description: description,
+        isActive: active,
+      ),
+    ),
   ),
   AdminModule(
     title: 'Products',
     endpoint: 'Product',
     entityName: 'product',
+    decoder: ProductDto.fromJson,
     searchKey: 'Name',
     searchLabel: 'Search by product name',
     filters: [
@@ -225,23 +307,35 @@ final adminModules = <AdminModule>[
       ),
     ],
     columns: [
-      AdminColumn(label: 'Name', value: (x) => textValue(x['name'])),
-      AdminColumn(
+      typedColumn<ProductDto>(label: 'Name', value: (x) => textValue(x.name)),
+      typedColumn<ProductDto>(
         label: 'Category',
-        value: (x) => textValue(x['productCategoryName']),
+        value: (x) => textValue(x.productCategoryName),
       ),
-      AdminColumn(label: 'Type', value: (x) => textValue(x['productTypeName'])),
-      AdminColumn(
+      typedColumn<ProductDto>(
+        label: 'Type',
+        value: (x) => textValue(x.productTypeName),
+      ),
+      typedColumn<ProductDto>(
         label: 'Unit',
-        value: (x) => textValue(x['unitOfMeasureName']),
+        value: (x) => textValue(x.unitOfMeasureName),
       ),
-      AdminColumn(
+      typedColumn<ProductDto>(
         label: 'Supplier',
-        value: (x) => textValue(x['supplierName']),
+        value: (x) => textValue(x.supplierName),
       ),
-      AdminColumn(label: 'Price', value: (x) => moneyValue(x['price'])),
-      AdminColumn(label: 'Stock', value: (x) => textValue(x['stockQuantity'])),
-      AdminColumn(label: 'Active', value: (x) => textValue(x['isActive'])),
+      typedColumn<ProductDto>(
+        label: 'Price',
+        value: (x) => moneyValue(x.price),
+      ),
+      typedColumn<ProductDto>(
+        label: 'Stock',
+        value: (x) => textValue(x.stockQuantity),
+      ),
+      typedColumn<ProductDto>(
+        label: 'Active',
+        value: (x) => textValue(x.isActive),
+      ),
     ],
     fields: [
       const AdminField(
@@ -305,21 +399,59 @@ final adminModules = <AdminModule>[
         type: AdminFieldType.boolean,
       ),
     ],
+    buildInsert: (v) => ProductInsertDto(
+      name: v.requiredString('name'),
+      description: v.string('description'),
+      price: v.requiredDecimal('price'),
+      stockQuantity: v.requiredInteger('stockQuantity'),
+      productCategoryId: v.requiredInteger('productCategoryId'),
+      productTypeId: v.requiredInteger('productTypeId'),
+      unitOfMeasureId: v.requiredInteger('unitOfMeasureId'),
+      supplierId: v.requiredInteger('supplierId'),
+      isActive: v.boolean('isActive'),
+    ),
+    buildUpdate: (id, v) => ProductUpdateDto(
+      id: id,
+      name: v.requiredString('name'),
+      description: v.string('description'),
+      price: v.requiredDecimal('price'),
+      stockQuantity: v.requiredInteger('stockQuantity'),
+      productCategoryId: v.requiredInteger('productCategoryId'),
+      productTypeId: v.requiredInteger('productTypeId'),
+      unitOfMeasureId: v.requiredInteger('unitOfMeasureId'),
+      supplierId: v.requiredInteger('supplierId'),
+      isActive: v.boolean('isActive'),
+    ),
   ),
-  AdminModule(
+  _referenceModule<ServiceCategoryDto>(
     title: 'Service Categories',
     endpoint: 'ServiceCategory',
     entityName: 'service category',
-    searchKey: 'Name',
-    searchLabel: 'Search by name',
-    filters: const [activeFilter],
-    columns: nameDescActiveColumns(),
-    fields: nameDescActiveFields,
+    decoder: ServiceCategoryDto.fromJson,
+    insert: (v) => _referenceInsert(
+      v,
+      (name, description, active) => ServiceCategoryInsertDto(
+        name: name,
+        description: description,
+        isActive: active,
+      ),
+    ),
+    update: (id, v) => _referenceUpdate(
+      id,
+      v,
+      (id, name, description, active) => ServiceCategoryUpdateDto(
+        id: id,
+        name: name,
+        description: description,
+        isActive: active,
+      ),
+    ),
   ),
   AdminModule(
     title: 'Services',
     endpoint: 'Service',
     entityName: 'service',
+    decoder: WellnessServiceDto.fromJson,
     searchKey: 'Name',
     searchLabel: 'Search by service name',
     filters: [
@@ -331,17 +463,26 @@ final adminModules = <AdminModule>[
       ),
     ],
     columns: [
-      AdminColumn(label: 'Name', value: (x) => textValue(x['name'])),
-      AdminColumn(
+      typedColumn<WellnessServiceDto>(
+        label: 'Name',
+        value: (x) => textValue(x.name),
+      ),
+      typedColumn<WellnessServiceDto>(
         label: 'Category',
-        value: (x) => textValue(x['serviceCategoryName']),
+        value: (x) => textValue(x.serviceCategoryName),
       ),
-      AdminColumn(
+      typedColumn<WellnessServiceDto>(
         label: 'Duration',
-        value: (x) => '${textValue(x['durationMinutes'])} min',
+        value: (x) => '${x.durationMinutes} min',
       ),
-      AdminColumn(label: 'Price', value: (x) => moneyValue(x['price'])),
-      AdminColumn(label: 'Active', value: (x) => textValue(x['isActive'])),
+      typedColumn<WellnessServiceDto>(
+        label: 'Price',
+        value: (x) => moneyValue(x.price),
+      ),
+      typedColumn<WellnessServiceDto>(
+        label: 'Active',
+        value: (x) => textValue(x.isActive),
+      ),
     ],
     fields: [
       const AdminField(
@@ -384,21 +525,53 @@ final adminModules = <AdminModule>[
         type: AdminFieldType.boolean,
       ),
     ],
+    buildInsert: (v) => WellnessServiceInsertDto(
+      name: v.requiredString('name'),
+      description: v.string('description'),
+      durationMinutes: v.requiredInteger('durationMinutes'),
+      price: v.requiredDecimal('price'),
+      serviceCategoryId: v.requiredInteger('serviceCategoryId'),
+      isActive: v.boolean('isActive'),
+    ),
+    buildUpdate: (id, v) => WellnessServiceUpdateDto(
+      id: id,
+      name: v.requiredString('name'),
+      description: v.string('description'),
+      durationMinutes: v.requiredInteger('durationMinutes'),
+      price: v.requiredDecimal('price'),
+      serviceCategoryId: v.requiredInteger('serviceCategoryId'),
+      isActive: v.boolean('isActive'),
+    ),
   ),
-  AdminModule(
+  _referenceModule<FaqCategoryDto>(
     title: 'FAQ Categories',
     endpoint: 'FAQCategory',
     entityName: 'FAQ category',
-    searchKey: 'Name',
-    searchLabel: 'Search by name',
-    filters: const [activeFilter],
-    columns: nameDescActiveColumns(),
-    fields: nameDescActiveFields,
+    decoder: FaqCategoryDto.fromJson,
+    insert: (v) => _referenceInsert(
+      v,
+      (name, description, active) => FaqCategoryInsertDto(
+        name: name,
+        description: description,
+        isActive: active,
+      ),
+    ),
+    update: (id, v) => _referenceUpdate(
+      id,
+      v,
+      (id, name, description, active) => FaqCategoryUpdateDto(
+        id: id,
+        name: name,
+        description: description,
+        isActive: active,
+      ),
+    ),
   ),
   AdminModule(
     title: 'FAQ',
     endpoint: 'FAQ',
     entityName: 'FAQ',
+    decoder: FaqDto.fromJson,
     searchKey: 'Question',
     searchLabel: 'Search by question',
     filters: [
@@ -410,16 +583,19 @@ final adminModules = <AdminModule>[
       ),
     ],
     columns: [
-      AdminColumn(label: 'Question', value: (x) => textValue(x['question'])),
-      AdminColumn(
+      typedColumn<FaqDto>(
+        label: 'Question',
+        value: (x) => textValue(x.question),
+      ),
+      typedColumn<FaqDto>(
         label: 'Category',
-        value: (x) => textValue(x['faqCategoryName']),
+        value: (x) => textValue(x.faqCategoryName),
       ),
-      AdminColumn(
+      typedColumn<FaqDto>(
         label: 'Display order',
-        value: (x) => textValue(x['displayOrder']),
+        value: (x) => textValue(x.displayOrder),
       ),
-      AdminColumn(label: 'Active', value: (x) => textValue(x['isActive'])),
+      typedColumn<FaqDto>(label: 'Active', value: (x) => textValue(x.isActive)),
     ],
     fields: [
       const AdminField(
@@ -455,20 +631,45 @@ final adminModules = <AdminModule>[
         type: AdminFieldType.boolean,
       ),
     ],
+    buildInsert: (v) => FaqInsertDto(
+      question: v.requiredString('question'),
+      answer: v.requiredString('answer'),
+      faqCategoryId: v.requiredInteger('faqCategoryId'),
+      displayOrder: v.integer('displayOrder') ?? 0,
+      isActive: v.boolean('isActive'),
+    ),
+    buildUpdate: (id, v) => FaqUpdateDto(
+      id: id,
+      question: v.requiredString('question'),
+      answer: v.requiredString('answer'),
+      faqCategoryId: v.requiredInteger('faqCategoryId'),
+      displayOrder: v.integer('displayOrder') ?? 0,
+      isActive: v.boolean('isActive'),
+    ),
   ),
   AdminModule(
     title: 'Users',
     endpoint: 'User',
     entityName: 'user',
+    decoder: UserDto.fromJson,
     searchKey: 'Username',
     searchLabel: 'Search by username',
     filters: const [activeFilter],
     columns: [
-      AdminColumn(label: 'Name', value: (x) => displayName(x)),
-      AdminColumn(label: 'Username', value: (x) => textValue(x['username'])),
-      AdminColumn(label: 'Email', value: (x) => textValue(x['email'])),
-      AdminColumn(label: 'Phone', value: (x) => textValue(x['phoneNumber'])),
-      AdminColumn(label: 'Active', value: (x) => textValue(x['isActive'])),
+      typedColumn<UserDto>(label: 'Name', value: (x) => textValue(x.fullName)),
+      typedColumn<UserDto>(
+        label: 'Username',
+        value: (x) => textValue(x.username),
+      ),
+      typedColumn<UserDto>(label: 'Email', value: (x) => textValue(x.email)),
+      typedColumn<UserDto>(
+        label: 'Phone',
+        value: (x) => textValue(x.phoneNumber),
+      ),
+      typedColumn<UserDto>(
+        label: 'Active',
+        value: (x) => textValue(x.isActive),
+      ),
     ],
     fields: const [
       AdminField(
@@ -529,20 +730,43 @@ final adminModules = <AdminModule>[
         type: AdminFieldType.boolean,
       ),
     ],
+    buildInsert: (v) => UserInsertDto(
+      firstName: v.requiredString('firstName'),
+      lastName: v.requiredString('lastName'),
+      email: v.requiredString('email'),
+      username: v.requiredString('username'),
+      password: v.requiredString('password'),
+      passwordConfirm: v.requiredString('passwordConfirm'),
+      phoneNumber: v.string('phoneNumber'),
+      isActive: v.boolean('isActive'),
+    ),
+    buildUpdate: (id, v) => UserUpdateDto(
+      id: id,
+      firstName: v.requiredString('firstName'),
+      lastName: v.requiredString('lastName'),
+      email: v.requiredString('email'),
+      username: v.requiredString('username'),
+      phoneNumber: v.string('phoneNumber'),
+      isActive: v.boolean('isActive'),
+    ),
   ),
   AdminModule(
     title: 'User Roles',
     endpoint: 'UserRole',
     entityName: 'user role',
+    decoder: UserRoleDto.fromJson,
     searchKey: 'Username',
     searchLabel: 'Search by username',
     filters: [FilterField(key: 'RoleId', label: 'Role', lookup: rolesLookup)],
     columns: [
-      AdminColumn(
+      typedColumn<UserRoleDto>(
         label: 'Username',
-        value: (x) => textValue(x['userName'] ?? x['username']),
+        value: (x) => textValue(x.userName),
       ),
-      AdminColumn(label: 'Role', value: (x) => textValue(x['roleName'])),
+      typedColumn<UserRoleDto>(
+        label: 'Role',
+        value: (x) => textValue(x.roleName),
+      ),
     ],
     fields: [
       AdminField(
@@ -560,11 +784,21 @@ final adminModules = <AdminModule>[
         lookup: rolesLookup,
       ),
     ],
+    buildInsert: (v) => UserRoleInsertDto(
+      userId: v.requiredInteger('userId'),
+      roleId: v.requiredInteger('roleId'),
+    ),
+    buildUpdate: (id, v) => UserRoleUpdateDto(
+      id: id,
+      userId: v.requiredInteger('userId'),
+      roleId: v.requiredInteger('roleId'),
+    ),
   ),
   AdminModule(
     title: 'Employees',
     endpoint: 'Employee',
     entityName: 'employee',
+    decoder: EmployeeDto.fromJson,
     searchKey: 'SearchTerm',
     searchLabel: 'Search by name / specialization',
     searchWidth: 340,
@@ -578,20 +812,23 @@ final adminModules = <AdminModule>[
       ),
     ],
     columns: [
-      AdminColumn(
+      typedColumn<EmployeeDto>(
         label: 'Name',
         value: (x) =>
-            textValue(x['employeeName'] ?? x['userName'] ?? x['username']),
+            textValue(x.employeeName.isEmpty ? x.userName : x.employeeName),
       ),
-      AdminColumn(
+      typedColumn<EmployeeDto>(
         label: 'Specialization',
-        value: (x) => textValue(x['specialization']),
+        value: (x) => textValue(x.specialization),
       ),
-      AdminColumn(label: 'Bio', value: (x) => textValue(x['bio'])),
-      AdminColumn(label: 'Hire date', value: (x) => dateValue(x['hireDate'])),
-      AdminColumn(
+      typedColumn<EmployeeDto>(label: 'Bio', value: (x) => textValue(x.bio)),
+      typedColumn<EmployeeDto>(
+        label: 'Hire date',
+        value: (x) => dateValue(x.hireDate),
+      ),
+      typedColumn<EmployeeDto>(
         label: 'Available',
-        value: (x) => textValue(x['isAvailable']),
+        value: (x) => textValue(x.isAvailable),
       ),
     ],
     fields: [
@@ -626,11 +863,27 @@ final adminModules = <AdminModule>[
         type: AdminFieldType.boolean,
       ),
     ],
+    buildInsert: (v) => EmployeeInsertDto(
+      userId: v.requiredInteger('userId'),
+      specialization: v.string('specialization'),
+      bio: v.string('bio'),
+      hireDate: v.date('hireDate'),
+      isAvailable: v.boolean('isAvailable'),
+    ),
+    buildUpdate: (id, v) => EmployeeUpdateDto(
+      id: id,
+      userId: v.requiredInteger('userId'),
+      specialization: v.string('specialization'),
+      bio: v.string('bio'),
+      hireDate: v.date('hireDate'),
+      isAvailable: v.boolean('isAvailable'),
+    ),
   ),
   AdminModule(
     title: 'Service Assignments',
     endpoint: 'EmployeeService',
     entityName: 'service assignment',
+    decoder: EmployeeServiceDto.fromJson,
     filters: [
       FilterField(
         key: 'EmployeeId',
@@ -645,12 +898,18 @@ final adminModules = <AdminModule>[
       const FilterField(key: 'IsActive', label: 'Active', isBoolean: true),
     ],
     columns: [
-      AdminColumn(
+      typedColumn<EmployeeServiceDto>(
         label: 'Employee',
-        value: (x) => textValue(x['employeeName']),
+        value: (x) => textValue(x.employeeName),
       ),
-      AdminColumn(label: 'Service', value: (x) => textValue(x['serviceName'])),
-      AdminColumn(label: 'Active', value: (x) => textValue(x['isActive'])),
+      typedColumn<EmployeeServiceDto>(
+        label: 'Service',
+        value: (x) => textValue(x.serviceName),
+      ),
+      typedColumn<EmployeeServiceDto>(
+        label: 'Active',
+        value: (x) => textValue(x.isActive),
+      ),
     ],
     fields: [
       AdminField(
@@ -673,11 +932,23 @@ final adminModules = <AdminModule>[
         type: AdminFieldType.boolean,
       ),
     ],
+    buildInsert: (v) => EmployeeServiceInsertDto(
+      employeeId: v.requiredInteger('employeeId'),
+      wellnessServiceId: v.requiredInteger('wellnessServiceId'),
+      isActive: v.boolean('isActive'),
+    ),
+    buildUpdate: (id, v) => EmployeeServiceUpdateDto(
+      id: id,
+      employeeId: v.requiredInteger('employeeId'),
+      wellnessServiceId: v.requiredInteger('wellnessServiceId'),
+      isActive: v.boolean('isActive'),
+    ),
   ),
   AdminModule(
     title: 'Appointments',
     endpoint: 'Appointment',
     entityName: 'appointment',
+    decoder: AppointmentDto.fromJson,
     canDelete: false,
     filters: [
       FilterField(
@@ -702,24 +973,42 @@ final adminModules = <AdminModule>[
       ),
     ],
     columns: [
-      AdminColumn(label: 'Client', value: (x) => textValue(x['userName'])),
-      AdminColumn(
+      typedColumn<AppointmentDto>(
+        label: 'Client',
+        value: (x) => textValue(x.userName),
+      ),
+      typedColumn<AppointmentDto>(
         label: 'Employee',
-        value: (x) => textValue(x['employeeName']),
+        value: (x) => textValue(x.employeeName),
       ),
-      AdminColumn(label: 'Service', value: (x) => textValue(x['serviceName'])),
-      AdminColumn(
+      typedColumn<AppointmentDto>(
+        label: 'Service',
+        value: (x) => textValue(x.serviceName),
+      ),
+      typedColumn<AppointmentDto>(
         label: 'Category',
-        value: (x) => textValue(x['serviceCategoryName']),
+        value: (x) => textValue(x.serviceCategoryName),
       ),
-      AdminColumn(label: 'Date', value: (x) => dateValue(x['appointmentDate'])),
-      AdminColumn(label: 'Start', value: (x) => timeValue(x['startTime'])),
-      AdminColumn(label: 'End', value: (x) => timeValue(x['endTime'])),
-      AdminColumn(
+      typedColumn<AppointmentDto>(
+        label: 'Date',
+        value: (x) => dateValue(x.appointmentDate),
+      ),
+      typedColumn<AppointmentDto>(
+        label: 'Start',
+        value: (x) => timeValue(x.startTime),
+      ),
+      typedColumn<AppointmentDto>(
+        label: 'End',
+        value: (x) => timeValue(x.endTime),
+      ),
+      typedColumn<AppointmentDto>(
         label: 'Status',
-        value: (x) => enumLabel(_labels(appointmentStatuses), x['status']),
+        value: (x) => enumLabel(_labels(appointmentStatuses), x.status),
       ),
-      AdminColumn(label: 'Notes', value: (x) => textValue(x['notes'])),
+      typedColumn<AppointmentDto>(
+        label: 'Notes',
+        value: (x) => textValue(x.notes),
+      ),
     ],
     fields: [
       AdminField(
@@ -780,11 +1069,35 @@ final adminModules = <AdminModule>[
         maxLength: 500,
       ),
     ],
+    buildInsert: (v) => AppointmentInsertDto(
+      userId: v.requiredInteger('userId'),
+      employeeId: v.requiredInteger('employeeId'),
+      wellnessServiceId: v.requiredInteger('wellnessServiceId'),
+      appointmentDate: v.date('appointmentDate')!,
+      startTime: v.requiredString('startTime'),
+      endTime: v.requiredString('endTime'),
+      status: v.integer('status') ?? 1,
+      notes: v.string('notes'),
+      cancellationReason: v.string('cancellationReason'),
+    ),
+    buildUpdate: (id, v) => AppointmentUpdateDto(
+      id: id,
+      userId: v.requiredInteger('userId'),
+      employeeId: v.requiredInteger('employeeId'),
+      wellnessServiceId: v.requiredInteger('wellnessServiceId'),
+      appointmentDate: v.date('appointmentDate')!,
+      startTime: v.requiredString('startTime'),
+      endTime: v.requiredString('endTime'),
+      status: v.integer('status') ?? 1,
+      notes: v.string('notes'),
+      cancellationReason: v.string('cancellationReason'),
+    ),
   ),
   AdminModule(
     title: 'Reviews',
     endpoint: 'Review',
     entityName: 'review',
+    decoder: ReviewDto.fromJson,
     filters: [
       FilterField(
         key: 'UserId',
@@ -798,18 +1111,25 @@ final adminModules = <AdminModule>[
       ),
     ],
     columns: [
-      AdminColumn(label: 'User', value: (x) => textValue(x['userName'])),
-      AdminColumn(
-        label: 'Target',
-        value: (x) => textValue(
-          x['productName'] ?? x['serviceName'] ?? x['appointmentDisplay'],
-        ),
+      typedColumn<ReviewDto>(
+        label: 'User',
+        value: (x) => textValue(x.userName),
       ),
-      AdminColumn(label: 'Rating', value: (x) => textValue(x['rating'])),
-      AdminColumn(label: 'Comment', value: (x) => textValue(x['comment'])),
-      AdminColumn(
+      typedColumn<ReviewDto>(
+        label: 'Target',
+        value: (x) => textValue(x.targetName),
+      ),
+      typedColumn<ReviewDto>(
+        label: 'Rating',
+        value: (x) => textValue(x.rating),
+      ),
+      typedColumn<ReviewDto>(
+        label: 'Comment',
+        value: (x) => textValue(x.comment),
+      ),
+      typedColumn<ReviewDto>(
         label: 'Status',
-        value: (x) => enumLabel(_labels(reviewStatuses), x['status']),
+        value: (x) => enumLabel(_labels(reviewStatuses), x.status),
       ),
     ],
     fields: [
@@ -855,11 +1175,29 @@ final adminModules = <AdminModule>[
         statusOptions: reviewStatuses,
       ),
     ],
+    buildInsert: (v) => ReviewInsertDto(
+      userId: v.requiredInteger('userId'),
+      appointmentId: v.integer('appointmentId'),
+      productId: v.integer('productId'),
+      rating: v.requiredInteger('rating'),
+      comment: v.string('comment'),
+      status: v.integer('status') ?? 1,
+    ),
+    buildUpdate: (id, v) => ReviewUpdateDto(
+      id: id,
+      userId: v.requiredInteger('userId'),
+      appointmentId: v.integer('appointmentId'),
+      productId: v.integer('productId'),
+      rating: v.requiredInteger('rating'),
+      comment: v.string('comment'),
+      status: v.integer('status') ?? 1,
+    ),
   ),
   AdminModule(
     title: 'Purchases',
     endpoint: 'Purchase',
     entityName: 'purchase',
+    decoder: PurchaseDto.fromJson,
     canAdd: false,
     canDelete: false,
     searchKey: 'PurchaseNumber',
@@ -878,21 +1216,30 @@ final adminModules = <AdminModule>[
       ),
     ],
     columns: [
-      AdminColumn(label: 'Client', value: (x) => textValue(x['userName'])),
-      AdminColumn(
+      typedColumn<PurchaseDto>(
+        label: 'Client',
+        value: (x) => textValue(x.userName),
+      ),
+      typedColumn<PurchaseDto>(
         label: 'Purchase number',
-        value: (x) => textValue(x['purchaseNumber']),
+        value: (x) => textValue(x.purchaseNumber),
       ),
-      AdminColumn(label: 'Total', value: (x) => moneyValue(x['totalAmount'])),
-      AdminColumn(
+      typedColumn<PurchaseDto>(
+        label: 'Total',
+        value: (x) => moneyValue(x.totalAmount),
+      ),
+      typedColumn<PurchaseDto>(
         label: 'Purchase status',
-        value: (x) => enumLabel(_labels(purchaseStatuses), x['status']),
+        value: (x) => enumLabel(_labels(purchaseStatuses), x.status),
       ),
-      AdminColumn(
+      typedColumn<PurchaseDto>(
         label: 'Payment status',
-        value: (x) => enumLabel(_labels(paymentStatuses), x['paymentStatus']),
+        value: (x) => enumLabel(_labels(paymentStatuses), x.paymentStatus),
       ),
-      AdminColumn(label: 'Paid at', value: (x) => dateTimeValue(x['paidAt'])),
+      typedColumn<PurchaseDto>(
+        label: 'Paid at',
+        value: (x) => dateTimeValue(x.paidAt),
+      ),
     ],
     fields: [
       AdminField(
@@ -937,11 +1284,21 @@ final adminModules = <AdminModule>[
         readOnly: true,
       ),
     ],
+    buildUpdate: (id, v) => PurchaseUpdateDto(
+      id: id,
+      userId: v.requiredInteger('userId'),
+      purchaseNumber: v.requiredString('purchaseNumber'),
+      status: v.integer('status') ?? 1,
+      paymentStatus: v.integer('paymentStatus') ?? 1,
+      totalAmount: v.requiredDecimal('totalAmount'),
+      paidAt: v.date('paidAt'),
+    ),
   ),
   AdminModule(
     title: 'Purchase Items',
     endpoint: 'PurchaseItem',
     entityName: 'purchase item',
+    decoder: PurchaseItemDto.fromJson,
     filters: [
       FilterField(
         key: 'PurchaseId',
@@ -951,17 +1308,26 @@ final adminModules = <AdminModule>[
       FilterField(key: 'ProductId', label: 'Product', lookup: productsLookup),
     ],
     columns: [
-      AdminColumn(
+      typedColumn<PurchaseItemDto>(
         label: 'Purchase',
-        value: (x) => textValue(x['purchaseNumber']),
+        value: (x) => textValue(x.purchaseNumber),
       ),
-      AdminColumn(label: 'Product', value: (x) => textValue(x['productName'])),
-      AdminColumn(label: 'Quantity', value: (x) => textValue(x['quantity'])),
-      AdminColumn(
+      typedColumn<PurchaseItemDto>(
+        label: 'Product',
+        value: (x) => textValue(x.productName),
+      ),
+      typedColumn<PurchaseItemDto>(
+        label: 'Quantity',
+        value: (x) => textValue(x.quantity),
+      ),
+      typedColumn<PurchaseItemDto>(
         label: 'Unit price',
-        value: (x) => moneyValue(x['unitPrice']),
+        value: (x) => moneyValue(x.unitPrice),
       ),
-      AdminColumn(label: 'Total', value: (x) => moneyValue(x['totalPrice'])),
+      typedColumn<PurchaseItemDto>(
+        label: 'Total',
+        value: (x) => moneyValue(x.totalPrice),
+      ),
     ],
     fields: [
       AdminField(
@@ -1002,20 +1368,48 @@ final adminModules = <AdminModule>[
         readOnly: true,
       ),
     ],
+    buildInsert: (v) => PurchaseItemInsertDto(
+      purchaseId: v.requiredInteger('purchaseId'),
+      productId: v.requiredInteger('productId'),
+      quantity: v.requiredInteger('quantity'),
+      unitPrice: v.requiredDecimal('unitPrice'),
+      totalPrice: v.requiredDecimal('totalPrice'),
+    ),
+    buildUpdate: (id, v) => PurchaseItemUpdateDto(
+      id: id,
+      purchaseId: v.requiredInteger('purchaseId'),
+      productId: v.requiredInteger('productId'),
+      quantity: v.requiredInteger('quantity'),
+      unitPrice: v.requiredDecimal('unitPrice'),
+      totalPrice: v.requiredDecimal('totalPrice'),
+    ),
   ),
   AdminModule(
     title: 'Suppliers',
     endpoint: 'Supplier',
     entityName: 'supplier',
+    decoder: SupplierDto.fromJson,
     searchKey: 'Name',
     searchLabel: 'Search by supplier name',
     filters: const [activeFilter],
     columns: [
-      AdminColumn(label: 'Name', value: (x) => textValue(x['name'])),
-      AdminColumn(label: 'Email', value: (x) => textValue(x['contactEmail'])),
-      AdminColumn(label: 'Phone', value: (x) => textValue(x['phoneNumber'])),
-      AdminColumn(label: 'Address', value: (x) => textValue(x['address'])),
-      AdminColumn(label: 'Active', value: (x) => textValue(x['isActive'])),
+      typedColumn<SupplierDto>(label: 'Name', value: (x) => textValue(x.name)),
+      typedColumn<SupplierDto>(
+        label: 'Email',
+        value: (x) => textValue(x.contactEmail),
+      ),
+      typedColumn<SupplierDto>(
+        label: 'Phone',
+        value: (x) => textValue(x.phoneNumber),
+      ),
+      typedColumn<SupplierDto>(
+        label: 'Address',
+        value: (x) => textValue(x.address),
+      ),
+      typedColumn<SupplierDto>(
+        label: 'Active',
+        value: (x) => textValue(x.isActive),
+      ),
     ],
     fields: const [
       AdminField(
@@ -1051,5 +1445,20 @@ final adminModules = <AdminModule>[
         type: AdminFieldType.boolean,
       ),
     ],
+    buildInsert: (v) => SupplierInsertDto(
+      name: v.requiredString('name'),
+      contactEmail: v.string('contactEmail'),
+      phoneNumber: v.string('phoneNumber'),
+      address: v.string('address'),
+      isActive: v.boolean('isActive'),
+    ),
+    buildUpdate: (id, v) => SupplierUpdateDto(
+      id: id,
+      name: v.requiredString('name'),
+      contactEmail: v.string('contactEmail'),
+      phoneNumber: v.string('phoneNumber'),
+      address: v.string('address'),
+      isActive: v.boolean('isActive'),
+    ),
   ),
 ];

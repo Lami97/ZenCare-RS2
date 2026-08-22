@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/admin_models.dart';
+import '../models/auth_dtos.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../utils/api_exception.dart';
@@ -22,19 +24,18 @@ class AuthProvider extends ChangeNotifier {
   bool _isInitializing = true;
   bool _isLoading = false;
   String? _token;
-  Map<String, dynamic>? _user;
+  AuthenticatedUser? _user;
   String? _error;
 
   bool get isInitializing => _isInitializing;
   bool get isLoading => _isLoading;
   bool get isAuthenticated => _token != null && _user != null;
-  Map<String, dynamic>? get user => _user;
+  AuthenticatedUser? get user => _user;
   String? get error => _error;
-  String get displayName =>
-      (_user?['fullName'] ?? _user?['username'] ?? 'Admin').toString();
-  List<String> get roles => (_user?['roles'] as List<dynamic>? ?? [])
-      .map((role) => role.toString())
-      .toList();
+  String get displayName => _user?.fullName.isNotEmpty == true
+      ? _user!.fullName
+      : _user?.username ?? 'Admin';
+  List<String> get roles => _user?.roles ?? const [];
   bool get isAdmin => roles.any((role) => role.toLowerCase() == 'admin');
 
   Future<void> initialize() async {
@@ -51,7 +52,14 @@ class AuthProvider extends ChangeNotifier {
         expiresAt != null &&
         expiresAt.isAfter(DateTime.now().toUtc())) {
       _token = token;
-      _user = Map<String, dynamic>.from(jsonDecode(userJson) as Map);
+      final decoded = jsonDecode(userJson);
+      if (decoded is! Map) {
+        await _clearSession();
+        _isInitializing = false;
+        notifyListeners();
+        return;
+      }
+      _user = AuthenticatedUser.fromJson(JsonMap.from(decoded));
       _apiService.setToken(token);
     } else {
       await _clearSession();
@@ -65,36 +73,22 @@ class AuthProvider extends ChangeNotifier {
     _setLoading(true);
     try {
       final response = await _authService.login(username, password);
-      final roles = (response['roles'] as List<dynamic>? ?? [])
-          .map((role) => role.toString())
-          .toList();
+      final roles = response.user.roles;
       if (!roles.any((role) => role.toLowerCase() == 'admin')) {
         throw ApiException(
           'Only users with the Admin role can use the desktop application.',
         );
       }
-      final token = response['token']?.toString();
-      final expiresAt = DateTime.tryParse(
-        response['expiresAt']?.toString() ?? '',
-      );
-      if (token == null || token.isEmpty || expiresAt == null) {
+      final token = response.token;
+      final expiresAt = response.expiresAt;
+      if (token.isEmpty) {
         throw ApiException('Login response was incomplete.');
       }
-      final user = <String, dynamic>{
-        'userId': response['userId'],
-        'firstName': response['firstName'],
-        'lastName': response['lastName'],
-        'username': response['username'],
-        'email': response['email'],
-        'fullName': response['fullName'],
-        'phoneNumber': response['phoneNumber'],
-        'isActive': response['isActive'],
-        'roles': roles,
-      };
+      final user = response.user;
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_tokenKey, token);
       await prefs.setString(_expiresAtKey, expiresAt.toUtc().toIso8601String());
-      await prefs.setString(_userKey, jsonEncode(user));
+      await prefs.setString(_userKey, jsonEncode(user.toJson()));
       _token = token;
       _user = user;
       _apiService.setToken(token);

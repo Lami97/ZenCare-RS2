@@ -14,7 +14,7 @@ class EntityFormDialog extends StatefulWidget {
 
   final AdminModule module;
   final AdminRepository repository;
-  final Map<String, dynamic>? initialData;
+  final AdminEntity? initialData;
 
   @override
   State<EntityFormDialog> createState() => _EntityFormDialogState();
@@ -23,7 +23,7 @@ class EntityFormDialog extends StatefulWidget {
 class _EntityFormDialogState extends State<EntityFormDialog> {
   final _formKey = GlobalKey<FormState>();
   final _controllers = <String, TextEditingController>{};
-  final _values = <String, dynamic>{};
+  final _values = <String, Object?>{};
   final _lookups = <String, List<LookupOption>>{};
   String? _loadError;
   String? _saveError;
@@ -50,7 +50,7 @@ class _EntityFormDialogState extends State<EntityFormDialog> {
   void _initializeValues() {
     for (final field in widget.module.fields) {
       if (_isEdit && field.createOnly) continue;
-      final initial = widget.initialData?[field.key];
+      final initial = widget.initialData?.formValue(field.key);
       switch (field.type) {
         case AdminFieldType.boolean:
           _values[field.key] = initial is bool
@@ -114,15 +114,15 @@ class _EntityFormDialogState extends State<EntityFormDialog> {
     }
 
     final lookup = field.lookup!;
-    final queryParameters = <String, dynamic>{...lookup.queryParameters};
+    final queryParameters = <String, Object?>{...lookup.queryParameters};
     if (field.dependencyQueryKey != null) {
       queryParameters[field.dependencyQueryKey!] = dependencyValue;
     }
 
     final options = await widget.repository.lookup(
-      LookupConfig(
+      typedLookup<AdminEntity>(
         endpoint: lookup.endpoint,
-        valueKey: lookup.valueKey,
+        decoder: lookup.decoder,
         labelBuilder: lookup.labelBuilder,
         queryParameters: queryParameters,
       ),
@@ -176,25 +176,31 @@ class _EntityFormDialogState extends State<EntityFormDialog> {
   Future<void> _save() async {
     setState(() => _saveError = null);
     if (!_formKey.currentState!.validate()) return;
-    final request = <String, dynamic>{};
+    final formValues = <String, Object?>{};
     for (final field in widget.module.fields) {
       if (_isEdit && field.createOnly) continue;
       final value = _isEdit && field.readOnly
-          ? widget.initialData![field.key]
+          ? widget.initialData!.formValue(field.key)
           : _readValue(field);
-      if (value == null || (value is String && value.trim().isEmpty)) continue;
-      request[_toRequestKey(field.key)] = value;
+      formValues[field.key] = value;
     }
 
     setState(() => _saving = true);
     try {
-      final id = widget.initialData?['id'] is int
-          ? widget.initialData!['id'] as int
-          : int.tryParse(widget.initialData?['id']?.toString() ?? '');
+      final values = AdminFormValues(formValues);
+      final id = widget.initialData?.id;
       if (_isEdit && id != null) {
-        await widget.repository.update(widget.module, id, request);
+        await widget.repository.update(
+          widget.module,
+          id,
+          widget.module.buildUpdate(id, values),
+        );
       } else {
-        await widget.repository.create(widget.module, request);
+        final buildInsert = widget.module.buildInsert;
+        if (buildInsert == null) {
+          throw StateError('This record type cannot be created.');
+        }
+        await widget.repository.create(widget.module, buildInsert(values));
       }
       if (mounted) Navigator.of(context).pop(true);
     } on ApiException catch (error) {
@@ -208,7 +214,7 @@ class _EntityFormDialogState extends State<EntityFormDialog> {
     }
   }
 
-  dynamic _readValue(AdminField field) {
+  Object? _readValue(AdminField field) {
     switch (field.type) {
       case AdminFieldType.boolean:
       case AdminFieldType.lookup:
@@ -228,11 +234,6 @@ class _EntityFormDialogState extends State<EntityFormDialog> {
       case AdminFieldType.multiline:
         return _controllers[field.key]?.text.trim();
     }
-  }
-
-  String _toRequestKey(String key) {
-    if (key.isEmpty) return key;
-    return key.substring(0, 1).toUpperCase() + key.substring(1);
   }
 
   String? _validate(AdminField field, String? value) {
@@ -477,13 +478,13 @@ class _EntityFormDialogState extends State<EntityFormDialog> {
     }
   }
 
-  String _dateText(dynamic value) {
+  String _dateText(Object? value) {
     if (value == null) return '';
     final text = value.toString();
     return text.length >= 10 ? text.substring(0, 10) : text;
   }
 
-  String _timeText(dynamic value) {
+  String _timeText(Object? value) {
     if (value == null) return '';
     final text = value.toString();
     return text.length >= 5 ? text.substring(0, 5) : text;

@@ -35,9 +35,9 @@ class _ModuleView extends StatefulWidget {
 
 class _ModuleViewState extends State<_ModuleView> {
   final _searchController = TextEditingController();
-  final _filterValues = <String, dynamic>{};
+  final _filterValues = <String, Object?>{};
   int? _selectedId;
-  Map<String, dynamic>? _selectedItem;
+  AdminEntity? _selectedItem;
 
   @override
   void dispose() {
@@ -45,8 +45,8 @@ class _ModuleViewState extends State<_ModuleView> {
     super.dispose();
   }
 
-  Map<String, dynamic> _filters() {
-    final filters = <String, dynamic>{};
+  Map<String, Object?> _filters() {
+    final filters = <String, Object?>{};
     if (widget.module.searchKey != null &&
         _searchController.text.trim().isNotEmpty) {
       filters[widget.module.searchKey!] = _searchController.text.trim();
@@ -77,7 +77,7 @@ class _ModuleViewState extends State<_ModuleView> {
     _selectedItem = null;
   }
 
-  Future<void> _openForm({Map<String, dynamic>? item}) async {
+  Future<void> _openForm({AdminEntity? item}) async {
     final repository = context.read<AdminRepository>();
     final result = await showDialog<bool>(
       context: context,
@@ -238,13 +238,10 @@ class _ModuleViewState extends State<_ModuleView> {
     );
   }
 
-  void _selectItem(Map<String, dynamic> item) {
+  void _selectItem(AdminEntity item) {
     setState(() {
       _selectedItem = item;
-      final rawId = item['id'];
-      _selectedId = rawId is int
-          ? rawId
-          : int.tryParse(rawId?.toString() ?? '');
+      _selectedId = item.id;
     });
   }
 
@@ -264,7 +261,7 @@ class _FilterBar extends StatefulWidget {
 
   final AdminModule module;
   final TextEditingController searchController;
-  final Map<String, dynamic> filterValues;
+  final Map<String, Object?> filterValues;
   final VoidCallback onChanged;
   final Future<void> Function() onSearch;
 
@@ -420,9 +417,9 @@ class _DataGrid extends StatefulWidget {
   });
 
   final AdminModule module;
-  final List<Map<String, dynamic>> items;
+  final List<AdminEntity> items;
   final int? selectedId;
-  final ValueChanged<Map<String, dynamic>> onSelected;
+  final ValueChanged<AdminEntity> onSelected;
 
   @override
   State<_DataGrid> createState() => _DataGridState();
@@ -458,12 +455,9 @@ class _DataGridState extends State<_DataGrid> {
                   .map((column) => DataColumn(label: Text(column.label)))
                   .toList(),
               rows: widget.items.map((item) {
-                final rawId = item['id'];
-                final id = rawId is int
-                    ? rawId
-                    : int.tryParse(rawId?.toString() ?? '');
+                final id = item.id;
                 return DataRow(
-                  selected: id != null && id == widget.selectedId,
+                  selected: id == widget.selectedId,
                   onSelectChanged: (_) => widget.onSelected(item),
                   cells: widget.module.columns
                       .map(

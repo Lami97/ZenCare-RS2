@@ -13,17 +13,15 @@ class ModuleProvider extends ChangeNotifier {
   final int pageSize = 20;
   var _page = 1;
   var _isLoading = false;
-  var _isMutating = false;
   String? _error;
-  List<Map<String, dynamic>> _items = [];
+  List<AdminEntity> _items = [];
   int? _totalCount;
-  Map<String, dynamic> _filters = {};
+  Map<String, Object?> _filters = {};
 
   int get page => _page;
   bool get isLoading => _isLoading;
-  bool get isMutating => _isMutating;
   String? get error => _error;
-  List<Map<String, dynamic>> get items => List.unmodifiable(_items);
+  List<AdminEntity> get items => List.unmodifiable(_items);
   int? get totalCount => _totalCount;
   int get totalPages => _totalCount == null
       ? _page
@@ -32,7 +30,7 @@ class ModuleProvider extends ChangeNotifier {
   bool get canNext =>
       _totalCount == null ? _items.length == pageSize : _page < totalPages;
 
-  Future<void> load({Map<String, dynamic>? filters, int? page}) async {
+  Future<void> load({Map<String, Object?>? filters, int? page}) async {
     _isLoading = true;
     _error = null;
     if (filters != null) _filters = filters;
@@ -57,16 +55,9 @@ class ModuleProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> create(Map<String, dynamic> data) async {
-    await _mutate(() => _repository.create(module, data));
-  }
-
-  Future<void> update(int id, Map<String, dynamic> data) async {
-    await _mutate(() => _repository.update(module, id, data));
-  }
-
   Future<void> delete(int id) async {
-    await _mutate(() => _repository.delete(module, id));
+    await _repository.delete(module, id);
+    await load(page: _page);
   }
 
   Future<void> nextPage() async {
@@ -80,16 +71,4 @@ class ModuleProvider extends ChangeNotifier {
   }
 
   Future<void> refresh() => load(page: _page);
-
-  Future<void> _mutate(Future<void> Function() action) async {
-    _isMutating = true;
-    notifyListeners();
-    try {
-      await action();
-      await load(page: _page);
-    } finally {
-      _isMutating = false;
-      notifyListeners();
-    }
-  }
 }

@@ -1,3 +1,4 @@
+import '../models/auth_dtos.dart';
 import 'api_service.dart';
 
 class AuthService {
@@ -5,14 +6,16 @@ class AuthService {
 
   final ApiService _apiService;
 
-  Future<Map<String, dynamic>> login(String username, String password) {
-    return _apiService.postMap(
+  Future<LoginResponseDto> login(String username, String password) {
+    final request = LoginRequestDto(username: username, password: password);
+    return _apiService.postObject(
       'Auth/Login',
-      data: {'username': username, 'password': password},
+      data: request.toJson(),
+      decode: LoginResponseDto.fromJson,
     );
   }
 
   Future<void> logout() async {
-    await _apiService.postMap('Auth/Logout');
+    await _apiService.post('Auth/Logout');
   }
 }

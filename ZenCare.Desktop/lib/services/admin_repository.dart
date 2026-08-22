@@ -8,37 +8,49 @@ class AdminRepository {
 
   final ApiService _apiService;
 
-  Future<PagedResult> list(
+  Future<PagedResult<AdminEntity>> list(
     AdminModule module, {
     required int page,
     required int pageSize,
-    Map<String, dynamic>? filters,
+    Map<String, Object?>? filters,
   }) {
-    final query = <String, dynamic>{
+    final query = <String, Object?>{
       'Page': page,
       'PageSize': pageSize,
       'IncludeTotalCount': true,
       ...?filters,
     };
-    return _apiService.getPaged(module.endpoint, queryParameters: query);
+    return _apiService.getPaged(
+      module.endpoint,
+      queryParameters: query,
+      decodeItem: module.decoder,
+    );
   }
 
-  Future<Map<String, dynamic>> getById(AdminModule module, int id) {
-    return _apiService.getMap('${module.endpoint}/$id');
+  Future<AdminEntity> getById(AdminModule module, int id) {
+    return _apiService.getObject(
+      '${module.endpoint}/$id',
+      decode: module.decoder,
+    );
   }
 
-  Future<void> create(AdminModule module, Map<String, dynamic> data) async {
-    await _apiService.postMap(module.endpoint, data: data);
+  Future<AdminEntity> create(AdminModule module, AdminWriteDto request) {
+    return _apiService.postObject(
+      module.endpoint,
+      data: request.toJson(),
+      decode: module.decoder,
+    );
   }
 
-  Future<void> update(
+  Future<AdminEntity> update(
     AdminModule module,
     int id,
-    Map<String, dynamic> data,
-  ) async {
-    await _apiService.putMap(
+    AdminWriteDto request,
+  ) {
+    return _apiService.putObject(
       '${module.endpoint}/$id',
-      data: {...data, 'id': id},
+      data: request.toJson(),
+      decode: module.decoder,
     );
   }
 
@@ -50,14 +62,14 @@ class AdminRepository {
     DateTime? dateFrom,
     DateTime? dateTo,
   }) async {
-    final json = await _apiService.getMap(
+    return _apiService.getObject(
       'BusinessReport/analytics',
       queryParameters: {
         'DateFrom': _dateQueryValue(dateFrom),
         'DateTo': _dateQueryValue(dateTo),
       },
+      decode: BusinessAnalytics.fromJson,
     );
-    return BusinessAnalytics.fromJson(json);
   }
 
   String? _dateQueryValue(DateTime? value) {
@@ -69,7 +81,7 @@ class AdminRepository {
   }
 
   Future<List<LookupOption>> lookup(LookupConfig config) async {
-    final items = <Map<String, dynamic>>[];
+    final items = <AdminEntity>[];
     var page = 1;
     const pageSize = 100;
     while (true) {
@@ -81,6 +93,7 @@ class AdminRepository {
           'IncludeTotalCount': true,
           ...config.queryParameters,
         },
+        decodeItem: config.decoder,
       );
       items.addAll(result.items);
       final total = result.totalCount;
@@ -101,19 +114,14 @@ class AdminRepository {
   }
 
   Future<LookupOption> lookupById(LookupConfig config, int id) async {
-    final item = await _apiService.getMap('${config.endpoint}/$id');
+    final item = await _apiService.getObject(
+      '${config.endpoint}/$id',
+      decode: config.decoder,
+    );
     return _toLookupOption(config, item);
   }
 
-  LookupOption _toLookupOption(LookupConfig config, Map<String, dynamic> item) {
-    final rawValue = item[config.valueKey];
-    final value = rawValue is int
-        ? rawValue
-        : int.tryParse(rawValue?.toString() ?? '') ?? 0;
-    return LookupOption(
-      value: value,
-      label: config.labelBuilder(item),
-      raw: item,
-    );
+  LookupOption _toLookupOption(LookupConfig config, AdminEntity item) {
+    return LookupOption(value: item.id, label: config.labelBuilder(item));
   }
 }

@@ -1,4 +1,51 @@
-import '../utils/formatters.dart';
+typedef JsonMap = Map<String, dynamic>;
+
+abstract interface class AdminEntity {
+  int get id;
+
+  Object? formValue(String key);
+}
+
+abstract interface class AdminWriteDto {
+  JsonMap toJson();
+}
+
+int jsonInt(Object? value) =>
+    value is num ? value.toInt() : int.tryParse(value?.toString() ?? '') ?? 0;
+
+double jsonDouble(Object? value) => value is num
+    ? value.toDouble()
+    : double.tryParse(value?.toString() ?? '') ?? 0;
+
+bool jsonBool(Object? value) =>
+    value is bool ? value : value?.toString().toLowerCase() == 'true';
+
+DateTime? jsonDateTime(Object? value) =>
+    value == null ? null : DateTime.tryParse(value.toString());
+
+class AdminFormValues {
+  const AdminFormValues(this._values);
+
+  final Map<String, Object?> _values;
+
+  String? string(String key) {
+    final text = _values[key]?.toString().trim();
+    return text == null || text.isEmpty ? null : text;
+  }
+
+  String requiredString(String key) => string(key) ?? '';
+  int? integer(String key) => _values[key] is int
+      ? _values[key] as int
+      : int.tryParse(_values[key]?.toString() ?? '');
+  int requiredInteger(String key) => integer(key) ?? 0;
+  double? decimal(String key) => _values[key] is num
+      ? (_values[key] as num).toDouble()
+      : double.tryParse(_values[key]?.toString() ?? '');
+  double requiredDecimal(String key) => decimal(key) ?? 0;
+  bool boolean(String key, {bool fallback = false}) =>
+      _values[key] is bool ? _values[key] as bool : fallback;
+  DateTime? date(String key) => jsonDateTime(_values[key]);
+}
 
 enum AdminFieldType {
   text,
@@ -20,29 +67,36 @@ class StatusOption {
 }
 
 class LookupConfig {
-  const LookupConfig({
+  const LookupConfig._({
     required this.endpoint,
-    required this.valueKey,
+    required this.decoder,
     required this.labelBuilder,
     this.queryParameters = const {},
   });
 
   final String endpoint;
-  final String valueKey;
-  final String Function(Map<String, dynamic> item) labelBuilder;
-  final Map<String, dynamic> queryParameters;
+  final AdminEntity Function(JsonMap json) decoder;
+  final String Function(AdminEntity item) labelBuilder;
+  final Map<String, Object?> queryParameters;
 }
 
+LookupConfig typedLookup<T extends AdminEntity>({
+  required String endpoint,
+  required T Function(JsonMap json) decoder,
+  required String Function(T item) labelBuilder,
+  Map<String, Object?> queryParameters = const {},
+}) => LookupConfig._(
+  endpoint: endpoint,
+  decoder: decoder,
+  labelBuilder: (item) => labelBuilder(item as T),
+  queryParameters: queryParameters,
+);
+
 class LookupOption {
-  const LookupOption({
-    required this.value,
-    required this.label,
-    required this.raw,
-  });
+  const LookupOption({required this.value, required this.label});
 
   final int value;
   final String label;
-  final Map<String, dynamic> raw;
 }
 
 class AdminField {
@@ -80,11 +134,16 @@ class AdminField {
 }
 
 class AdminColumn {
-  const AdminColumn({required this.label, required this.value});
+  const AdminColumn._({required this.label, required this.value});
 
   final String label;
-  final String Function(Map<String, dynamic> item) value;
+  final String Function(AdminEntity item) value;
 }
+
+AdminColumn typedColumn<T extends AdminEntity>({
+  required String label,
+  required String Function(T item) value,
+}) => AdminColumn._(label: label, value: (item) => value(item as T));
 
 class FilterField {
   const FilterField({
@@ -113,6 +172,9 @@ class AdminModule {
     required this.entityName,
     required this.columns,
     required this.fields,
+    required this.decoder,
+    this.buildInsert,
+    required this.buildUpdate,
     this.filters = const [],
     this.searchKey,
     this.searchLabel = 'Search',
@@ -128,6 +190,9 @@ class AdminModule {
   final String entityName;
   final List<AdminColumn> columns;
   final List<AdminField> fields;
+  final AdminEntity Function(JsonMap json) decoder;
+  final AdminWriteDto Function(AdminFormValues values)? buildInsert;
+  final AdminWriteDto Function(int id, AdminFormValues values) buildUpdate;
   final List<FilterField> filters;
   final String? searchKey;
   final String searchLabel;
@@ -137,5 +202,3 @@ class AdminModule {
   final bool canDelete;
   final String? detailsHint;
 }
-
-String itemLabel(Map<String, dynamic> item) => displayName(item);
