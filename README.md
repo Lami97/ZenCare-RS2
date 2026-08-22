@@ -221,9 +221,38 @@ Open `http://localhost:15672` and sign in with `RABBITMQ_USERNAME` / `RABBITMQ_P
 
 ### SMTP / Password Reset
 
-Registration and login do not require SMTP. To demonstrate real reset-email delivery, the protected evaluator `.env` must contain working SMTP test sender settings. A dedicated test account is recommended but not mandatory; an existing working SMTP account is acceptable when its credentials remain protected and never enter Git.
+ZenCare uses SMTP to deliver reset tokens for the required Mobile Forgot/Reset Password flow. Mailtrap Email Sandbox is the recommended evaluator and development option because it captures outgoing messages without delivering them to a real Gmail, Outlook, or other recipient inbox. Domain verification is not required for Email Sandbox testing.
 
-The seeded evaluator addresses are intentionally non-deliverable demo addresses. For an end-to-end reset test, register a temporary Client with a reachable email address controlled by the evaluator, request a reset for that account, use the delivered token in Mobile, and then sign in with the new password. The neutral forgot-password response does not prove email delivery when the address does not belong to an active account.
+In Mailtrap, obtain the credentials from **Email Testing / Email Sandbox -> Sandbox -> SMTP / Integration credentials**. Configure the protected evaluator `.env` with the following ZenCare variables:
+
+```text
+SMTP_HOST=sandbox.smtp.mailtrap.io
+SMTP_PORT=2525
+SMTP_USERNAME=<mailtrap-sandbox-username>
+SMTP_PASSWORD=<mailtrap-sandbox-password>
+SMTP_USE_SSL=true
+SMTP_FROM_ADDRESS=<configured-test-sender>
+SMTP_FROM_NAME=ZenCare
+```
+
+The username and password must remain only in protected configuration and must never be committed to Git. `.env.example` remains placeholder-only. The supplied protected SMTP configuration may be used, or the evaluator may substitute credentials from their own Mailtrap Sandbox. A personal email account or app password is not required.
+
+The reset request email must belong to an existing ZenCare Client account, even though Mailtrap captures the message instead of delivering it to that address. To verify the complete flow:
+
+1. Start the ZenCare backend with working SMTP configuration.
+2. Open ZenCare Mobile.
+3. Register a temporary Client with an email address.
+4. Log out.
+5. Select **Forgot Password**.
+6. Enter the same email used by the registered Client.
+7. Open the Mailtrap Email Sandbox inbox.
+8. Open the captured ZenCare password-reset email.
+9. Copy the reset token.
+10. Enter the token and a new password in ZenCare Mobile.
+11. Confirm that the reset succeeds.
+12. Sign in using the new password.
+
+The neutral response, `If an account exists, password reset instructions have been sent.`, intentionally protects against account enumeration. It does not by itself prove that an email was sent; verify delivery in the Mailtrap Sandbox inbox.
 
 ## Database Initialization
 
