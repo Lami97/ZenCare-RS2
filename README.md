@@ -13,7 +13,6 @@ ZenCare is an RSII seminar project for managing a wellness center. It combines a
 | `ZenCare.Desktop` | Required Flutter Windows administration application (Admin role) |
 | `ZenCare.Mobile` | Required Flutter Android client application (Client role) |
 | `ZenCare.Worker` | Separate RabbitMQ consumer that persists purchase/workflow notifications |
-| `ZenCare.WinUI` | Legacy administration client retained in the solution; it is not the required evaluator desktop application |
 
 ## Main Features
 

@@ -78,7 +78,7 @@ Purchase.PaymentStatus == Succeeded
 
 Draft, PendingPayment, Paid, Processing, ReadyForPickup, Shipped, Cancelled, Refunded i Failed kupovine ne ulaze u personalne ni globalne purchase signale.
 
-Rezultati se sortiraju po `Score` opadajuce, zatim po `Name` rastuce. `take` ima zadanu vrijednost 5 i maksimalnu vrijednost 50.
+Rezultati se sortiraju po `Score` opadajuce, zatim po `Name` rastuce, a zatim se primjenjuje formalna paginacija. `Page` ima zadanu vrijednost 1, `PageSize` zadanu vrijednost 5 i maksimalnu vrijednost 100. Parametar `Take` ostaje podrzan samo kao backward-compatible alternativa za `PageSize` kada `PageSize` nije poslan.
 
 ## 5. Service scoring
 
@@ -116,13 +116,13 @@ Nakon generisanja, svaki rezultat se evidentira u `RecommendationLogs` sa korisn
 
 | Metoda | Endpoint | Uloga |
 |---|---|---|
-| GET | `/Recommendation/My/products?take=5` | `Client` |
-| GET | `/Recommendation/My/services?take=5` | `Client` |
-| GET | `/Recommendation/Products/{userId}?take=5` | `Admin` |
-| GET | `/Recommendation/Services/{userId}?take=5` | `Admin` |
+| GET | `/Recommendation/My/products?Page=1&PageSize=5` | `Client` |
+| GET | `/Recommendation/My/services?Page=1&PageSize=5` | `Client` |
+| GET | `/Recommendation/Products/{userId}?Page=1&PageSize=5` | `Admin` |
+| GET | `/Recommendation/Services/{userId}?Page=1&PageSize=5` | `Admin` |
 | POST | `/Product/My/{id}/view` | `Client` |
 
-Klijentski endpointi identitet uzimaju iz JWT-a. Admin endpointi eksplicitno primaju korisnika za administrativno testiranje preporuka.
+Klijentski endpointi identitet uzimaju iz JWT-a. Admin endpointi eksplicitno primaju korisnika za administrativno testiranje preporuka. Svi list endpointi vracaju `PagedResult<RecommendationItemResponse>`; `PageSize` je ogranicen na 100. Legacy `Take` parametar ostaje podrzan radi kompatibilnosti, ali formalni ugovor koristi `Page` i `PageSize`.
 
 ## 10. Mobilna aplikacija
 

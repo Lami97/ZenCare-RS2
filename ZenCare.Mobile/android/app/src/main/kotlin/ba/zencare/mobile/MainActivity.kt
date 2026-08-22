@@ -1,4 +1,4 @@
-package com.example.zencare_mobile
+package ba.zencare.mobile
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 
