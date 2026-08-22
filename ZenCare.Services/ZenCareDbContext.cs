@@ -345,42 +345,42 @@ public class ZenCareDbContext : DbContext
         );
 
         modelBuilder.Entity<ServiceCategory>().HasData(
-            new ServiceCategory { Id = 1, Name = "Masaže", IsActive = true, CreatedAt = createdAt },
-            new ServiceCategory { Id = 2, Name = "Aromaterapija", IsActive = true, CreatedAt = createdAt },
-            new ServiceCategory { Id = 3, Name = "Njega lica", IsActive = true, CreatedAt = createdAt },
-            new ServiceCategory { Id = 4, Name = "Wellness tretmani", IsActive = true, CreatedAt = createdAt },
-            new ServiceCategory { Id = 5, Name = "Relaksacija", IsActive = true, CreatedAt = createdAt }
+            new ServiceCategory { Id = 1, Name = "Massages", IsActive = true, CreatedAt = createdAt },
+            new ServiceCategory { Id = 2, Name = "Aromatherapy", IsActive = true, CreatedAt = createdAt },
+            new ServiceCategory { Id = 3, Name = "Facial Care", IsActive = true, CreatedAt = createdAt },
+            new ServiceCategory { Id = 4, Name = "Wellness Treatments", IsActive = true, CreatedAt = createdAt },
+            new ServiceCategory { Id = 5, Name = "Relaxation", IsActive = true, CreatedAt = createdAt }
         );
 
         modelBuilder.Entity<ProductCategory>().HasData(
-            new ProductCategory { Id = 1, Name = "Eterična ulja", IsActive = true, CreatedAt = createdAt },
-            new ProductCategory { Id = 2, Name = "Njega kože", IsActive = true, CreatedAt = createdAt },
-            new ProductCategory { Id = 3, Name = "Pilinzi", IsActive = true, CreatedAt = createdAt },
-            new ProductCategory { Id = 4, Name = "Wellness preparati", IsActive = true, CreatedAt = createdAt },
-            new ProductCategory { Id = 5, Name = "Poklon paketi", IsActive = true, CreatedAt = createdAt }
+            new ProductCategory { Id = 1, Name = "Essential Oils", IsActive = true, CreatedAt = createdAt },
+            new ProductCategory { Id = 2, Name = "Skin Care", IsActive = true, CreatedAt = createdAt },
+            new ProductCategory { Id = 3, Name = "Scrubs", IsActive = true, CreatedAt = createdAt },
+            new ProductCategory { Id = 4, Name = "Wellness Products", IsActive = true, CreatedAt = createdAt },
+            new ProductCategory { Id = 5, Name = "Gift Sets", IsActive = true, CreatedAt = createdAt }
         );
 
         modelBuilder.Entity<ProductType>().HasData(
-            new ProductType { Id = 1, Name = "Preparat", IsActive = true, CreatedAt = createdAt },
-            new ProductType { Id = 2, Name = "Ulje", IsActive = true, CreatedAt = createdAt },
-            new ProductType { Id = 3, Name = "Krema", IsActive = true, CreatedAt = createdAt },
-            new ProductType { Id = 4, Name = "Piling", IsActive = true, CreatedAt = createdAt },
-            new ProductType { Id = 5, Name = "Paket", IsActive = true, CreatedAt = createdAt }
+            new ProductType { Id = 1, Name = "Product", IsActive = true, CreatedAt = createdAt },
+            new ProductType { Id = 2, Name = "Oil", IsActive = true, CreatedAt = createdAt },
+            new ProductType { Id = 3, Name = "Cream", IsActive = true, CreatedAt = createdAt },
+            new ProductType { Id = 4, Name = "Scrub", IsActive = true, CreatedAt = createdAt },
+            new ProductType { Id = 5, Name = "Set", IsActive = true, CreatedAt = createdAt }
         );
 
         modelBuilder.Entity<UnitOfMeasure>().HasData(
-            new UnitOfMeasure { Id = 1, Name = "kom", Abbreviation = "kom", IsActive = true, CreatedAt = createdAt },
+            new UnitOfMeasure { Id = 1, Name = "Piece", Abbreviation = "pc", IsActive = true, CreatedAt = createdAt },
             new UnitOfMeasure { Id = 2, Name = "ml", Abbreviation = "ml", IsActive = true, CreatedAt = createdAt },
             new UnitOfMeasure { Id = 3, Name = "g", Abbreviation = "g", IsActive = true, CreatedAt = createdAt },
-            new UnitOfMeasure { Id = 4, Name = "pakovanje", Abbreviation = "pakovanje", IsActive = true, CreatedAt = createdAt }
+            new UnitOfMeasure { Id = 4, Name = "Package", Abbreviation = "pkg", IsActive = true, CreatedAt = createdAt }
         );
 
         modelBuilder.Entity<FAQCategory>().HasData(
-            new FAQCategory { Id = 1, Name = "Rezervacije", IsActive = true, CreatedAt = createdAt },
-            new FAQCategory { Id = 2, Name = "Plaćanje", IsActive = true, CreatedAt = createdAt },
-            new FAQCategory { Id = 3, Name = "Preparati", IsActive = true, CreatedAt = createdAt },
-            new FAQCategory { Id = 4, Name = "Wellness usluge", IsActive = true, CreatedAt = createdAt },
-            new FAQCategory { Id = 5, Name = "Korisnički račun", IsActive = true, CreatedAt = createdAt }
+            new FAQCategory { Id = 1, Name = "Appointments", IsActive = true, CreatedAt = createdAt },
+            new FAQCategory { Id = 2, Name = "Payments", IsActive = true, CreatedAt = createdAt },
+            new FAQCategory { Id = 3, Name = "Products", IsActive = true, CreatedAt = createdAt },
+            new FAQCategory { Id = 4, Name = "Wellness Services", IsActive = true, CreatedAt = createdAt },
+            new FAQCategory { Id = 5, Name = "User Account", IsActive = true, CreatedAt = createdAt }
         );
     }
 
