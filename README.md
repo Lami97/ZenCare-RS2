@@ -36,6 +36,8 @@ ZenCare is an RSII seminar project for managing a wellness center. It combines a
 - Matching Stripe test keys from the protected evaluator configuration package to exercise payment and refund workflows
 - Working SMTP test sender settings from the protected package only if password-reset email delivery will be evaluated
 
+Verified development environment: Flutter 3.44.8 (stable), Dart 3.12.2, and .NET 9 SDK.
+
 ## Configuration
 
 Create the local Compose environment file from the tracked template:
