@@ -52,7 +52,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserAccessor, HttpCurrentUserAccessor>();
 builder.Services.AddSingleton(businessTimeZone);
 
-builder.Services.AddAutoMapper(_ => { }, typeof(RoleProfile).Assembly, typeof(ServiceCategoryProfile).Assembly, typeof(ProductCategoryProfile).Assembly, typeof(ProductTypeProfile).Assembly, typeof(UnitOfMeasureProfile).Assembly, typeof(FAQCategoryProfile).Assembly, typeof(FAQProfile).Assembly, typeof(ServiceProfile).Assembly, typeof(ProductProfile).Assembly, typeof(UserProfile).Assembly, typeof(UserRoleProfile).Assembly, typeof(ClientProfileProfile).Assembly, typeof(EmployeeProfile).Assembly, typeof(EmployeeServiceProfile).Assembly, typeof(AppointmentProfile).Assembly, typeof(PaymentProfile).Assembly, typeof(ReviewProfile).Assembly, typeof(PurchaseProfile).Assembly, typeof(PurchaseItemProfile).Assembly, typeof(CartProfile).Assembly, typeof(CartItemProfile).Assembly, typeof(NotificationProfile).Assembly, typeof(RecommendationLogProfile).Assembly, typeof(BusinessReportProfile).Assembly, typeof(SupplierProfile).Assembly);
+builder.Services.AddAutoMapper(_ => { }, typeof(RoleProfile).Assembly, typeof(ServiceCategoryProfile).Assembly, typeof(ProductCategoryProfile).Assembly, typeof(ProductTypeProfile).Assembly, typeof(UnitOfMeasureProfile).Assembly, typeof(FAQCategoryProfile).Assembly, typeof(FAQProfile).Assembly, typeof(ServiceProfile).Assembly, typeof(ProductProfile).Assembly, typeof(UserProfile).Assembly, typeof(UserRoleProfile).Assembly, typeof(ClientProfileProfile).Assembly, typeof(EmployeeProfile).Assembly, typeof(EmployeeServiceProfile).Assembly, typeof(AppointmentProfile).Assembly, typeof(TimeSlotProfile).Assembly, typeof(PaymentProfile).Assembly, typeof(ReviewProfile).Assembly, typeof(PurchaseProfile).Assembly, typeof(PurchaseItemProfile).Assembly, typeof(CartProfile).Assembly, typeof(CartItemProfile).Assembly, typeof(NotificationProfile).Assembly, typeof(RecommendationLogProfile).Assembly, typeof(BusinessReportProfile).Assembly, typeof(SupplierProfile).Assembly);
 
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IServiceCategoryService, ServiceCategoryService>();
@@ -69,6 +69,7 @@ builder.Services.AddScoped<IClientProfileService, ClientProfileService>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<IEmployeeServiceService, EmployeeServiceService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
+builder.Services.AddScoped<ITimeSlotService, TimeSlotService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IPurchaseService, PurchaseService>();

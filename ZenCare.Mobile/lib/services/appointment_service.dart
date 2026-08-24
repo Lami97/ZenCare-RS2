@@ -2,6 +2,7 @@ import '../models/appointment.dart';
 import '../models/appointment_create_request.dart';
 import '../models/appointment_employee_option.dart';
 import '../models/paged_result.dart';
+import '../models/time_slot.dart';
 import 'api_service.dart';
 
 class AppointmentService {
@@ -50,6 +51,26 @@ class AppointmentService {
       '/Appointment/My',
       data: request.toJson(),
       fromJson: (data) => Appointment.fromJson(data as Map<String, dynamic>),
+    );
+  }
+
+  Future<PagedResult<TimeSlot>> getAvailableTimeSlots({
+    required int wellnessServiceId,
+    int page = 1,
+    int pageSize = 100,
+  }) {
+    return _apiService.get<PagedResult<TimeSlot>>(
+      '/TimeSlot/Available',
+      queryParameters: {
+        'WellnessServiceId': wellnessServiceId,
+        'Page': page,
+        'PageSize': pageSize,
+        'IncludeTotalCount': true,
+      },
+      fromJson: (data) => PagedResult<TimeSlot>.fromJson(
+        data as Map<String, dynamic>,
+        TimeSlot.fromJson,
+      ),
     );
   }
 

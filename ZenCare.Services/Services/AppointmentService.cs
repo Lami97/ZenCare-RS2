@@ -1,5 +1,6 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 using ZenCare.Model.Enums;
 using ZenCare.Model.Exceptions;
 using ZenCare.Model.Messages;
@@ -27,25 +28,7 @@ namespace ZenCare.Services.Services
 
         public override async Task<AppointmentResponse> InsertAsync(AppointmentInsertRequest request)
         {
-            await ValidateAppointmentRequestAsync(
-                request.UserId,
-                request.EmployeeId,
-                request.WellnessServiceId,
-                request.AppointmentDate,
-                request.StartTime,
-                request.EndTime,
-                enforceFutureSchedule: true);
-            ValidateAppointmentStatus(request.Status, request.CancellationReason);
-            ValidateAppointmentStatusTiming(
-                request.Status,
-                request.AppointmentDate,
-                request.StartTime,
-                request.EndTime);
-
-            var result = await base.InsertAsync(request);
-            await PublishAppointmentBookedAsync(result);
-
-            return result;
+            return await BookTimeSlotAsync(request.UserId, request.TimeSlotId, request.Notes);
         }
 
         public override async Task<AppointmentResponse> UpdateAsync(int id, AppointmentUpdateRequest request)
@@ -80,6 +63,11 @@ namespace ZenCare.Services.Services
             var isEmployeeChanged = entity.EmployeeId != request.EmployeeId;
             var isEmployeeServiceChanged = isEmployeeChanged ||
                 entity.WellnessServiceId != request.WellnessServiceId;
+
+            if (entity.UserId != request.UserId || isRescheduling || isEmployeeServiceChanged)
+            {
+                throw new BusinessException("Reservation client, employee, service and time cannot be changed. Cancel it and book another schedule entry instead.");
+            }
 
             await ValidateAppointmentRequestAsync(
                 request.UserId,
@@ -149,16 +137,124 @@ namespace ZenCare.Services.Services
             return Mapper.Map<AppointmentResponse>(entity);
         }
 
-        public async Task<AppointmentResponse> InsertMyAsync(int userId, AppointmentInsertRequest request)
+        public async Task<AppointmentResponse> InsertMyAsync(int userId, AppointmentBookRequest request)
         {
-            if (request.Status != AppointmentStatus.Pending)
+            return await BookTimeSlotAsync(userId, request.TimeSlotId, request.Notes);
+        }
+
+        private async Task<AppointmentResponse> BookTimeSlotAsync(int userId, int timeSlotId, string? notes)
+        {
+            await using var transaction = await DbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+            var userIsActive = await DbContext.Users
+                .Where(user => user.Id == userId)
+                .Select(user => (bool?)user.IsActive)
+                .FirstOrDefaultAsync();
+
+            if (!userIsActive.HasValue)
             {
-                throw new BusinessException("Client appointments must be created in Pending status.");
+                throw new BusinessException("User was not found.");
             }
 
-            request.UserId = userId;
+            if (!userIsActive.Value)
+            {
+                throw new BusinessException("The client account is inactive.");
+            }
 
-            return await InsertAsync(request);
+            var slot = await DbContext.TimeSlots
+                .Include(item => item.Employee)
+                    .ThenInclude(employee => employee.User)
+                .Include(item => item.WellnessService)
+                .Include(item => item.Appointments)
+                .FirstOrDefaultAsync(item => item.Id == timeSlotId);
+
+            if (slot == null)
+            {
+                throw new BusinessException("The selected schedule entry was not found.");
+            }
+
+            await ValidateBookableSlotAsync(slot);
+
+            var appointment = new Database.Appointment
+            {
+                UserId = userId,
+                EmployeeId = slot.EmployeeId,
+                WellnessServiceId = slot.WellnessServiceId,
+                TimeSlotId = slot.Id,
+                AppointmentDate = slot.SlotDate.Date,
+                StartTime = slot.StartTime,
+                EndTime = slot.EndTime,
+                Status = AppointmentStatus.Pending,
+                Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(),
+                CreatedAt = DateTime.UtcNow
+            };
+
+            DbContext.Appointments.Add(appointment);
+
+            try
+            {
+                await DbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch (DbUpdateException)
+            {
+                throw new BusinessException("The selected schedule entry is no longer available.");
+            }
+
+            var result = await GetByIdAsync(appointment.Id);
+            await PublishAppointmentBookedAsync(result);
+            return result;
+        }
+
+        private async Task ValidateBookableSlotAsync(Database.TimeSlot slot)
+        {
+            if (!slot.IsActive)
+            {
+                throw new BusinessException("The selected schedule entry is inactive.");
+            }
+
+            if (!slot.Employee.IsAvailable || !slot.Employee.User.IsActive)
+            {
+                throw new BusinessException("The selected employee is inactive or unavailable.");
+            }
+
+            if (slot.WellnessService.Status != ServiceStatus.Active)
+            {
+                throw new BusinessException("The selected service is inactive.");
+            }
+
+            var slotStart = GetAppointmentStartDateTime(slot.SlotDate, slot.StartTime);
+            if (slotStart <= GetBusinessNow())
+            {
+                throw new BusinessException("The selected schedule entry is no longer in the future.");
+            }
+
+            var hasAssignment = await DbContext.EmployeeServices.AnyAsync(assignment =>
+                assignment.EmployeeId == slot.EmployeeId &&
+                assignment.WellnessServiceId == slot.WellnessServiceId &&
+                assignment.IsActive);
+
+            if (!hasAssignment)
+            {
+                throw new BusinessException("The selected employee is not assigned to the selected service.");
+            }
+
+            if (slot.Appointments.Any(appointment => appointment.Status != AppointmentStatus.Cancelled))
+            {
+                throw new BusinessException("The selected schedule entry has already been booked.");
+            }
+
+            var hasEmployeeOverlap = await DbContext.Appointments.AnyAsync(appointment =>
+                appointment.EmployeeId == slot.EmployeeId &&
+                appointment.Status != AppointmentStatus.Cancelled &&
+                appointment.AppointmentDate.Date == slot.SlotDate.Date &&
+                slot.StartTime < appointment.EndTime &&
+                slot.EndTime > appointment.StartTime);
+
+            if (hasEmployeeOverlap)
+            {
+                throw new BusinessException("The selected employee already has a reservation during this time.");
+            }
         }
 
         public async Task<AppointmentResponse> UpdateMyAsync(int id, int userId, AppointmentUpdateRequest request)

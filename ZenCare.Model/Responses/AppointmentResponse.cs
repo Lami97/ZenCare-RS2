@@ -7,9 +7,11 @@ namespace ZenCare.Model.Responses
         public int Id { get; set; }
         public int UserId { get; set; }
         public string UserName { get; set; } = string.Empty;
+        public string UserDisplayName { get; set; } = string.Empty;
         public int EmployeeId { get; set; }
         public string EmployeeName { get; set; } = string.Empty;
         public int WellnessServiceId { get; set; }
+        public int? TimeSlotId { get; set; }
         public string ServiceName { get; set; } = string.Empty;
         public string ServiceCategoryName { get; set; } = string.Empty;
         public DateTime AppointmentDate { get; set; }

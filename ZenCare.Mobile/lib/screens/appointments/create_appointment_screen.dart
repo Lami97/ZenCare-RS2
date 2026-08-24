@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/appointment_create_request.dart';
-import '../../models/appointment_employee_option.dart';
 import '../../models/category.dart';
+import '../../models/time_slot.dart';
 import '../../models/wellness_service.dart';
-import '../../providers/auth_provider.dart';
 import '../../services/appointment_service.dart';
 import '../../services/wellness_service_service.dart';
 import '../../utils/api_exception.dart';
@@ -20,49 +19,57 @@ class CreateAppointmentScreen extends StatefulWidget {
       _CreateAppointmentScreenState();
 }
 
-class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
+class _CreateAppointmentScreenState extends State<CreateAppointmentScreen>
+    with WidgetsBindingObserver {
   final _formKey = GlobalKey<FormState>();
   final _notesController = TextEditingController();
 
   bool _isLoadingLookups = true;
-  bool _isLoadingEmployees = false;
+  bool _isLoadingSlots = false;
   bool _isSubmitting = false;
   String? _lookupError;
-  String? _employeeLookupMessage;
+  String? _slotMessage;
   String? _submitError;
-  List<AppointmentEmployeeOption> _employees = [];
-  List<Category> _serviceCategories = [];
+  List<Category> _categories = [];
   List<WellnessService> _services = [];
-  Category? _selectedServiceCategory;
-  AppointmentEmployeeOption? _selectedEmployee;
+  List<TimeSlot> _slots = [];
+  Category? _selectedCategory;
   WellnessService? _selectedService;
-  DateTime? _selectedDate;
-  TimeOfDay? _startTime;
-  TimeOfDay? _endTime;
+  TimeSlot? _selectedSlot;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadLookups();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _notesController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadLookups() async {
-    var shouldLoadEmployees = false;
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        _selectedService != null &&
+        !_isLoadingSlots &&
+        !_isSubmitting) {
+      _loadSlots();
+    }
+  }
 
+  Future<void> _loadLookups() async {
     setState(() {
       _isLoadingLookups = true;
       _lookupError = null;
-      _employeeLookupMessage = null;
-      _selectedServiceCategory = null;
+      _slotMessage = null;
+      _selectedCategory = null;
       _selectedService = null;
-      _selectedEmployee = null;
-      _employees = [];
+      _selectedSlot = null;
+      _slots = [];
     });
 
     try {
@@ -74,264 +81,141 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
         pageSize: 100,
       );
 
-      _serviceCategories = categoriesResult.items
+      _categories = categoriesResult.items
           .where((category) => category.isActive)
           .toList();
-      _services = servicesResult.items
-          .where((wellnessService) => wellnessService.isActive)
-          .toList();
+      _services = servicesResult.items.where((item) => item.isActive).toList();
 
       final initialServiceId = widget.initialServiceId;
       if (initialServiceId != null) {
-        for (final service in _services) {
-          if (service.id == initialServiceId) {
-            _selectedService = service;
-            break;
-          }
-        }
-
-        final selectedService = _selectedService;
-        if (selectedService != null) {
-          for (final category in _serviceCategories) {
-            if (category.id == selectedService.serviceCategoryId) {
-              _selectedServiceCategory = category;
-              break;
-            }
-          }
-
-          if (_startTime != null) {
-            _endTime = _addMinutes(
-              _startTime!,
-              selectedService.durationMinutes,
-            );
-          }
-          shouldLoadEmployees = _selectedServiceCategory != null;
+        _selectedService = _firstWhereOrNull(
+          _services,
+          (item) => item.id == initialServiceId,
+        );
+        final serviceCategoryId = _selectedService?.serviceCategoryId;
+        if (serviceCategoryId != null) {
+          _selectedCategory = _firstWhereOrNull(
+            _categories,
+            (category) => category.id == serviceCategoryId,
+          );
         }
       }
     } on ApiException catch (error) {
       _lookupError = error.message;
     } catch (_) {
-      _lookupError = 'Unable to load appointment options.';
+      _lookupError = 'Unable to load reservation options.';
     } finally {
       if (mounted) {
-        setState(() {
-          _isLoadingLookups = false;
-        });
+        setState(() => _isLoadingLookups = false);
       }
     }
 
-    if (shouldLoadEmployees && mounted) {
-      await _loadEmployeesForSelectedService();
+    if (mounted && _selectedService != null) {
+      await _loadSlots();
     }
   }
 
   List<WellnessService> get _filteredServices {
-    final selectedCategory = _selectedServiceCategory;
-
-    if (selectedCategory == null) {
-      return [];
-    }
-
+    final category = _selectedCategory;
+    if (category == null) return [];
     return _services
-        .where((service) => service.serviceCategoryId == selectedCategory.id)
+        .where((service) => service.serviceCategoryId == category.id)
         .toList();
   }
 
-  Future<void> _loadEmployeesForSelectedService() async {
-    final selectedService = _selectedService;
+  void _selectCategory(Category? category) {
+    setState(() {
+      _selectedCategory = category;
+      _selectedService = null;
+      _selectedSlot = null;
+      _slots = [];
+      _slotMessage = null;
+      _submitError = null;
+    });
+  }
 
-    if (selectedService == null) {
-      setState(() {
-        _employees = [];
-        _selectedEmployee = null;
-        _employeeLookupMessage = null;
-      });
-      return;
-    }
+  Future<void> _selectService(WellnessService? service) async {
+    setState(() {
+      _selectedService = service;
+      _selectedSlot = null;
+      _slots = [];
+      _slotMessage = null;
+      _submitError = null;
+    });
+    await _loadSlots();
+  }
+
+  Future<void> _loadSlots() async {
+    final service = _selectedService;
+    if (service == null) return;
 
     setState(() {
-      _isLoadingEmployees = true;
-      _employeeLookupMessage = null;
-      _selectedEmployee = null;
-      _employees = [];
+      _isLoadingSlots = true;
+      _selectedSlot = null;
+      _slots = [];
+      _slotMessage = null;
     });
 
     try {
-      final start = _startTime == null ? null : _toDuration(_startTime!);
-      final end = _endTime == null ? null : _toDuration(_endTime!);
-      final hasCompleteTimeFilter =
-          _selectedDate != null && start != null && end != null;
+      final result = await context
+          .read<AppointmentService>()
+          .getAvailableTimeSlots(wellnessServiceId: service.id);
 
-      final result =
-          await context.read<AppointmentService>().getAvailableEmployees(
-                wellnessServiceId: selectedService.id,
-                appointmentDate: hasCompleteTimeFilter ? _selectedDate : null,
-                startTime: hasCompleteTimeFilter ? start : null,
-                endTime: hasCompleteTimeFilter ? end : null,
-              );
-
-      if (!mounted) {
-        return;
-      }
-
+      if (!mounted) return;
       setState(() {
-        _employees = result.where((employee) => employee.isAvailable).toList();
-        _employeeLookupMessage = _employees.isEmpty
-            ? 'No employees are available for the selected service.'
+        _slots = result.items.where((slot) => slot.isAvailable).toList();
+        _slotMessage = _slots.isEmpty
+            ? 'No appointment times are currently available for this service.'
             : null;
       });
     } on ApiException catch (error) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _employeeLookupMessage = error.statusCode == 403
-            ? 'Employee lookup is not available for this account. Please contact an administrator.'
-            : error.message;
-      });
+      if (!mounted) return;
+      setState(() => _slotMessage = error.message);
     } catch (_) {
-      if (!mounted) {
-        return;
-      }
-
+      if (!mounted) return;
       setState(() {
-        _employeeLookupMessage =
-            'Unable to load employees for the selected service.';
+        _slotMessage = 'Unable to load available appointment times.';
       });
     } finally {
       if (mounted) {
-        setState(() {
-          _isLoadingEmployees = false;
-        });
+        setState(() => _isLoadingSlots = false);
       }
-    }
-  }
-
-  Future<void> _pickDate() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate ?? now,
-      firstDate: DateTime(now.year, now.month, now.day),
-      lastDate: now.add(const Duration(days: 365)),
-    );
-
-    if (picked != null) {
-      setState(() {
-        _selectedDate = picked;
-      });
-      await _loadEmployeesForSelectedService();
-    }
-  }
-
-  Future<void> _pickStartTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _startTime ?? const TimeOfDay(hour: 9, minute: 0),
-    );
-
-    if (picked != null) {
-      setState(() {
-        _startTime = picked;
-        if (_selectedService != null) {
-          _endTime = _addMinutes(picked, _selectedService!.durationMinutes);
-        }
-      });
-      await _loadEmployeesForSelectedService();
-    }
-  }
-
-  Future<void> _pickEndTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _endTime ?? const TimeOfDay(hour: 10, minute: 0),
-    );
-
-    if (picked != null) {
-      setState(() {
-        _endTime = picked;
-      });
-      await _loadEmployeesForSelectedService();
     }
   }
 
   Future<void> _submit() async {
-    setState(() {
-      _submitError = null;
-    });
+    setState(() => _submitError = null);
+    if (!_formKey.currentState!.validate()) return;
 
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    final slot = _selectedSlot;
+    if (slot == null) return;
 
-    final user = context.read<AuthProvider>().user;
-    if (user == null) {
-      setState(() {
-        _submitError = 'You must be logged in to create an appointment.';
-      });
-      return;
-    }
-
-    final start = _toDuration(_startTime!);
-    final end = _toDuration(_endTime!);
-    if (end <= start) {
-      setState(() {
-        _submitError = 'End time must be after start time.';
-      });
-      return;
-    }
-
-    final scheduleError = _validateFutureSchedule(_selectedDate!, _startTime!);
-    if (scheduleError != null) {
-      setState(() {
-        _submitError = scheduleError;
-      });
-      return;
-    }
-
-    setState(() {
-      _isSubmitting = true;
-    });
-
+    setState(() => _isSubmitting = true);
     try {
       final notes = _notesController.text.trim();
-      final request = AppointmentCreateRequest(
-        userId: user.id,
-        employeeId: _selectedEmployee!.employeeId,
-        wellnessServiceId: _selectedService!.id,
-        appointmentDate: _selectedDate!,
-        startTime: start,
-        endTime: end,
-        notes: notes.isEmpty ? null : notes,
-      );
+      await context.read<AppointmentService>().createMyAppointment(
+            AppointmentCreateRequest(
+              timeSlotId: slot.id,
+              notes: notes.isEmpty ? null : notes,
+            ),
+          );
 
-      await context.read<AppointmentService>().createMyAppointment(request);
-
-      if (mounted) {
-        Navigator.of(context).pop(true);
-      }
+      if (mounted) Navigator.of(context).pop(true);
     } on ApiException catch (error) {
-      setState(() {
-        _submitError = error.message;
-      });
+      if (mounted) setState(() => _submitError = error.message);
     } catch (_) {
-      setState(() {
-        _submitError = 'Unable to create appointment.';
-      });
-    } finally {
       if (mounted) {
-        setState(() {
-          _isSubmitting = false;
-        });
+        setState(() => _submitError = 'Unable to create reservation.');
       }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create appointment')),
+      appBar: AppBar(title: const Text('Create reservation')),
       body: _isLoadingLookups
           ? const Center(child: CircularProgressIndicator())
           : _lookupError != null
@@ -341,156 +225,118 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
                   child: ListView(
                     padding: const EdgeInsets.all(20),
                     children: [
+                      Text(
+                        'Book a wellness service',
+                        style:
+                            Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                      ),
+                      const SizedBox(height: 20),
                       DropdownButtonFormField<Category>(
-                        initialValue: _selectedServiceCategory,
+                        initialValue: _selectedCategory,
+                        isExpanded: true,
                         decoration: const InputDecoration(
-                            labelText: 'Service category'),
-                        items: _serviceCategories
+                          labelText: 'Service category',
+                        ),
+                        items: _categories
                             .map(
-                              (category) => DropdownMenuItem<Category>(
+                              (category) => DropdownMenuItem(
                                 value: category,
                                 child: Text(category.name),
                               ),
                             )
                             .toList(),
-                        onChanged: _serviceCategories.isEmpty
-                            ? null
-                            : (value) {
-                                setState(() {
-                                  _selectedServiceCategory = value;
-                                  _selectedService = null;
-                                  _selectedEmployee = null;
-                                  _employees = [];
-                                  _employeeLookupMessage = null;
-                                });
-                              },
-                        validator: (value) => value == null
-                            ? 'Service category is required.'
-                            : null,
+                        onChanged: _isSubmitting ? null : _selectCategory,
+                        validator: (value) =>
+                            value == null ? 'Select service category.' : null,
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<WellnessService>(
-                        key: ValueKey<int?>(_selectedServiceCategory?.id),
+                        key: ValueKey(_selectedCategory?.id),
                         initialValue: _selectedService,
+                        isExpanded: true,
                         decoration: const InputDecoration(labelText: 'Service'),
                         items: _filteredServices
                             .map(
-                              (service) => DropdownMenuItem<WellnessService>(
+                              (service) => DropdownMenuItem(
                                 value: service,
-                                child: Text(
-                                    '${service.name} (${service.durationMinutes} min)'),
+                                child: Text(service.name),
                               ),
                             )
                             .toList(),
-                        onChanged: _selectedServiceCategory == null ||
-                                _filteredServices.isEmpty
+                        onChanged: _selectedCategory == null || _isSubmitting
                             ? null
-                            : (value) async {
-                                setState(() {
-                                  _selectedService = value;
-                                  _selectedEmployee = null;
-                                  _employees = [];
-                                  _employeeLookupMessage = null;
-                                  if (_startTime != null && value != null) {
-                                    _endTime = _addMinutes(
-                                        _startTime!, value.durationMinutes);
-                                  }
-                                });
-                                await _loadEmployeesForSelectedService();
-                              },
+                            : _selectService,
                         validator: (value) =>
-                            value == null ? 'Service is required.' : null,
+                            value == null ? 'Select service.' : null,
                       ),
-                      if (_selectedServiceCategory != null &&
-                          _filteredServices.isEmpty) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          'No services available in this category',
-                          style: TextStyle(
-                              color: Theme.of(context).colorScheme.error),
-                        ),
-                      ],
                       const SizedBox(height: 16),
-                      DropdownButtonFormField<AppointmentEmployeeOption>(
-                        key: ValueKey<int?>(_selectedService?.id),
-                        initialValue: _selectedEmployee,
-                        decoration: InputDecoration(
-                          labelText: 'Employee',
-                          suffixIcon: _isLoadingEmployees
-                              ? const Padding(
-                                  padding: EdgeInsets.all(12),
-                                  child: SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2),
-                                  ),
-                                )
-                              : null,
-                        ),
-                        items: _employees
-                            .map(
-                              (employee) =>
-                                  DropdownMenuItem<AppointmentEmployeeOption>(
-                                value: employee,
-                                child: Text(employee.displayName),
+                      if (_isLoadingSlots) const LinearProgressIndicator(),
+                      if (_isLoadingSlots) const SizedBox(height: 12),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<TimeSlot>(
+                              key: ValueKey(_selectedService?.id),
+                              initialValue: _selectedSlot,
+                              isExpanded: true,
+                              decoration: const InputDecoration(
+                                labelText: 'Available appointment time',
                               ),
-                            )
-                            .toList(),
-                        onChanged: _selectedService == null ||
-                                _isLoadingEmployees ||
-                                _employees.isEmpty
-                            ? null
-                            : (value) =>
-                                setState(() => _selectedEmployee = value),
-                        validator: (value) =>
-                            value == null ? 'Employee is required.' : null,
+                              items: _slots
+                                  .map(
+                                    (slot) => DropdownMenuItem(
+                                      value: slot,
+                                      child: Text(
+                                        slot.displayLabel,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: _selectedService == null ||
+                                      _isLoadingSlots ||
+                                      _isSubmitting
+                                  ? null
+                                  : (slot) =>
+                                      setState(() => _selectedSlot = slot),
+                              validator: (value) => value == null
+                                  ? 'Select an available appointment time.'
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            onPressed: _selectedService == null ||
+                                    _isLoadingSlots ||
+                                    _isSubmitting
+                                ? null
+                                : _loadSlots,
+                            tooltip: 'Refresh availability',
+                            icon: const Icon(Icons.refresh),
+                          ),
+                        ],
                       ),
-                      if (_employeeLookupMessage != null) ...[
+                      if (_slotMessage != null) ...[
                         const SizedBox(height: 8),
                         Text(
-                          _employeeLookupMessage!,
+                          _slotMessage!,
                           style: TextStyle(
-                              color: Theme.of(context).colorScheme.error),
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ],
-                      const SizedBox(height: 16),
-                      _PickerTile(
-                        label: 'Date',
-                        value: _selectedDate == null
-                            ? 'Select date'
-                            : _formatDate(_selectedDate!),
-                        icon: Icons.event_outlined,
-                        onTap: _pickDate,
-                        validator: () =>
-                            _selectedDate == null ? 'Date is required.' : null,
-                      ),
-                      const SizedBox(height: 16),
-                      _PickerTile(
-                        label: 'Start time',
-                        value: _startTime == null
-                            ? 'Select start time'
-                            : _formatTimeOfDay(_startTime!),
-                        icon: Icons.schedule_outlined,
-                        onTap: _pickStartTime,
-                        validator: () => _startTime == null
-                            ? 'Start time is required.'
-                            : null,
-                      ),
-                      const SizedBox(height: 16),
-                      _PickerTile(
-                        label: 'End time',
-                        value: _endTime == null
-                            ? 'Select end time'
-                            : _formatTimeOfDay(_endTime!),
-                        icon: Icons.schedule,
-                        onTap: _pickEndTime,
-                        validator: () =>
-                            _endTime == null ? 'End time is required.' : null,
-                      ),
+                      if (_selectedSlot != null) ...[
+                        const SizedBox(height: 16),
+                        _SlotSummary(slot: _selectedSlot!),
+                      ],
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _notesController,
+                        enabled: !_isSubmitting,
                         maxLines: 4,
                         maxLength: 1000,
                         decoration: const InputDecoration(labelText: 'Notes'),
@@ -500,20 +346,22 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
                         Text(
                           _submitError!,
                           style: TextStyle(
-                              color: Theme.of(context).colorScheme.error),
+                            color: Theme.of(context).colorScheme.error,
+                          ),
                         ),
                       ],
-                      const SizedBox(height: 24),
-                      FilledButton(
+                      const SizedBox(height: 20),
+                      FilledButton.icon(
                         onPressed: _isSubmitting ? null : _submit,
-                        child: _isSubmitting
+                        icon: _isSubmitting
                             ? const SizedBox(
-                                width: 20,
-                                height: 20,
+                                width: 18,
+                                height: 18,
                                 child:
                                     CircularProgressIndicator(strokeWidth: 2),
                               )
-                            : const Text('Create appointment'),
+                            : const Icon(Icons.event_available),
+                        label: const Text('Confirm reservation'),
                       ),
                     ],
                   ),
@@ -522,57 +370,52 @@ class _CreateAppointmentScreenState extends State<CreateAppointmentScreen> {
   }
 }
 
-class _PickerTile extends FormField<String> {
-  _PickerTile({
-    required String label,
-    required String value,
-    required IconData icon,
-    required VoidCallback onTap,
-    required String? Function() validator,
-  }) : super(
-          validator: (_) => validator(),
-          builder: (field) {
-            return InkWell(
-              onTap: onTap,
-              child: InputDecorator(
-                decoration: InputDecoration(
-                  labelText: label,
-                  prefixIcon: Icon(icon),
-                  errorText: field.errorText,
-                ),
-                child: Text(value),
-              ),
-            );
-          },
-        );
+class _SlotSummary extends StatelessWidget {
+  const _SlotSummary({required this.slot});
+
+  final TimeSlot slot;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              slot.serviceName,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text('Employee: ${slot.employeeName}'),
+            const SizedBox(height: 4),
+            Text('Time: ${slot.displayLabel.split('  ').take(2).join('  ')}'),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _LookupError extends StatelessWidget {
   const _LookupError({required this.message, required this.onRetry});
 
   final String message;
-  final VoidCallback onRetry;
+  final Future<void> Function() onRetry;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline,
-                size: 48, color: theme.colorScheme.primary),
+            const Icon(Icons.error_outline, size: 48),
             const SizedBox(height: 16),
-            Text(
-              'Appointment options could not be loaded',
-              style: theme.textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w700),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 16),
             FilledButton(onPressed: onRetry, child: const Text('Retry')),
@@ -583,43 +426,9 @@ class _LookupError extends StatelessWidget {
   }
 }
 
-Duration _toDuration(TimeOfDay value) {
-  return Duration(hours: value.hour, minutes: value.minute);
-}
-
-TimeOfDay _addMinutes(TimeOfDay value, int minutes) {
-  final totalMinutes = value.hour * 60 + value.minute + minutes;
-  return TimeOfDay(hour: (totalMinutes ~/ 60) % 24, minute: totalMinutes % 60);
-}
-
-String _formatDate(DateTime value) {
-  return '${value.day.toString().padLeft(2, '0')}.${value.month.toString().padLeft(2, '0')}.${value.year}';
-}
-
-String _formatTimeOfDay(TimeOfDay value) {
-  return '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
-}
-
-String? _validateFutureSchedule(DateTime selectedDate, TimeOfDay startTime) {
-  final now = DateTime.now();
-  final appointmentDate =
-      DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
-
-  if (appointmentDate.isBefore(DateTime(now.year, now.month, now.day))) {
-    return 'Appointment date cannot be in the past.';
+T? _firstWhereOrNull<T>(Iterable<T> values, bool Function(T) predicate) {
+  for (final value in values) {
+    if (predicate(value)) return value;
   }
-
-  final appointmentStart = DateTime(
-    selectedDate.year,
-    selectedDate.month,
-    selectedDate.day,
-    startTime.hour,
-    startTime.minute,
-  );
-
-  if (!appointmentStart.isAfter(now)) {
-    return 'Start time must be in the future.';
-  }
-
   return null;
 }

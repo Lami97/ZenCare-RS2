@@ -9,7 +9,7 @@ namespace ZenCare.Services.Interfaces
         Task<AppointmentResponse> InsertAsync(AppointmentInsertRequest request);
         Task<PagedResult<AppointmentResponse>> GetMyAsync(int userId, AppointmentSearchObject? search);
         Task<AppointmentResponse> GetMyByIdAsync(int id, int userId);
-        Task<AppointmentResponse> InsertMyAsync(int userId, AppointmentInsertRequest request);
+        Task<AppointmentResponse> InsertMyAsync(int userId, AppointmentBookRequest request);
         Task<AppointmentResponse> UpdateMyAsync(int id, int userId, AppointmentUpdateRequest request);
         Task<AppointmentResponse> UpdateWithActorAsync(int id, int actorUserId, AppointmentUpdateRequest request);
         Task<AppointmentResponse> CancelMyAsync(int id, int userId, AppointmentCancelRequest request);

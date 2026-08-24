@@ -1,13 +1,15 @@
-﻿import 'appointment_status.dart';
+import 'appointment_status.dart';
 
 class Appointment {
   Appointment({
     required this.id,
     required this.userId,
     required this.userName,
+    required this.userDisplayName,
     required this.employeeId,
     required this.employeeName,
     required this.wellnessServiceId,
+    this.timeSlotId,
     required this.serviceName,
     required this.appointmentDate,
     required this.startTime,
@@ -22,9 +24,11 @@ class Appointment {
   final int id;
   final int userId;
   final String userName;
+  final String userDisplayName;
   final int employeeId;
   final String employeeName;
   final int wellnessServiceId;
+  final int? timeSlotId;
   final String serviceName;
   final DateTime appointmentDate;
   final Duration startTime;
@@ -36,7 +40,8 @@ class Appointment {
   final DateTime? updatedAt;
 
   bool get canCancel {
-    if (status != AppointmentStatus.pending && status != AppointmentStatus.confirmed) {
+    if (status != AppointmentStatus.pending &&
+        status != AppointmentStatus.confirmed) {
       return false;
     }
 
@@ -56,9 +61,13 @@ class Appointment {
       id: json['id'] as int? ?? 0,
       userId: json['userId'] as int? ?? 0,
       userName: json['userName'] as String? ?? '',
+      userDisplayName: json['userDisplayName'] as String? ??
+          json['userName'] as String? ??
+          '',
       employeeId: json['employeeId'] as int? ?? 0,
       employeeName: json['employeeName'] as String? ?? '',
       wellnessServiceId: json['wellnessServiceId'] as int? ?? 0,
+      timeSlotId: json['timeSlotId'] as int?,
       serviceName: json['serviceName'] as String? ?? '',
       appointmentDate: DateTime.parse(json['appointmentDate'] as String),
       startTime: _parseTimeSpan(json['startTime'] as String? ?? '00:00:00'),
@@ -67,7 +76,9 @@ class Appointment {
       notes: json['notes'] as String?,
       cancellationReason: json['cancellationReason'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] == null ? null : DateTime.parse(json['updatedAt'] as String),
+      updatedAt: json['updatedAt'] == null
+          ? null
+          : DateTime.parse(json['updatedAt'] as String),
     );
   }
 
@@ -79,7 +90,8 @@ class Appointment {
 
     final hours = int.tryParse(parts[0]) ?? 0;
     final minutes = int.tryParse(parts[1]) ?? 0;
-    final seconds = parts.length > 2 ? int.tryParse(parts[2].split('.').first) ?? 0 : 0;
+    final seconds =
+        parts.length > 2 ? int.tryParse(parts[2].split('.').first) ?? 0 : 0;
 
     return Duration(hours: hours, minutes: minutes, seconds: seconds);
   }

@@ -16,11 +16,11 @@ ZenCare is an RSII seminar project for managing a wellness center. It combines a
 
 ## Main Features
 
-- Admin management of users, roles, employees, employee-service assignments, services, products, suppliers, appointments, purchases, reviews, FAQ data, and related reference data.
+- Admin management of users, roles, employees, employee-service assignments, services, products, suppliers, reservations, schedule availability, purchases, reviews, FAQ data, and related reference data.
 - Server-side search, filtering, pagination, validation, ownership checks, and workflow state transitions.
 - Business analytics in Flutter Desktop, including printable/exportable PDF reports.
 - Client registration, login, profile management, password reset, and server-side token revocation on logout.
-- Mobile service discovery, appointment booking/cancellation, product browsing, cart, checkout, purchase history, reviews, recommendations, and notifications.
+- Mobile service discovery and booking from Admin-defined schedule availability, reservation cancellation, product browsing, cart, checkout, purchase history, reviews, recommendations, and notifications.
 - Real Stripe test-mode PaymentIntent verification and refund workflow.
 - RabbitMQ messages processed by a separate Worker container.
 - Content-based product recommendations using purchase, view, category, supplier, and review signals.
@@ -191,8 +191,9 @@ The idempotent evaluator scenario includes:
 - 5 users across Admin, Employee, and Client roles
 - 2 available employees and 4 employee-service assignments
 - 3 active wellness services and 4 active products
+- future Schedule entries covering available, booked, and inactive availability
 - 2 suppliers and Client carts
-- 5 appointments covering Completed, Cancelled, and NoShow history
+- historical Reservations covering Completed, Cancelled, and NoShow states
 - 4 purchases covering Completed/Succeeded and Cancelled states
 - eligible appointment/product reviews, product-view signals, FAQ entries, and Client notifications
 - data used by reports, analytics, and recommendations
@@ -205,14 +206,14 @@ The seeded completed purchases support history, reports, review eligibility, and
 
 1. Sign in as `evaluator.admin`.
 2. Verify searchable/paginated management modules and employee-service assignments.
-3. Inspect appointments, purchase fulfillment, reviews, notifications, and seeded history.
+3. Inspect Reservations (Client bookings), Schedule (Admin-managed available appointment times), purchase fulfillment, reviews, notifications, and seeded history.
 4. Open business analytics and generate the available PDF reports.
 
 ### Client / Flutter Mobile
 
 1. Sign in as `evaluator.client` or register a new Client.
 2. Browse/search services and products; inspect details and recommendations.
-3. Book and cancel an eligible future appointment through the supported workflow.
+3. Select an Admin-defined available Schedule entry, create a Reservation, and cancel it through the supported workflow.
 4. Add a product to the cart, checkout, and complete payment with Stripe test data.
 5. Inspect purchase history, reviews, profile, and notifications.
 

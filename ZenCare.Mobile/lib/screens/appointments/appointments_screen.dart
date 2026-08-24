@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/appointment.dart';
@@ -13,7 +13,9 @@ class AppointmentsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<AppointmentProvider>(
-      create: (context) => AppointmentProvider(context.read<AppointmentService>())..loadAppointments(),
+      create: (context) =>
+          AppointmentProvider(context.read<AppointmentService>())
+            ..loadAppointments(),
       child: const _AppointmentsView(),
     );
   }
@@ -37,7 +39,10 @@ class _AppointmentsView extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                 child: Text(
                   'Appointments',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineSmall
+                      ?.copyWith(fontWeight: FontWeight.w700),
                 ),
               ),
             ),
@@ -73,7 +78,10 @@ class _AppointmentsView extends StatelessWidget {
                   itemCount: provider.appointments.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
-                    return _AppointmentCard(appointment: provider.appointments[index]);
+                    return _AppointmentCard(
+                      appointment: provider.appointments[index],
+                      onChanged: provider.refresh,
+                    );
                   },
                 ),
               ),
@@ -83,7 +91,8 @@ class _AppointmentsView extends StatelessWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           final created = await Navigator.of(context).push<bool>(
-            MaterialPageRoute<bool>(builder: (_) => const CreateAppointmentScreen()),
+            MaterialPageRoute<bool>(
+                builder: (_) => const CreateAppointmentScreen()),
           );
 
           if (created == true && context.mounted) {
@@ -98,9 +107,13 @@ class _AppointmentsView extends StatelessWidget {
 }
 
 class _AppointmentCard extends StatelessWidget {
-  const _AppointmentCard({required this.appointment});
+  const _AppointmentCard({
+    required this.appointment,
+    required this.onChanged,
+  });
 
   final Appointment appointment;
+  final Future<void> Function() onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -112,7 +125,10 @@ class _AppointmentCard extends StatelessWidget {
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute<void>(
-              builder: (_) => AppointmentDetailsScreen(appointmentId: appointment.id),
+              builder: (_) => AppointmentDetailsScreen(
+                appointmentId: appointment.id,
+                onChanged: onChanged,
+              ),
             ),
           );
         },
@@ -126,18 +142,21 @@ class _AppointmentCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       appointment.serviceName,
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                      style: theme.textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w700),
                     ),
                   ),
                   Chip(label: Text(appointment.status.label)),
                 ],
               ),
               const SizedBox(height: 8),
-              _IconText(icon: Icons.person_outline, text: appointment.employeeName),
+              _IconText(
+                  icon: Icons.person_outline, text: appointment.employeeName),
               const SizedBox(height: 6),
               _IconText(
                 icon: Icons.event_outlined,
-                text: '${_formatDate(appointment.appointmentDate)}  ${_formatDuration(appointment.startTime)} - ${_formatDuration(appointment.endTime)}',
+                text:
+                    '${_formatDate(appointment.appointmentDate)}  ${_formatDuration(appointment.startTime)} - ${_formatDuration(appointment.endTime)}',
               ),
               if ((appointment.notes ?? '').trim().isNotEmpty) ...[
                 const SizedBox(height: 8),
@@ -201,7 +220,8 @@ class _StateMessage extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             title,
-            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+            style: theme.textTheme.titleLarge
+                ?.copyWith(fontWeight: FontWeight.w700),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),

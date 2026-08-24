@@ -8,6 +8,7 @@ import '../models/reference_dtos.dart';
 import '../models/review_dtos.dart';
 import '../models/service_dtos.dart';
 import '../models/supplier_dtos.dart';
+import '../models/time_slot_dtos.dart';
 import '../models/user_dtos.dart';
 import '../utils/formatters.dart';
 
@@ -945,10 +946,121 @@ final adminModules = <AdminModule>[
     ),
   ),
   AdminModule(
-    title: 'Appointments',
+    title: 'Schedule',
+    endpoint: 'TimeSlot',
+    entityName: 'schedule entry',
+    decoder: TimeSlotDto.fromJson,
+    filters: [
+      FilterField(
+        key: 'EmployeeId',
+        label: 'Employee',
+        lookup: employeesLookup,
+      ),
+      FilterField(
+        key: 'WellnessServiceId',
+        label: 'Service',
+        lookup: servicesLookup,
+      ),
+      const FilterField(
+        key: 'Status',
+        label: 'Status',
+        statusOptions: [
+          StatusOption(1, 'Available'),
+          StatusOption(2, 'Booked'),
+          StatusOption(3, 'Inactive'),
+          StatusOption(4, 'Expired'),
+        ],
+      ),
+    ],
+    columns: [
+      typedColumn<TimeSlotDto>(
+        label: 'Employee',
+        value: (item) => textValue(item.employeeName),
+      ),
+      typedColumn<TimeSlotDto>(
+        label: 'Service',
+        value: (item) => textValue(item.serviceName),
+      ),
+      typedColumn<TimeSlotDto>(
+        label: 'Date',
+        value: (item) => dateValue(item.slotDate),
+      ),
+      typedColumn<TimeSlotDto>(
+        label: 'Start',
+        value: (item) => timeValue(item.startTime),
+      ),
+      typedColumn<TimeSlotDto>(
+        label: 'End',
+        value: (item) => timeValue(item.endTime),
+      ),
+      typedColumn<TimeSlotDto>(
+        label: 'Status',
+        value: (item) => textValue(item.status),
+      ),
+    ],
+    fields: [
+      AdminField(
+        key: 'employeeId',
+        label: 'Employee',
+        type: AdminFieldType.lookup,
+        required: true,
+        lookup: employeesLookup,
+      ),
+      AdminField(
+        key: 'wellnessServiceId',
+        label: 'Service',
+        type: AdminFieldType.lookup,
+        required: true,
+        lookup: servicesLookup,
+      ),
+      const AdminField(
+        key: 'slotDate',
+        label: 'Date',
+        type: AdminFieldType.date,
+        required: true,
+      ),
+      const AdminField(
+        key: 'startTime',
+        label: 'Start time',
+        type: AdminFieldType.time,
+        required: true,
+      ),
+      const AdminField(
+        key: 'endTime',
+        label: 'End time',
+        type: AdminFieldType.time,
+        required: true,
+      ),
+      const AdminField(
+        key: 'isActive',
+        label: 'Active',
+        type: AdminFieldType.boolean,
+      ),
+    ],
+    buildInsert: (values) => TimeSlotInsertDto(
+      employeeId: values.requiredInteger('employeeId'),
+      wellnessServiceId: values.requiredInteger('wellnessServiceId'),
+      slotDate: values.date('slotDate')!,
+      startTime: values.requiredString('startTime'),
+      endTime: values.requiredString('endTime'),
+      isActive: values.boolean('isActive'),
+    ),
+    buildUpdate: (id, values) => TimeSlotUpdateDto(
+      id: id,
+      employeeId: values.requiredInteger('employeeId'),
+      wellnessServiceId: values.requiredInteger('wellnessServiceId'),
+      slotDate: values.date('slotDate')!,
+      startTime: values.requiredString('startTime'),
+      endTime: values.requiredString('endTime'),
+      isActive: values.boolean('isActive'),
+    ),
+  ),
+  AdminModule(
+    title: 'Reservations',
     endpoint: 'Appointment',
-    entityName: 'appointment',
+    entityName: 'reservation',
     decoder: AppointmentDto.fromJson,
+    canAdd: false,
     canDelete: false,
     filters: [
       FilterField(
@@ -1017,6 +1129,7 @@ final adminModules = <AdminModule>[
         type: AdminFieldType.lookup,
         required: true,
         lookup: appointmentClientsLookup,
+        readOnly: true,
       ),
       AdminField(
         key: 'employeeId',
@@ -1024,6 +1137,7 @@ final adminModules = <AdminModule>[
         type: AdminFieldType.lookup,
         required: true,
         lookup: employeesLookup,
+        readOnly: true,
       ),
       AdminField(
         key: 'wellnessServiceId',
@@ -1031,24 +1145,28 @@ final adminModules = <AdminModule>[
         type: AdminFieldType.lookup,
         required: true,
         lookup: servicesLookup,
+        readOnly: true,
       ),
       const AdminField(
         key: 'appointmentDate',
         label: 'Appointment date',
         type: AdminFieldType.date,
         required: true,
+        readOnly: true,
       ),
       const AdminField(
         key: 'startTime',
         label: 'Start time',
         type: AdminFieldType.time,
         required: true,
+        readOnly: true,
       ),
       const AdminField(
         key: 'endTime',
         label: 'End time',
         type: AdminFieldType.time,
         required: true,
+        readOnly: true,
       ),
       const AdminField(
         key: 'status',
@@ -1069,17 +1187,6 @@ final adminModules = <AdminModule>[
         maxLength: 500,
       ),
     ],
-    buildInsert: (v) => AppointmentInsertDto(
-      userId: v.requiredInteger('userId'),
-      employeeId: v.requiredInteger('employeeId'),
-      wellnessServiceId: v.requiredInteger('wellnessServiceId'),
-      appointmentDate: v.date('appointmentDate')!,
-      startTime: v.requiredString('startTime'),
-      endTime: v.requiredString('endTime'),
-      status: v.integer('status') ?? 1,
-      notes: v.string('notes'),
-      cancellationReason: v.string('cancellationReason'),
-    ),
     buildUpdate: (id, v) => AppointmentUpdateDto(
       id: id,
       userId: v.requiredInteger('userId'),

@@ -39,6 +39,7 @@ public class ZenCareDbContext : DbContext
     public DbSet<RevokedToken> RevokedTokens { get; set; }
     public DbSet<ServiceCategory> ServiceCategories { get; set; }
     public DbSet<Supplier> Suppliers { get; set; }
+    public DbSet<TimeSlot> TimeSlots { get; set; }
     public DbSet<UnitOfMeasure> UnitOfMeasures { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<UserRole> UserRoles { get; set; }
@@ -86,6 +87,17 @@ public class ZenCareDbContext : DbContext
 
         modelBuilder.Entity<AppointmentStatusHistory>()
             .HasIndex(history => new { history.AppointmentId, history.ChangedAt });
+
+        modelBuilder.Entity<TimeSlot>()
+            .HasIndex(slot => new { slot.EmployeeId, slot.SlotDate, slot.StartTime });
+
+        modelBuilder.Entity<TimeSlot>()
+            .HasIndex(slot => new { slot.WellnessServiceId, slot.SlotDate, slot.StartTime });
+
+        modelBuilder.Entity<Appointment>()
+            .HasIndex(appointment => appointment.TimeSlotId)
+            .IsUnique()
+            .HasFilter("[TimeSlotId] IS NOT NULL AND [Status] <> 5");
 
         modelBuilder.Entity<PurchaseStatusHistory>()
             .HasIndex(history => new { history.PurchaseId, history.ChangedAt });
@@ -152,6 +164,24 @@ public class ZenCareDbContext : DbContext
             .HasOne(a => a.WellnessService)
             .WithMany()
             .HasForeignKey(a => a.WellnessServiceId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Appointment>()
+            .HasOne(appointment => appointment.TimeSlot)
+            .WithMany(slot => slot.Appointments)
+            .HasForeignKey(appointment => appointment.TimeSlotId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<TimeSlot>()
+            .HasOne(slot => slot.Employee)
+            .WithMany(employee => employee.TimeSlots)
+            .HasForeignKey(slot => slot.EmployeeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<TimeSlot>()
+            .HasOne(slot => slot.WellnessService)
+            .WithMany(service => service.TimeSlots)
+            .HasForeignKey(slot => slot.WellnessServiceId)
             .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<AppointmentStatusHistory>()

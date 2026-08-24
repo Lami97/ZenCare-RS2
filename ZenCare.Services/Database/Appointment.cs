@@ -24,6 +24,11 @@ public class Appointment
     [ForeignKey(nameof(WellnessServiceId))]
     public WellnessService WellnessService { get; set; } = null!;
 
+    public int? TimeSlotId { get; set; }
+
+    [ForeignKey(nameof(TimeSlotId))]
+    public TimeSlot? TimeSlot { get; set; }
+
     public DateTime AppointmentDate { get; set; }
 
     public TimeSpan StartTime { get; set; }

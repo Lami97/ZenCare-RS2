@@ -33,4 +33,6 @@ public class WellnessService
     public DateTime? UpdatedAt { get; set; }
 
     public ICollection<EmployeeService> EmployeeServices { get; set; } = new List<EmployeeService>();
+
+    public ICollection<TimeSlot> TimeSlots { get; set; } = new List<TimeSlot>();
 }

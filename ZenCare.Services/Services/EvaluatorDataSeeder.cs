@@ -16,15 +16,18 @@ public class EvaluatorDataSeeder : IEvaluatorDataSeeder
     private readonly ZenCareDbContext _dbContext;
     private readonly IConfiguration _configuration;
     private readonly ILogger<EvaluatorDataSeeder> _logger;
+    private readonly TimeZoneInfo _businessTimeZone;
 
     public EvaluatorDataSeeder(
         ZenCareDbContext dbContext,
         IConfiguration configuration,
-        ILogger<EvaluatorDataSeeder> logger)
+        ILogger<EvaluatorDataSeeder> logger,
+        TimeZoneInfo businessTimeZone)
     {
         _dbContext = dbContext;
         _configuration = configuration;
         _logger = logger;
+        _businessTimeZone = businessTimeZone;
     }
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)
@@ -127,6 +130,20 @@ public class EvaluatorDataSeeder : IEvaluatorDataSeeder
             AppointmentStatus.NoShow, "Client did not attend the massage appointment.",
             "Demo no-show massage appointment.", null, cancellationToken);
 
+        var businessToday = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _businessTimeZone).Date;
+        await EnsureTimeSlotAsync(
+            employee, massage, businessToday.AddDays(2), new TimeSpan(9, 0, 0), true, cancellationToken);
+        await EnsureTimeSlotAsync(
+            employee, facial, businessToday.AddDays(3), new TimeSpan(11, 0, 0), true, cancellationToken);
+        await EnsureTimeSlotAsync(
+            secondEmployee, aromatherapy, businessToday.AddDays(2), new TimeSpan(10, 0, 0), true, cancellationToken);
+        var bookedSlot = await EnsureTimeSlotAsync(
+            secondEmployee, facial, businessToday.AddDays(4), new TimeSpan(13, 0, 0), true, cancellationToken);
+        await EnsureScheduledAppointmentAsync(
+            secondClient, bookedSlot, "Upcoming evaluator schedule reservation.", cancellationToken);
+        await EnsureTimeSlotAsync(
+            employee, massage, businessToday.AddDays(5), new TimeSpan(15, 0, 0), false, cancellationToken);
+
         var clientPurchase = await EnsurePurchaseAsync(
             client, "DEMO-PC-001", UtcDate(2026, 6, 5).AddHours(9), UtcDate(2026, 6, 5).AddHours(9).AddMinutes(8),
             PurchaseStatus.Completed, PaymentStatus.Succeeded,
@@ -161,8 +178,8 @@ public class EvaluatorDataSeeder : IEvaluatorDataSeeder
         await EnsureProductViewAsync(secondClient, cream, 2, UtcDate(2026, 7, 28).AddHours(20), cancellationToken);
 
         await EnsureFaqAsync(1, "How can I book a wellness appointment?",
-            "Open Services, choose a treatment, select an available employee and confirm the date and time.",
-            null, 1, cancellationToken);
+            "Open Services, choose a treatment and select an available schedule entry.",
+            "Open Services, choose a treatment, select an available employee and confirm the date and time.", 1, cancellationToken);
         await EnsureFaqAsync(2, "How are product payments processed?",
             "Product payments are completed securely through Stripe.",
             "Product payments are completed securely through the Stripe test payment flow.", 2, cancellationToken);
@@ -571,6 +588,82 @@ public class EvaluatorDataSeeder : IEvaluatorDataSeeder
         _dbContext.Appointments.Add(appointment);
         await _dbContext.SaveChangesAsync(cancellationToken);
         return appointment;
+    }
+
+    private async Task<TimeSlot> EnsureTimeSlotAsync(
+        Employee employee,
+        WellnessService service,
+        DateTime slotDate,
+        TimeSpan startTime,
+        bool isActive,
+        CancellationToken cancellationToken)
+    {
+        var slot = await _dbContext.TimeSlots
+            .Include(item => item.Appointments)
+            .FirstOrDefaultAsync(item =>
+                item.EmployeeId == employee.Id &&
+                item.WellnessServiceId == service.Id &&
+                item.StartTime == startTime &&
+                item.CreatedAt == SeedCreatedAt,
+                cancellationToken);
+
+        if (slot != null)
+        {
+            if (slot.Appointments.Count == 0)
+            {
+                slot.SlotDate = slotDate.Date;
+                slot.EndTime = startTime.Add(TimeSpan.FromMinutes(service.DurationMinutes));
+                slot.IsActive = isActive;
+                slot.UpdatedAt = DateTime.UtcNow;
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+
+            return slot;
+        }
+
+        slot = new TimeSlot
+        {
+            EmployeeId = employee.Id,
+            WellnessServiceId = service.Id,
+            SlotDate = slotDate.Date,
+            StartTime = startTime,
+            EndTime = startTime.Add(TimeSpan.FromMinutes(service.DurationMinutes)),
+            IsActive = isActive,
+            CreatedAt = SeedCreatedAt
+        };
+
+        _dbContext.TimeSlots.Add(slot);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return slot;
+    }
+
+    private async Task EnsureScheduledAppointmentAsync(
+        User user,
+        TimeSlot slot,
+        string notes,
+        CancellationToken cancellationToken)
+    {
+        if (await _dbContext.Appointments.AnyAsync(
+                appointment => appointment.TimeSlotId == slot.Id,
+                cancellationToken))
+        {
+            return;
+        }
+
+        _dbContext.Appointments.Add(new Appointment
+        {
+            UserId = user.Id,
+            EmployeeId = slot.EmployeeId,
+            WellnessServiceId = slot.WellnessServiceId,
+            TimeSlotId = slot.Id,
+            AppointmentDate = slot.SlotDate,
+            StartTime = slot.StartTime,
+            EndTime = slot.EndTime,
+            Status = AppointmentStatus.Confirmed,
+            Notes = notes,
+            CreatedAt = DateTime.UtcNow
+        });
+        await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
     private async Task<Purchase> EnsurePurchaseAsync(

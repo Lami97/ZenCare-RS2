@@ -8,12 +8,18 @@ import '../../utils/api_exception.dart';
 import '../reviews/create_review_screen.dart';
 
 class AppointmentDetailsScreen extends StatefulWidget {
-  const AppointmentDetailsScreen({super.key, required this.appointmentId});
+  const AppointmentDetailsScreen({
+    super.key,
+    required this.appointmentId,
+    this.onChanged,
+  });
 
   final int appointmentId;
+  final Future<void> Function()? onChanged;
 
   @override
-  State<AppointmentDetailsScreen> createState() => _AppointmentDetailsScreenState();
+  State<AppointmentDetailsScreen> createState() =>
+      _AppointmentDetailsScreenState();
 }
 
 class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
@@ -27,7 +33,9 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
   }
 
   Future<Appointment> _loadAppointment() {
-    return context.read<AppointmentService>().getMyAppointmentById(widget.appointmentId);
+    return context
+        .read<AppointmentService>()
+        .getMyAppointmentById(widget.appointmentId);
   }
 
   void _retry() {
@@ -70,9 +78,11 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
       }
 
       messenger.showSnackBar(
-        const SnackBar(content: Text('Appointment was cancelled successfully.')),
+        const SnackBar(
+            content: Text('Appointment was cancelled successfully.')),
       );
       _reloadAppointment();
+      await widget.onChanged?.call();
     } on ApiException catch (error) {
       if (!mounted) {
         return;
@@ -117,7 +127,8 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
           return _DetailsContent(
             appointment: snapshot.data!,
             isCancelling: _isCancelling,
-            onCancel: _isCancelling ? null : () => _cancelAppointment(snapshot.data!),
+            onCancel:
+                _isCancelling ? null : () => _cancelAppointment(snapshot.data!),
           );
         },
       ),
@@ -143,11 +154,13 @@ class _DetailsContent extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Icon(Icons.calendar_month_outlined, size: 72, color: theme.colorScheme.primary),
+        Icon(Icons.calendar_month_outlined,
+            size: 72, color: theme.colorScheme.primary),
         const SizedBox(height: 16),
         Text(
           appointment.serviceName,
-          style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+          style: theme.textTheme.headlineSmall
+              ?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
         Chip(label: Text(appointment.status.label)),
@@ -157,15 +170,25 @@ class _DetailsContent extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                _DetailsRow(label: 'Client', value: appointment.userName),
+                _DetailsRow(
+                  label: 'Client',
+                  value: appointment.userDisplayName,
+                ),
                 _DetailsRow(label: 'Employee', value: appointment.employeeName),
                 _DetailsRow(label: 'Service', value: appointment.serviceName),
-                _DetailsRow(label: 'Date', value: _formatDate(appointment.appointmentDate)),
-                _DetailsRow(label: 'Start', value: _formatDuration(appointment.startTime)),
-                _DetailsRow(label: 'End', value: _formatDuration(appointment.endTime)),
+                _DetailsRow(
+                    label: 'Date',
+                    value: _formatDate(appointment.appointmentDate)),
+                _DetailsRow(
+                    label: 'Start',
+                    value: _formatDuration(appointment.startTime)),
+                _DetailsRow(
+                    label: 'End', value: _formatDuration(appointment.endTime)),
                 _DetailsRow(label: 'Status', value: appointment.status.label),
                 _DetailsRow(label: 'Notes', value: appointment.notes ?? '-'),
-                _DetailsRow(label: 'Cancellation reason', value: appointment.cancellationReason ?? '-'),
+                _DetailsRow(
+                    label: 'Cancellation reason',
+                    value: appointment.cancellationReason ?? '-'),
               ],
             ),
           ),
@@ -220,7 +243,8 @@ class _CancelAppointmentDialog extends StatefulWidget {
   const _CancelAppointmentDialog();
 
   @override
-  State<_CancelAppointmentDialog> createState() => _CancelAppointmentDialogState();
+  State<_CancelAppointmentDialog> createState() =>
+      _CancelAppointmentDialogState();
 }
 
 class _CancelAppointmentDialogState extends State<_CancelAppointmentDialog> {
@@ -249,7 +273,8 @@ class _CancelAppointmentDialogState extends State<_CancelAppointmentDialog> {
               controller: _reasonController,
               maxLength: 500,
               maxLines: 3,
-              decoration: const InputDecoration(labelText: 'Cancellation reason'),
+              decoration:
+                  const InputDecoration(labelText: 'Cancellation reason'),
               validator: (value) => value == null || value.trim().isEmpty
                   ? 'Cancellation reason is required.'
                   : null,
@@ -292,7 +317,8 @@ class _DetailsRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 140,
-            child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+            child: Text(label,
+                style: const TextStyle(fontWeight: FontWeight.w700)),
           ),
           Expanded(child: Text(value.isEmpty ? '-' : value)),
         ],
@@ -317,11 +343,13 @@ class _DetailsError extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.primary),
+            Icon(Icons.error_outline,
+                size: 48, color: theme.colorScheme.primary),
             const SizedBox(height: 16),
             Text(
               'Appointment details could not be loaded',
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              style: theme.textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w700),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
