@@ -22,6 +22,7 @@ public sealed class StripeOptions
     public const string SectionName = "Stripe";
 
     public string? SecretKey { get; init; }
+    public string? PublishableKey { get; init; }
     public string? Currency { get; init; }
 }
 

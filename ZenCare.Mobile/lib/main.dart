@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:provider/provider.dart';
 
-import 'core/app_config.dart';
 import 'core/app_theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/cart_provider.dart';
@@ -26,8 +24,6 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  Stripe.publishableKey = AppConfig.stripePublishableKey;
-  await Stripe.instance.applySettings();
   runApp(const ZenCareApp());
 }
 
@@ -115,5 +111,3 @@ class ZenCareApp extends StatelessWidget {
     return authProvider.isAuthenticated ? const HomeScreen() : const LoginScreen();
   }
 }
-
-

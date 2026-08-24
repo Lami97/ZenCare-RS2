@@ -16,6 +16,7 @@ namespace ZenCare.Services.Services
     public class PaymentService : BaseCRUDService<PaymentResponse, Database.Payment, PaymentInsertRequest, PaymentUpdateRequest, PaymentSearchObject>, IPaymentService
     {
         private readonly string? _stripeSecretKey;
+        private readonly string? _stripePublishableKey;
         private readonly string _stripeCurrency;
         private readonly INotificationEventPublisher _notificationEventPublisher;
 
@@ -26,6 +27,7 @@ namespace ZenCare.Services.Services
             INotificationEventPublisher notificationEventPublisher) : base(dbContext, mapper)
         {
             _stripeSecretKey = stripeOptions.Value.SecretKey;
+            _stripePublishableKey = stripeOptions.Value.PublishableKey;
             _stripeCurrency = string.IsNullOrWhiteSpace(stripeOptions.Value.Currency)
                 ? "usd"
                 : stripeOptions.Value.Currency.Trim().ToLowerInvariant();
@@ -75,6 +77,7 @@ namespace ZenCare.Services.Services
         public async Task<PaymentIntentResponse> CreatePaymentIntentAsync(int purchaseId, int userId)
         {
             var stripeSecretKey = GetStripeSecretKey();
+            var stripePublishableKey = GetStripePublishableKey();
             var currency = GetStripeCurrency();
             var requestOptions = new RequestOptions { ApiKey = stripeSecretKey };
             var paymentIntentService = new PaymentIntentService();
@@ -102,7 +105,7 @@ namespace ZenCare.Services.Services
                     existingPayment = await CreateLocalPaymentAsync(purchase, userId, currency, existingIntent.Id);
                 }
 
-                return CreateResponse(purchase, existingPayment, existingIntent);
+                return CreateResponse(purchase, existingPayment, existingIntent, stripePublishableKey);
             }
 
             if (existingPayment != null && !string.IsNullOrWhiteSpace(existingPayment.StripePaymentIntentId))
@@ -121,7 +124,7 @@ namespace ZenCare.Services.Services
                 await DbContext.SaveChangesAsync();
                 await existingTransaction.CommitAsync();
 
-                return CreateResponse(purchase, existingPayment, existingIntent);
+                return CreateResponse(purchase, existingPayment, existingIntent, stripePublishableKey);
             }
 
             var createOptions = new PaymentIntentCreateOptions
@@ -177,7 +180,7 @@ namespace ZenCare.Services.Services
             await DbContext.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            return CreateResponse(purchase, payment, paymentIntent);
+            return CreateResponse(purchase, payment, paymentIntent, stripePublishableKey);
         }
 
         public async Task<PaymentConfirmResponse> ConfirmPaymentAsync(int purchaseId, int userId)
@@ -491,6 +494,16 @@ namespace ZenCare.Services.Services
             }
 
             return _stripeSecretKey;
+        }
+
+        private string GetStripePublishableKey()
+        {
+            if (string.IsNullOrWhiteSpace(_stripePublishableKey))
+            {
+                throw new BusinessException("Stripe publishable key is not configured.");
+            }
+
+            return _stripePublishableKey;
         }
 
         private string GetStripeCurrency()
@@ -1010,7 +1023,8 @@ namespace ZenCare.Services.Services
         private static PaymentIntentResponse CreateResponse(
             Database.Purchase purchase,
             Database.Payment payment,
-            PaymentIntent paymentIntent)
+            PaymentIntent paymentIntent,
+            string publishableKey)
         {
             return new PaymentIntentResponse
             {
@@ -1018,6 +1032,7 @@ namespace ZenCare.Services.Services
                 PaymentId = payment.Id,
                 StripePaymentIntentId = paymentIntent.Id,
                 ClientSecret = paymentIntent.ClientSecret,
+                PublishableKey = publishableKey,
                 Amount = purchase.TotalAmount,
                 Currency = payment.Currency,
                 Status = payment.Status

@@ -51,8 +51,8 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
   }
 
   Future<void> _pay(Purchase purchase) async {
-    final paymentService = context.read<PaymentService>();
     final messenger = ScaffoldMessenger.of(context);
+    final paymentService = context.read<PaymentService>();
 
     setState(() {
       _isPaying = true;
@@ -60,6 +60,13 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
 
     try {
       final intent = await paymentService.createPaymentIntent(purchase.id);
+
+      if (intent.publishableKey.trim().isEmpty) {
+        throw ApiException('Stripe payment is not configured.');
+      }
+
+      Stripe.publishableKey = intent.publishableKey.trim();
+      await Stripe.instance.applySettings();
 
       await Stripe.instance.initPaymentSheet(
         paymentSheetParameters: SetupPaymentSheetParameters(

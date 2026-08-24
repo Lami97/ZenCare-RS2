@@ -58,8 +58,7 @@ Edit `.env` and replace every `CHANGE_ME` value that applies to the intended tes
 | `RABBITMQ_HOST`, `RABBITMQ_PORT` | RabbitMQ container host and AMQP port |
 | `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD` | RabbitMQ and Management UI credentials |
 | `JWT_ISSUER`, `JWT_AUDIENCE`, `JWT_SECRET_KEY`, `JWT_DURATION_IN_MINUTES` | JWT validation/signing settings; use a strong local test signing key |
-| `STRIPE_SECRET_KEY`, `STRIPE_CURRENCY` | Backend Stripe test secret key and currency |
-| `STRIPE_PUBLISHABLE_KEY` | Matching Mobile test publishable key; Compose ignores it, but it is supplied to Flutter with `--dart-define` |
+| `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_CURRENCY` | Matching backend Stripe test credentials and currency; the secret key remains server-only, while the API supplies the client-safe publishable key during payment initialization |
 | `CORS_ALLOWED_ORIGIN` | Explicit allowed browser origin |
 | `BUSINESS_TIME_ZONE_ID` | Business time zone; Compose defaults to `Europe/Sarajevo` |
 | `PASSWORD_RESET_EXPIRY_MINUTES` | Password-reset token lifetime |
@@ -127,10 +126,22 @@ The API must already be reachable at `http://localhost:5281`.
 ```cmd
 cd ZenCare.Desktop
 flutter pub get
-flutter run -d windows --dart-define=API_BASE_URL=http://localhost:5281
+flutter run
 ```
 
-`API_BASE_URL` is mandatory for `ZenCare.Desktop`. Sign in with the seeded Admin account from the credentials table below.
+Flutter selects Windows when it is the available desktop target; `flutter run -d windows` is equivalent. Desktop uses `http://localhost:5281` by default. Override it only when needed:
+
+```cmd
+flutter run -d windows --dart-define=API_BASE_URL=http://localhost:9999
+```
+
+The normal release build uses the same default API address:
+
+```cmd
+flutter build windows --release
+```
+
+Sign in with the seeded Admin account from the credentials table below.
 
 ### 3. Start Flutter Mobile
 
@@ -140,18 +151,24 @@ List devices and use the reported Android device identifier:
 cd ZenCare.Mobile
 flutter pub get
 flutter devices
-flutter run -d <android-device-id> --dart-define=API_BASE_URL=http://10.0.2.2:5281 --dart-define=STRIPE_PUBLISHABLE_KEY=<matching-test-publishable-key-from-.env-tajne.zip>
+flutter run
 ```
 
-`10.0.2.2` is the Android emulator address for the host machine. For a physical device, replace it with the development computer's reachable LAN address, for example `http://192.168.1.20:5281`. The backend Stripe secret key and Mobile publishable key must be test keys from the same Stripe account. A real test publishable key is required for PaymentSheet; the tracked fallback is intentionally only `pk_test_CHANGE_ME`.
-
-For the evaluator release APK, embed the same protected test publishable key at build time:
+Flutter uses the selected Android device. Mobile uses `http://10.0.2.2:5281` by default, which is the Android emulator address for the host machine. For a physical device, override the API address with the development computer's reachable LAN address:
 
 ```cmd
-flutter build apk --release --dart-define=API_BASE_URL=http://10.0.2.2:5281 --dart-define=STRIPE_PUBLISHABLE_KEY=<matching-test-publishable-key-from-.env-tajne.zip>
+flutter run -d <android-device-id> --dart-define=API_BASE_URL=http://192.168.1.20:5281
 ```
 
-The publishable key is client-side configuration and is embedded in the APK. The Stripe secret key remains backend-only in the protected `.env`. When the protected package and prebuilt APK are supplied, the evaluator does not need to create a Stripe account.
+The protected evaluator `.env` supplies matching Stripe test keys to the backend. During payment initialization, the backend keeps the secret key server-only and returns only the client-safe publishable key to Mobile. No Flutter Stripe define or source edit is required.
+
+Build the evaluator release APK with the same runtime configuration behavior:
+
+```cmd
+flutter build apk --release
+```
+
+The resulting APK obtains the publishable key from any correctly configured ZenCare backend, so changing Stripe test accounts requires changing protected backend configuration rather than rebuilding Flutter. When the protected package is supplied, the evaluator does not need to create a Stripe account.
 
 ## Evaluator Accounts
 
@@ -207,9 +224,9 @@ Use `evaluator.employee` in Swagger to verify that administrative Appointment, N
 
 ### Stripe
 
-- Backend: extract the protected evaluator `.env`; Compose receives `STRIPE_SECRET_KEY` from it.
-- Mobile source run: provide the matching `STRIPE_PUBLISHABLE_KEY` from the protected package through `--dart-define`.
-- Mobile release: build the APK with that publishable key as shown above; never embed the backend secret key.
+- Backend: extract the protected evaluator `.env`; Compose receives matching `STRIPE_SECRET_KEY` and `STRIPE_PUBLISHABLE_KEY` values from it.
+- The secret key remains backend-only. The authenticated payment-intent response supplies only the client-safe publishable key to Mobile.
+- Plain `flutter run` and `flutter build apk --release` require no Stripe dart-defines; changing Stripe test credentials requires only protected environment configuration.
 - The Client checkout uses Stripe PaymentSheet; the backend retrieves and verifies Stripe state before marking payment successful.
 - Refunds use the Stripe test API. No real Stripe key belongs in Git.
 - Both values must be test-mode keys from the same Stripe account. The evaluator should not substitute an unrelated publishable key.
