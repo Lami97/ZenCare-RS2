@@ -28,6 +28,14 @@ namespace ZenCare.Services.Services
 
         public override async Task<UserResponse> InsertAsync(UserInsertRequest request)
         {
+            request.FirstName = NormalizeRequired(request.FirstName, "First name", NameMaxLength);
+            request.LastName = NormalizeRequired(request.LastName, "Last name", NameMaxLength);
+            request.Username = NormalizeRequired(request.Username, "Username", UsernameMaxLength);
+            request.Email = NormalizeEmail(request.Email);
+            request.PhoneNumber = NormalizePhoneNumber(request.PhoneNumber);
+            ValidatePasswordAndConfirmation(request.Password, request.PasswordConfirm);
+            await EnsureUniqueCredentialsAsync(request.Username, request.Email);
+
             var entity = Mapper.Map<Database.User>(request);
             var salt = PasswordHasher.GenerateSalt();
 
@@ -50,37 +58,8 @@ namespace ZenCare.Services.Services
             var email = NormalizeEmail(request.Email);
             var phoneNumber = NormalizePhoneNumber(request.PhoneNumber);
 
-            if (string.IsNullOrEmpty(request.Password))
-            {
-                throw new BusinessException("Password is required.");
-            }
-
-            if (request.Password.Length < PasswordMinLength)
-            {
-                throw new BusinessException("Password must contain at least 6 characters.");
-            }
-
-            if (string.IsNullOrEmpty(request.PasswordConfirm))
-            {
-                throw new BusinessException("Confirm password is required.");
-            }
-
-            if (request.Password != request.PasswordConfirm)
-            {
-                throw new BusinessException("Passwords do not match.");
-            }
-
-            var usernameExists = await DbContext.Users.AnyAsync(u => u.Username == username);
-            if (usernameExists)
-            {
-                throw new BusinessException("This username is already in use. Enter a different username.");
-            }
-
-            var emailExists = await DbContext.Users.AnyAsync(u => u.Email == email);
-            if (emailExists)
-            {
-                throw new BusinessException("This email address is already in use. Enter a different email address.");
-            }
+            ValidatePasswordAndConfirmation(request.Password, request.PasswordConfirm);
+            await EnsureUniqueCredentialsAsync(username, email);
 
             var clientRole = await DbContext.Roles
                 .FirstOrDefaultAsync(role => role.Name == AppRoles.Client || role.RoleType == UserRoleType.Client);
@@ -151,6 +130,14 @@ namespace ZenCare.Services.Services
             {
                 throw new NotFoundException(nameof(Database.User), id);
             }
+
+            request.Id = id;
+            request.FirstName = NormalizeRequired(request.FirstName, "First name", NameMaxLength);
+            request.LastName = NormalizeRequired(request.LastName, "Last name", NameMaxLength);
+            request.Username = NormalizeRequired(request.Username, "Username", UsernameMaxLength);
+            request.Email = NormalizeEmail(request.Email);
+            request.PhoneNumber = NormalizePhoneNumber(request.PhoneNumber);
+            await EnsureUniqueCredentialsAsync(request.Username, request.Email, id);
 
             var passwordHash = entity.PasswordHash;
             var passwordSalt = entity.PasswordSalt;
@@ -329,6 +316,50 @@ namespace ZenCare.Services.Services
             }
 
             return phoneNumber;
+        }
+
+        private async Task EnsureUniqueCredentialsAsync(string username, string email, int? currentUserId = null)
+        {
+            var usernameExists = await DbContext.Users.AnyAsync(user =>
+                user.Username == username &&
+                (!currentUserId.HasValue || user.Id != currentUserId.Value));
+
+            if (usernameExists)
+            {
+                throw new BusinessException("This username is already in use. Enter a different username.");
+            }
+
+            var emailExists = await DbContext.Users.AnyAsync(user =>
+                user.Email == email &&
+                (!currentUserId.HasValue || user.Id != currentUserId.Value));
+
+            if (emailExists)
+            {
+                throw new BusinessException("This email address is already in use. Enter a different email address.");
+            }
+        }
+
+        private static void ValidatePasswordAndConfirmation(string? password, string? passwordConfirm)
+        {
+            if (string.IsNullOrEmpty(password))
+            {
+                throw new BusinessException("Password is required.");
+            }
+
+            if (password.Length < PasswordMinLength)
+            {
+                throw new BusinessException("Password must contain at least 6 characters.");
+            }
+
+            if (string.IsNullOrEmpty(passwordConfirm))
+            {
+                throw new BusinessException("Confirm password is required.");
+            }
+
+            if (password != passwordConfirm)
+            {
+                throw new BusinessException("Passwords do not match.");
+            }
         }
 
         private static void ValidateChangePasswordRequest(ChangePasswordRequest request)

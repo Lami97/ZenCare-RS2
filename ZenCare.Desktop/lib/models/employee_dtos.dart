@@ -6,6 +6,8 @@ class EmployeeDto implements AdminEntity {
     required this.userId,
     required this.userName,
     required this.employeeName,
+    required this.email,
+    this.phoneNumber,
     this.specialization,
     this.bio,
     this.hireDate,
@@ -18,6 +20,8 @@ class EmployeeDto implements AdminEntity {
   final int userId;
   final String userName;
   final String employeeName;
+  final String email;
+  final String? phoneNumber;
   final String? specialization;
   final String? bio;
   final DateTime? hireDate;
@@ -29,6 +33,8 @@ class EmployeeDto implements AdminEntity {
     userId: jsonInt(json['userId']),
     userName: json['userName']?.toString() ?? '',
     employeeName: json['employeeName']?.toString() ?? '',
+    email: json['email']?.toString() ?? '',
+    phoneNumber: json['phoneNumber']?.toString(),
     specialization: json['specialization']?.toString(),
     bio: json['bio']?.toString(),
     hireDate: jsonDateTime(json['hireDate']),

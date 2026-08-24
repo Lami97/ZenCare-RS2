@@ -22,8 +22,8 @@ class Purchase {
   final int userId;
   final String userName;
   final String purchaseNumber;
-  final int status;
-  final int paymentStatus;
+  final PurchaseStatus status;
+  final PaymentStatus paymentStatus;
   final double totalAmount;
   final String? stripePaymentIntentId;
   final DateTime? paidAt;
@@ -31,12 +31,18 @@ class Purchase {
   final DateTime? updatedAt;
   final List<PurchaseItem> purchaseItems;
 
-  String get displayNumber => purchaseNumber.isNotEmpty ? purchaseNumber : '#$id';
-  String get statusText => _purchaseStatusName(status);
-  String get paymentStatusText => _paymentStatusName(paymentStatus);
-  bool get canPay => status == 2 && paymentStatus == 1;
-  bool get canCancel => status == 2 && paymentStatus == 1;
-  bool get canRefund => status == 3 && paymentStatus == 2;
+  String get displayNumber =>
+      purchaseNumber.isNotEmpty ? purchaseNumber : '#$id';
+  String get statusText => status.label;
+  String get paymentStatusText => paymentStatus.label;
+  bool get canPay =>
+      status == PurchaseStatus.pendingPayment &&
+      paymentStatus == PaymentStatus.pending;
+  bool get canCancel =>
+      status == PurchaseStatus.pendingPayment &&
+      paymentStatus == PaymentStatus.pending;
+  bool get canRefund =>
+      status == PurchaseStatus.paid && paymentStatus == PaymentStatus.succeeded;
 
   factory Purchase.fromJson(Map<String, dynamic> json) {
     return Purchase(
@@ -45,13 +51,19 @@ class Purchase {
       userId: json['userId'] as int? ?? 0,
       userName: json['userName'] as String? ?? '',
       purchaseNumber: json['purchaseNumber'] as String? ?? '',
-      status: json['status'] as int? ?? 0,
-      paymentStatus: json['paymentStatus'] as int? ?? 0,
+      status: PurchaseStatus.fromValue(json['status'] as int? ?? 0),
+      paymentStatus:
+          PaymentStatus.fromValue(json['paymentStatus'] as int? ?? 0),
       totalAmount: (json['totalAmount'] as num?)?.toDouble() ?? 0,
       stripePaymentIntentId: json['stripePaymentIntentId'] as String?,
-      paidAt: json['paidAt'] == null ? null : DateTime.tryParse(json['paidAt'].toString()),
-      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0),
-      updatedAt: json['updatedAt'] == null ? null : DateTime.tryParse(json['updatedAt'].toString()),
+      paidAt: json['paidAt'] == null
+          ? null
+          : DateTime.tryParse(json['paidAt'].toString()),
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      updatedAt: json['updatedAt'] == null
+          ? null
+          : DateTime.tryParse(json['updatedAt'].toString()),
       purchaseItems: (json['purchaseItems'] as List<dynamic>? ?? [])
           .map((item) => PurchaseItem.fromJson(item as Map<String, dynamic>))
           .toList(),
@@ -59,29 +71,49 @@ class Purchase {
   }
 }
 
-String _purchaseStatusName(int value) {
-  return switch (value) {
-    1 => 'Draft',
-    2 => 'Pending payment',
-    3 => 'Paid',
-    4 => 'Processing',
-    5 => 'Ready for pickup',
-    6 => 'Shipped',
-    7 => 'Completed',
-    8 => 'Cancelled',
-    9 => 'Refunded',
-    10 => 'Failed',
-    _ => 'Unknown',
-  };
+enum PurchaseStatus {
+  unknown(0, 'Unknown'),
+  draft(1, 'Draft'),
+  pendingPayment(2, 'Pending payment'),
+  paid(3, 'Paid'),
+  processing(4, 'Processing'),
+  readyForPickup(5, 'Ready for pickup'),
+  shipped(6, 'Shipped'),
+  completed(7, 'Completed'),
+  cancelled(8, 'Cancelled'),
+  refunded(9, 'Refunded'),
+  failed(10, 'Failed');
+
+  const PurchaseStatus(this.value, this.label);
+
+  final int value;
+  final String label;
+
+  static PurchaseStatus fromValue(int value) {
+    return PurchaseStatus.values.firstWhere(
+      (status) => status.value == value,
+      orElse: () => PurchaseStatus.unknown,
+    );
+  }
 }
 
-String _paymentStatusName(int value) {
-  return switch (value) {
-    1 => 'Pending',
-    2 => 'Succeeded',
-    3 => 'Failed',
-    4 => 'Cancelled',
-    5 => 'Refunded',
-    _ => 'Unknown',
-  };
+enum PaymentStatus {
+  unknown(0, 'Unknown'),
+  pending(1, 'Pending'),
+  succeeded(2, 'Succeeded'),
+  failed(3, 'Failed'),
+  cancelled(4, 'Cancelled'),
+  refunded(5, 'Refunded');
+
+  const PaymentStatus(this.value, this.label);
+
+  final int value;
+  final String label;
+
+  static PaymentStatus fromValue(int value) {
+    return PaymentStatus.values.firstWhere(
+      (status) => status.value == value,
+      orElse: () => PaymentStatus.unknown,
+    );
+  }
 }

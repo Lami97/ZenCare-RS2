@@ -28,6 +28,12 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Future<void> _checkout(CartProvider provider) async {
+    final confirmed =
+        await _confirmCheckout(provider.totalItemCount, provider.totalPrice);
+    if (!confirmed || !mounted) {
+      return;
+    }
+
     try {
       final purchase = await provider.checkout();
       if (!mounted) {
@@ -39,7 +45,8 @@ class _CartScreenState extends State<CartScreen> {
       );
       await Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => PurchaseDetailsScreen(purchaseId: purchase.id, initialPurchase: purchase),
+          builder: (_) => PurchaseDetailsScreen(
+              purchaseId: purchase.id, initialPurchase: purchase),
         ),
       );
     } on ApiException catch (error) {
@@ -74,15 +81,17 @@ class _CartScreenState extends State<CartScreen> {
                     Expanded(
                       child: Text(
                         'Cart',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
                       ),
                     ),
                     TextButton.icon(
                       onPressed: () {
                         Navigator.of(context).push(
-                          MaterialPageRoute<void>(builder: (_) => const PurchaseHistoryScreen()),
+                          MaterialPageRoute<void>(
+                              builder: (_) => const PurchaseHistoryScreen()),
                         );
                       },
                       icon: const Icon(Icons.receipt_long_outlined),
@@ -149,7 +158,8 @@ class _CartScreenState extends State<CartScreen> {
                         }
                       },
                       onRemove: () async {
-                        final confirmed = await _confirmRemove(item.productName);
+                        final confirmed =
+                            await _confirmRemove(item.productName);
                         if (!confirmed || !context.mounted) {
                           return;
                         }
@@ -171,7 +181,8 @@ class _CartScreenState extends State<CartScreen> {
                   totalItems: provider.totalItemCount,
                   totalPrice: provider.totalPrice,
                   isCheckingOut: provider.isMutating,
-                  onCheckout: provider.isMutating ? null : () => _checkout(provider),
+                  onCheckout:
+                      provider.isMutating ? null : () => _checkout(provider),
                 ),
               ),
             ],
@@ -195,6 +206,31 @@ class _CartScreenState extends State<CartScreen> {
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+
+    return result ?? false;
+  }
+
+  Future<bool> _confirmCheckout(int itemCount, double totalPrice) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm checkout'),
+        content: Text(
+          'Create a purchase for $itemCount item${itemCount == 1 ? '' : 's'} '
+          'with a total of \$${totalPrice.toStringAsFixed(2)}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Confirm checkout'),
           ),
         ],
       ),
@@ -247,7 +283,8 @@ class _CartItemTile extends StatelessWidget {
                   Expanded(
                     child: Text(
                       item.productName,
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                      style: theme.textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w700),
                     ),
                   ),
                   IconButton(
@@ -271,7 +308,8 @@ class _CartItemTile extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
                       item.quantity.toString(),
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                      style: theme.textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w700),
                     ),
                   ),
                   IconButton.filledTonal(
@@ -330,7 +368,9 @@ class _CartSummary extends StatelessWidget {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Text('Total', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  Text('Total',
+                      style: theme.textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w700)),
                   const Spacer(),
                   Text(
                     '\$${totalPrice.toStringAsFixed(2)}',
@@ -392,7 +432,8 @@ class _StateMessage extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             title,
-            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+            style: theme.textTheme.titleLarge
+                ?.copyWith(fontWeight: FontWeight.w700),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),

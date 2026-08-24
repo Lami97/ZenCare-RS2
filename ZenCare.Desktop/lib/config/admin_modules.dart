@@ -588,6 +588,7 @@ final adminModules = <AdminModule>[
         label: 'Question',
         value: (x) => textValue(x.question),
       ),
+      typedColumn<FaqDto>(label: 'Answer', value: (x) => textValue(x.answer)),
       typedColumn<FaqDto>(
         label: 'Category',
         value: (x) => textValue(x.faqCategoryName),
@@ -821,6 +822,14 @@ final adminModules = <AdminModule>[
       typedColumn<EmployeeDto>(
         label: 'Specialization',
         value: (x) => textValue(x.specialization),
+      ),
+      typedColumn<EmployeeDto>(
+        label: 'Email',
+        value: (x) => textValue(x.email),
+      ),
+      typedColumn<EmployeeDto>(
+        label: 'Phone',
+        value: (x) => textValue(x.phoneNumber),
       ),
       typedColumn<EmployeeDto>(label: 'Bio', value: (x) => textValue(x.bio)),
       typedColumn<EmployeeDto>(

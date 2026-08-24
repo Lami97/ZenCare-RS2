@@ -10,7 +10,9 @@ namespace ZenCare.Services.Mapping
         {
             CreateMap<Database.Employee, EmployeeResponse>()
                 .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User.Username))
-                .ForMember(dest => dest.EmployeeName, opt => opt.MapFrom(src => (src.User.FirstName + " " + src.User.LastName).Trim()));
+                .ForMember(dest => dest.EmployeeName, opt => opt.MapFrom(src => (src.User.FirstName + " " + src.User.LastName).Trim()))
+                .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.User.Email))
+                .ForMember(dest => dest.PhoneNumber, opt => opt.MapFrom(src => src.User.PhoneNumber));
             CreateMap<EmployeeInsertRequest, Database.Employee>();
             CreateMap<EmployeeUpdateRequest, Database.Employee>();
         }
