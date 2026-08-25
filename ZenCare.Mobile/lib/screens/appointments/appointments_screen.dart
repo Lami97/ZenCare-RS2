@@ -97,6 +97,17 @@ class _AppointmentsView extends StatelessWidget {
 
           if (created == true && context.mounted) {
             await context.read<AppointmentProvider>().refresh();
+            if (!context.mounted) {
+              return;
+            }
+
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(
+                const SnackBar(
+                  content: Text('Reservation created successfully.'),
+                ),
+              );
           }
         },
         icon: const Icon(Icons.add),

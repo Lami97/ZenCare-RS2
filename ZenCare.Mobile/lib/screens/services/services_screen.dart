@@ -8,7 +8,12 @@ import '../../services/wellness_service_service.dart';
 import 'service_details_screen.dart';
 
 class ServicesScreen extends StatefulWidget {
-  const ServicesScreen({super.key});
+  const ServicesScreen({
+    super.key,
+    required this.onReservationCreated,
+  });
+
+  final VoidCallback onReservationCreated;
 
   @override
   State<ServicesScreen> createState() => _ServicesScreenState();
@@ -52,6 +57,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
               ServiceDetailsScreen(
                 serviceId: _selectedService!.id,
                 onBack: _closeDetails,
+                onReservationCreated: widget.onReservationCreated,
               ),
           ],
         ),

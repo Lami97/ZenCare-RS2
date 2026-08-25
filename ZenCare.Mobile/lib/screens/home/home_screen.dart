@@ -16,7 +16,25 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static const _appointmentsIndex = 3;
+
   int _selectedIndex = 0;
+
+  void _showAppointmentsAfterReservation() {
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    setState(() => _selectedIndex = _appointmentsIndex);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Reservation created successfully.')),
+        );
+    });
+  }
 
   Future<void> _logout() async {
     final messenger = ScaffoldMessenger.of(context);
@@ -37,11 +55,13 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final screens = [
-      const ServicesScreen(),
+      ServicesScreen(onReservationCreated: _showAppointmentsAfterReservation),
       const ProductsScreen(),
       const CartScreen(),
       const AppointmentsScreen(),
-      const ProfileScreen(),
+      ProfileScreen(
+        onReservationCreated: _showAppointmentsAfterReservation,
+      ),
     ];
 
     return Scaffold(

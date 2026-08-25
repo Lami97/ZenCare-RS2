@@ -31,6 +31,7 @@ class AppointmentService {
         'Page': page,
         'PageSize': pageSize,
         'IncludeTotalCount': true,
+        'SortBy': 'CreatedAt desc, Id desc',
       },
       fromJson: (data) => PagedResult<Appointment>.fromJson(
         data as Map<String, dynamic>,

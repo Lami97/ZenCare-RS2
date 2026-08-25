@@ -10,19 +10,28 @@ import '../products/product_details_screen.dart';
 import '../services/service_details_screen.dart';
 
 class RecommendationsScreen extends StatelessWidget {
-  const RecommendationsScreen({super.key});
+  const RecommendationsScreen({
+    super.key,
+    required this.onReservationCreated,
+  });
+
+  final VoidCallback onReservationCreated;
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<RecommendationProvider>(
       create: (context) => RecommendationProvider(context.read<RecommendationService>())..loadRecommendations(),
-      child: const _RecommendationsView(),
+      child: _RecommendationsView(
+        onReservationCreated: onReservationCreated,
+      ),
     );
   }
 }
 
 class _RecommendationsView extends StatefulWidget {
-  const _RecommendationsView();
+  const _RecommendationsView({required this.onReservationCreated});
+
+  final VoidCallback onReservationCreated;
 
   @override
   State<_RecommendationsView> createState() => _RecommendationsViewState();
@@ -76,7 +85,10 @@ class _RecommendationsViewState extends State<_RecommendationsView> {
   void _openServiceRecommendation(Recommendation recommendation) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => ServiceDetailsScreen(serviceId: recommendation.id),
+        builder: (_) => ServiceDetailsScreen(
+          serviceId: recommendation.id,
+          onReservationCreated: widget.onReservationCreated,
+        ),
       ),
     );
   }
@@ -206,8 +218,6 @@ class _RecommendationCard extends StatelessWidget {
                   Chip(label: Text(recommendation.type)),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text('Score: ${recommendation.score.toStringAsFixed(2)}'),
               const SizedBox(height: 8),
               Text(
                 recommendation.reason.isEmpty ? 'No recommendation reason was provided.' : recommendation.reason,

@@ -10,11 +10,13 @@ class ServiceDetailsScreen extends StatefulWidget {
   const ServiceDetailsScreen({
     super.key,
     required this.serviceId,
+    required this.onReservationCreated,
     this.onBack,
   });
 
   final int serviceId;
   final VoidCallback? onBack;
+  final VoidCallback onReservationCreated;
 
   @override
   State<ServiceDetailsScreen> createState() => _ServiceDetailsScreenState();
@@ -77,7 +79,10 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
             );
           }
 
-          return _ServiceDetailsContent(service: service);
+          return _ServiceDetailsContent(
+            service: service,
+            onReservationCreated: widget.onReservationCreated,
+          );
         },
       ),
     );
@@ -85,9 +90,13 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
 }
 
 class _ServiceDetailsContent extends StatelessWidget {
-  const _ServiceDetailsContent({required this.service});
+  const _ServiceDetailsContent({
+    required this.service,
+    required this.onReservationCreated,
+  });
 
   final WellnessService service;
+  final VoidCallback onReservationCreated;
 
   @override
   Widget build(BuildContext context) {
@@ -138,14 +147,18 @@ class _ServiceDetailsContent extends StatelessWidget {
         if (service.isActive) ...[
           const SizedBox(height: 24),
           FilledButton.icon(
-            onPressed: () {
-              Navigator.of(context).push(
+            onPressed: () async {
+              final created = await Navigator.of(context).push<bool>(
                 MaterialPageRoute<bool>(
                   builder: (_) => CreateAppointmentScreen(
                     initialServiceId: service.id,
                   ),
                 ),
               );
+
+              if (created == true && context.mounted) {
+                onReservationCreated();
+              }
             },
             icon: const Icon(Icons.calendar_month_outlined),
             label: const Text('Book appointment'),

@@ -10,19 +10,26 @@ import '../reviews/reviews_screen.dart';
 import '../notifications/notifications_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+  const ProfileScreen({
+    super.key,
+    required this.onReservationCreated,
+  });
+
+  final VoidCallback onReservationCreated;
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<ProfileProvider>(
       create: (context) => ProfileProvider(authProvider: context.read<AuthProvider>())..loadProfile(),
-      child: const _ProfileView(),
+      child: _ProfileView(onReservationCreated: onReservationCreated),
     );
   }
 }
 
 class _ProfileView extends StatelessWidget {
-  const _ProfileView();
+  const _ProfileView({required this.onReservationCreated});
+
+  final VoidCallback onReservationCreated;
 
   @override
   Widget build(BuildContext context) {
@@ -130,7 +137,11 @@ class _ProfileView extends StatelessWidget {
                   OutlinedButton.icon(
                     onPressed: () {
                       Navigator.of(context).push(
-                        MaterialPageRoute<void>(builder: (_) => const RecommendationsScreen()),
+                        MaterialPageRoute<void>(
+                          builder: (_) => RecommendationsScreen(
+                            onReservationCreated: onReservationCreated,
+                          ),
+                        ),
                       );
                     },
                     icon: const Icon(Icons.auto_awesome_outlined),

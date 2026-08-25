@@ -50,15 +50,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           confirmNewPassword: _confirmNewPasswordController.text,
         ),
       );
-
-      if (!mounted) {
-        return;
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password changed successfully.')),
-      );
-      Navigator.of(context).pop();
     } on ApiException catch (error) {
       if (!mounted) {
         return;
@@ -69,12 +60,59 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       }
 
       await showErrorDialog(context, error.message);
+      return;
     } catch (_) {
       if (!mounted) {
         return;
       }
 
       await showErrorDialog(context, 'Unable to change password. Please try again.');
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Password changed'),
+        content: const Text(
+          'Your password was changed successfully. Please sign in again with your new password.',
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    try {
+      await authProvider.logout();
+    } catch (_) {
+      try {
+        await authProvider.logout(notifyServer: false);
+      } catch (_) {
+        if (mounted) {
+          await showErrorDialog(
+            context,
+            'Your password was changed, but the local session could not be cleared. Close and reopen the application before signing in again.',
+          );
+        }
+        return;
+      }
+    }
+
+    if (mounted) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
     }
   }
 

@@ -31,11 +31,11 @@ class AppointmentProvider extends ChangeNotifier {
         ..clear()
         ..addAll(result.items);
       _appointments.sort((a, b) {
-        final dateComparison = b.appointmentDate.compareTo(a.appointmentDate);
-        if (dateComparison != 0) {
-          return dateComparison;
+        final createdComparison = b.createdAt.compareTo(a.createdAt);
+        if (createdComparison != 0) {
+          return createdComparison;
         }
-        return b.startTime.compareTo(a.startTime);
+        return b.id.compareTo(a.id);
       });
       _totalCount = result.totalCount ?? _appointments.length;
       _error = null;
