@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../config/app_config.dart';
 import '../providers/auth_provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -117,11 +116,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               )
                             : const Icon(Icons.login),
                         label: const Text('Sign in'),
-                      ),
-                      const SizedBox(height: 18),
-                      Text(
-                        'API base URL: ${AppConfig.resolvedApiBaseUrl}',
-                        style: theme.textTheme.bodySmall,
                       ),
                     ],
                   ),

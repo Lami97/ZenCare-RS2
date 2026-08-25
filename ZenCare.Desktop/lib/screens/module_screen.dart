@@ -445,6 +445,7 @@ class _DataGridState extends State<_DataGrid> {
       ),
       child: Scrollbar(
         controller: _horizontalScrollController,
+        thumbVisibility: true,
         child: SingleChildScrollView(
           controller: _horizontalScrollController,
           scrollDirection: Axis.horizontal,
