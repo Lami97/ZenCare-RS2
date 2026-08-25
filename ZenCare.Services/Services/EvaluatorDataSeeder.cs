@@ -12,6 +12,18 @@ public class EvaluatorDataSeeder : IEvaluatorDataSeeder
 {
     private const string DemoPassword = "Demo123!";
     private static readonly DateTime SeedCreatedAt = new(2026, 1, 1, 8, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime RollingSlotSeedCreatedAt = SeedCreatedAt.AddMinutes(1);
+    private static readonly IReadOnlyList<TimeSpan> RollingSlotStartTimes =
+    [
+        new(9, 0, 0),
+        new(10, 0, 0),
+        new(11, 0, 0),
+        new(12, 0, 0),
+        new(13, 0, 0),
+        new(14, 0, 0),
+        new(15, 0, 0),
+        new(16, 0, 0)
+    ];
 
     private readonly ZenCareDbContext _dbContext;
     private readonly IConfiguration _configuration;
@@ -143,6 +155,15 @@ public class EvaluatorDataSeeder : IEvaluatorDataSeeder
             secondClient, bookedSlot, "Upcoming evaluator schedule reservation.", cancellationToken);
         await EnsureTimeSlotAsync(
             employee, massage, businessToday.AddDays(5), new TimeSpan(15, 0, 0), false, cancellationToken);
+
+        var rollingSlotCount = await EnsureRollingTimeSlotsAsync(
+            employee, [massage, facial], businessToday, cancellationToken);
+        rollingSlotCount += await EnsureRollingTimeSlotsAsync(
+            secondEmployee, [facial, aromatherapy], businessToday, cancellationToken);
+
+        _logger.LogInformation(
+            "Added {RollingSlotCount} rolling evaluator schedule entries for the next six business days.",
+            rollingSlotCount);
 
         var clientPurchase = await EnsurePurchaseAsync(
             client, "DEMO-PC-001", UtcDate(2026, 6, 5).AddHours(9), UtcDate(2026, 6, 5).AddHours(9).AddMinutes(8),
@@ -689,6 +710,138 @@ public class EvaluatorDataSeeder : IEvaluatorDataSeeder
         _dbContext.TimeSlots.Add(slot);
         await _dbContext.SaveChangesAsync(cancellationToken);
         return slot;
+    }
+
+    private async Task<int> EnsureRollingTimeSlotsAsync(
+        Employee employee,
+        IReadOnlyList<WellnessService> services,
+        DateTime businessToday,
+        CancellationToken cancellationToken)
+    {
+        if (!employee.IsAvailable || services.Count == 0)
+        {
+            return 0;
+        }
+
+        var employeeUserIsActive = await _dbContext.Users
+            .Where(user => user.Id == employee.UserId)
+            .Select(user => user.IsActive)
+            .SingleAsync(cancellationToken);
+        if (!employeeUserIsActive)
+        {
+            return 0;
+        }
+
+        var serviceIds = services.Select(service => service.Id).ToArray();
+        var activeAssignedServiceIds = (await _dbContext.EmployeeServices
+                .Where(assignment =>
+                    assignment.EmployeeId == employee.Id &&
+                    assignment.IsActive &&
+                    serviceIds.Contains(assignment.WellnessServiceId))
+                .Select(assignment => assignment.WellnessServiceId)
+                .ToListAsync(cancellationToken))
+            .ToHashSet();
+
+        var businessDays = GetNextBusinessDays(businessToday, 6);
+        var firstDate = businessDays[0];
+        var lastDate = businessDays[^1];
+
+        var existingSlots = await _dbContext.TimeSlots
+            .Where(slot =>
+                slot.EmployeeId == employee.Id &&
+                slot.SlotDate.Date >= firstDate &&
+                slot.SlotDate.Date <= lastDate)
+            .ToListAsync(cancellationToken);
+        var existingAppointments = await _dbContext.Appointments
+            .Where(appointment =>
+                appointment.EmployeeId == employee.Id &&
+                appointment.AppointmentDate.Date >= firstDate &&
+                appointment.AppointmentDate.Date <= lastDate)
+            .Select(appointment => new
+            {
+                Date = appointment.AppointmentDate.Date,
+                appointment.StartTime,
+                appointment.EndTime
+            })
+            .ToListAsync(cancellationToken);
+
+        var addedCount = 0;
+        for (var dayIndex = 0; dayIndex < businessDays.Count; dayIndex++)
+        {
+            var service = services[dayIndex % services.Count];
+            if (service.Status != ServiceStatus.Active || !activeAssignedServiceIds.Contains(service.Id))
+            {
+                continue;
+            }
+
+            var slotDate = businessDays[dayIndex];
+            foreach (var startTime in RollingSlotStartTimes)
+            {
+                var endTime = startTime.Add(TimeSpan.FromMinutes(service.DurationMinutes));
+                var exactSlotExists = existingSlots.Any(slot =>
+                    slot.WellnessServiceId == service.Id &&
+                    slot.SlotDate.Date == slotDate &&
+                    slot.StartTime == startTime);
+                if (exactSlotExists)
+                {
+                    continue;
+                }
+
+                var overlapsSlot = existingSlots.Any(slot =>
+                    slot.SlotDate.Date == slotDate &&
+                    startTime < slot.EndTime &&
+                    endTime > slot.StartTime);
+                var overlapsAppointment = existingAppointments.Any(appointment =>
+                    appointment.Date == slotDate &&
+                    startTime < appointment.EndTime &&
+                    endTime > appointment.StartTime);
+                if (overlapsSlot || overlapsAppointment)
+                {
+                    continue;
+                }
+
+                var slot = new TimeSlot
+                {
+                    EmployeeId = employee.Id,
+                    WellnessServiceId = service.Id,
+                    SlotDate = slotDate,
+                    StartTime = startTime,
+                    EndTime = endTime,
+                    IsActive = true,
+                    CreatedAt = RollingSlotSeedCreatedAt
+                };
+
+                _dbContext.TimeSlots.Add(slot);
+                existingSlots.Add(slot);
+                addedCount++;
+            }
+        }
+
+        if (addedCount > 0)
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        return addedCount;
+    }
+
+    private static IReadOnlyList<DateTime> GetNextBusinessDays(DateTime businessToday, int count)
+    {
+        var businessDays = new List<DateTime>(count);
+        var date = businessToday.Date;
+
+        while (businessDays.Count < count)
+        {
+            date = date.AddDays(1);
+            if (date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+            {
+                continue;
+            }
+
+            businessDays.Add(date);
+        }
+
+        return businessDays;
     }
 
     private async Task EnsureScheduledAppointmentAsync(
