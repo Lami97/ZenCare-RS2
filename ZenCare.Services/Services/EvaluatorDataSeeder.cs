@@ -186,6 +186,60 @@ public class EvaluatorDataSeeder : IEvaluatorDataSeeder
         await EnsureFaqAsync(3, "Can I review a purchased product?",
             "Yes. A product can be reviewed after a completed and successfully paid purchase.",
             null, 3, cancellationToken);
+        await EnsureFaqAsync(1, "How can I cancel an appointment?",
+            "Open the appointment details and use the cancellation option while the appointment is still eligible for cancellation.",
+            null, 4, cancellationToken);
+        await EnsureFaqAsync(1, "Can I reschedule an existing appointment?",
+            "Cancel the existing appointment and book another available schedule entry.",
+            null, 5, cancellationToken);
+        await EnsureFaqAsync(1, "Why is an appointment time unavailable?",
+            "The schedule entry may already be booked, inactive or no longer in the future.",
+            null, 6, cancellationToken);
+        await EnsureFaqAsync(1, "Where can I see my appointment status?",
+            "Open Appointments and select an appointment to view its current status and details.",
+            null, 7, cancellationToken);
+        await EnsureFaqAsync(2, "What happens if a payment is not completed?",
+            "The purchase remains unpaid and can be paid again while it is still eligible for payment.",
+            null, 8, cancellationToken);
+        await EnsureFaqAsync(2, "Can the same purchase be paid more than once?",
+            "No. ZenCare prevents duplicate payment confirmation for an already paid purchase.",
+            null, 9, cancellationToken);
+        await EnsureFaqAsync(2, "How are refunds processed?",
+            "Eligible paid purchases are refunded through the Stripe test payment workflow.",
+            null, 10, cancellationToken);
+        await EnsureFaqAsync(2, "Where can I check my purchase status?",
+            "Open Purchases and select a purchase to view its payment and fulfillment status.",
+            null, 11, cancellationToken);
+        await EnsureFaqAsync(3, "How can I browse wellness products?",
+            "Open Products to browse the catalog and view product details.",
+            null, 12, cancellationToken);
+        await EnsureFaqAsync(3, "How are products recommended to me?",
+            "Recommendations use your activity and preferences to suggest relevant products with an explanation.",
+            null, 13, cancellationToken);
+        await EnsureFaqAsync(3, "When can I review a product?",
+            "A product can be reviewed after it belongs to a completed purchase with a successful payment.",
+            null, 14, cancellationToken);
+        await EnsureFaqAsync(3, "What happens when a product is out of stock?",
+            "A quantity that exceeds the available stock cannot be added to a valid checkout.",
+            null, 15, cancellationToken);
+        await EnsureFaqAsync(4, "How can I find a wellness service?",
+            "Open Services and use search or category filters to find a suitable treatment.",
+            null, 16, cancellationToken);
+        await EnsureFaqAsync(4, "Where can I see a service duration?",
+            "The service details show its duration, price, category and description.",
+            null, 17, cancellationToken);
+        await EnsureFaqAsync(4, "How do I choose an employee for a service?",
+            "Choose an available schedule entry; each entry identifies the employee assigned to that service and time.",
+            null, 18, cancellationToken);
+        await EnsureFaqAsync(5, "How can I create a client account?",
+            "Use Create account on the sign-in screen and complete the registration form.",
+            null, 19, cancellationToken);
+        await EnsureFaqAsync(5, "How can I update my profile?",
+            "Open Profile and choose Edit profile to update your personal information.",
+            null, 20, cancellationToken);
+        await EnsureFaqAsync(5, "What should I do if I forget my password?",
+            "Use Forgot password on the sign-in screen and follow the reset instructions sent to your email address.",
+            null, 21, cancellationToken);
 
         await EnsureNotificationAsync(client, "Welcome to ZenCare", "Welcome to the ZenCare demo",
             "Your account is ready for service booking, purchases and reviews.",

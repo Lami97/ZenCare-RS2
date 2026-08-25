@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -285,6 +286,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
           ),
           const SizedBox(height: 18),
           _WeeklyBarChart(entries: data.weeklyAttendance),
+          const SizedBox(height: 18),
+          _AppointmentStatusPieChart(entries: data.appointmentStatuses),
           const SizedBox(height: 18),
           _ReportTable(
             title: 'Appointment status summary',
@@ -615,6 +618,148 @@ class _WeeklyBarChart extends StatelessWidget {
             ),
     );
   }
+}
+
+class _AppointmentStatusPieChart extends StatelessWidget {
+  const _AppointmentStatusPieChart({required this.entries});
+
+  final List<NamedCount> entries;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = [
+      theme.colorScheme.primary,
+      theme.colorScheme.secondary,
+      theme.colorScheme.tertiary,
+      theme.colorScheme.error,
+      theme.colorScheme.primaryContainer,
+      theme.colorScheme.secondaryContainer,
+      theme.colorScheme.tertiaryContainer,
+      theme.colorScheme.inversePrimary,
+    ];
+    final visible = entries.where((entry) => entry.count > 0).toList();
+    final total = visible.fold<int>(0, (sum, entry) => sum + entry.count);
+    final slices = [
+      for (var index = 0; index < visible.length; index++)
+        _PieSlice(
+          label: visible[index].name,
+          value: visible[index].count,
+          color: palette[index % palette.length],
+        ),
+    ];
+
+    return _ReportPanel(
+      title: 'Appointment status distribution',
+      child: total == 0
+          ? const Text('No appointment status data available.')
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                final chart = Semantics(
+                  label: 'Appointment status distribution chart',
+                  child: CustomPaint(
+                    size: const Size.square(220),
+                    painter: _PieChartPainter(slices: slices, total: total),
+                  ),
+                );
+                final legend = Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: slices
+                      .map(
+                        (slice) => Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 14,
+                                height: 14,
+                                decoration: BoxDecoration(
+                                  color: slice.color,
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  '${slice.label}: ${slice.value} '
+                                  '(${(slice.value / total * 100).toStringAsFixed(1)}%)',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                      .toList(),
+                );
+
+                if (constraints.maxWidth < 560) {
+                  return Column(
+                    children: [
+                      chart,
+                      const SizedBox(height: 16),
+                      Align(alignment: Alignment.centerLeft, child: legend),
+                    ],
+                  );
+                }
+
+                return Row(
+                  children: [
+                    chart,
+                    const SizedBox(width: 28),
+                    Expanded(child: legend),
+                  ],
+                );
+              },
+            ),
+    );
+  }
+}
+
+class _PieChartPainter extends CustomPainter {
+  const _PieChartPainter({required this.slices, required this.total});
+
+  final List<_PieSlice> slices;
+  final int total;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final diameter = math.min(size.width, size.height);
+    final rect = Rect.fromCenter(
+      center: size.center(Offset.zero),
+      width: diameter,
+      height: diameter,
+    );
+    var startAngle = -math.pi / 2;
+
+    for (final slice in slices) {
+      final sweepAngle = slice.value / total * math.pi * 2;
+      canvas.drawArc(
+        rect,
+        startAngle,
+        sweepAngle,
+        true,
+        Paint()..color = slice.color,
+      );
+      startAngle += sweepAngle;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _PieChartPainter oldDelegate) =>
+      oldDelegate.total != total || oldDelegate.slices != slices;
+}
+
+class _PieSlice {
+  const _PieSlice({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final int value;
+  final Color color;
 }
 
 class _ReportPanel extends StatelessWidget {
