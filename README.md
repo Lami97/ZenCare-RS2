@@ -301,8 +301,9 @@ flutter test
 
 cd ..\ZenCare.Mobile
 flutter analyze
-flutter test
 ```
+
+ZenCare.Mobile currently includes static analysis validation but no automated Flutter test files.
 
 ## Stop or Reset Local Containers
 
