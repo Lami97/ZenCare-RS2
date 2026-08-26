@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../models/appointment.dart';
 import '../../models/appointment_status.dart';
 import '../../services/appointment_service.dart';
+import '../../services/review_service.dart';
 import '../../utils/api_exception.dart';
 import '../reviews/create_review_screen.dart';
 
@@ -24,12 +25,14 @@ class AppointmentDetailsScreen extends StatefulWidget {
 
 class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
   late Future<Appointment> _appointmentFuture;
+  late Future<bool> _hasReviewFuture;
   bool _isCancelling = false;
 
   @override
   void initState() {
     super.initState();
     _appointmentFuture = _loadAppointment();
+    _hasReviewFuture = _loadHasReview();
   }
 
   Future<Appointment> _loadAppointment() {
@@ -38,9 +41,18 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
         .getMyAppointmentById(widget.appointmentId);
   }
 
+  Future<bool> _loadHasReview() async {
+    final result = await context.read<ReviewService>().getMyReviews(
+          appointmentId: widget.appointmentId,
+          pageSize: 1,
+        );
+    return result.items.isNotEmpty;
+  }
+
   void _retry() {
     setState(() {
       _appointmentFuture = _loadAppointment();
+      _hasReviewFuture = _loadHasReview();
     });
   }
 
@@ -48,6 +60,23 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
     setState(() {
       _appointmentFuture = _loadAppointment();
     });
+  }
+
+  Future<void> _openReview(Appointment appointment) async {
+    final created = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) => CreateReviewScreen(
+          appointmentId: appointment.id,
+          targetName: appointment.serviceName,
+        ),
+      ),
+    );
+
+    if (created == true && mounted) {
+      setState(() {
+        _hasReviewFuture = Future.value(true);
+      });
+    }
   }
 
   Future<void> _cancelAppointment(Appointment appointment) async {
@@ -126,9 +155,11 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
 
           return _DetailsContent(
             appointment: snapshot.data!,
+            hasReviewFuture: _hasReviewFuture,
             isCancelling: _isCancelling,
             onCancel:
                 _isCancelling ? null : () => _cancelAppointment(snapshot.data!),
+            onReview: () => _openReview(snapshot.data!),
           );
         },
       ),
@@ -139,13 +170,17 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
 class _DetailsContent extends StatelessWidget {
   const _DetailsContent({
     required this.appointment,
+    required this.hasReviewFuture,
     required this.isCancelling,
     this.onCancel,
+    this.onReview,
   });
 
   final Appointment appointment;
+  final Future<bool> hasReviewFuture;
   final bool isCancelling;
   final VoidCallback? onCancel;
+  final VoidCallback? onReview;
 
   @override
   Widget build(BuildContext context) {
@@ -211,29 +246,43 @@ class _DetailsContent extends StatelessWidget {
           ),
           const SizedBox(height: 12),
         ],
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: appointment.status == AppointmentStatus.completed
-                ? () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<bool>(
-                        builder: (_) => CreateReviewScreen(
-                          appointmentId: appointment.id,
-                          targetName: appointment.serviceName,
-                        ),
-                      ),
-                    );
-                  }
-                : null,
-            icon: const Icon(Icons.rate_review_outlined),
-            label: Text(
-              appointment.status == AppointmentStatus.completed
-                  ? 'Review appointment'
-                  : 'Review available after completion',
+        if (appointment.status == AppointmentStatus.completed)
+          FutureBuilder<bool>(
+            future: hasReviewFuture,
+            builder: (context, snapshot) {
+              final isChecking =
+                  snapshot.connectionState == ConnectionState.waiting;
+              final hasReview = snapshot.data == true;
+
+              return SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: !isChecking && !snapshot.hasError && !hasReview
+                      ? onReview
+                      : null,
+                  icon: const Icon(Icons.rate_review_outlined),
+                  label: Text(
+                    isChecking
+                        ? 'Checking review status...'
+                        : snapshot.hasError
+                            ? 'Review status unavailable'
+                            : hasReview
+                                ? 'Appointment reviewed'
+                                : 'Review appointment',
+                  ),
+                ),
+              );
+            },
+          )
+        else
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: null,
+              icon: const Icon(Icons.rate_review_outlined),
+              label: const Text('Review available after completion'),
             ),
           ),
-        ),
       ],
     );
   }

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../models/product.dart';
 import '../../providers/cart_provider.dart';
 import '../../services/product_service.dart';
+import '../../services/review_service.dart';
 import '../../utils/api_exception.dart';
 import '../reviews/create_review_screen.dart';
 
@@ -91,9 +92,41 @@ class _ProductDetailsContent extends StatefulWidget {
 }
 
 class _ProductDetailsContentState extends State<_ProductDetailsContent> {
+  late Future<bool> _hasReviewFuture;
   bool _isAddingToCart = false;
 
   Product get product => widget.product;
+
+  @override
+  void initState() {
+    super.initState();
+    _hasReviewFuture = _loadHasReview();
+  }
+
+  Future<bool> _loadHasReview() async {
+    final result = await context.read<ReviewService>().getMyReviews(
+          productId: product.id,
+          pageSize: 1,
+        );
+    return result.items.isNotEmpty;
+  }
+
+  Future<void> _openReview() async {
+    final created = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) => CreateReviewScreen(
+          productId: product.id,
+          targetName: product.name,
+        ),
+      ),
+    );
+
+    if (created == true && mounted) {
+      setState(() {
+        _hasReviewFuture = Future.value(true);
+      });
+    }
+  }
 
   Future<void> _addToCart() async {
     setState(() {
@@ -195,22 +228,32 @@ class _ProductDetailsContentState extends State<_ProductDetailsContent> {
           ),
         ),
         const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<bool>(
-                  builder: (_) => CreateReviewScreen(
-                    productId: product.id,
-                    targetName: product.name,
-                  ),
+        FutureBuilder<bool>(
+          future: _hasReviewFuture,
+          builder: (context, snapshot) {
+            final isChecking =
+                snapshot.connectionState == ConnectionState.waiting;
+            final hasReview = snapshot.data == true;
+
+            return SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: !isChecking && !snapshot.hasError && !hasReview
+                    ? _openReview
+                    : null,
+                icon: const Icon(Icons.rate_review_outlined),
+                label: Text(
+                  isChecking
+                      ? 'Checking review status...'
+                      : snapshot.hasError
+                          ? 'Review status unavailable'
+                          : hasReview
+                              ? 'Product reviewed'
+                              : 'Review product',
                 ),
-              );
-            },
-            icon: const Icon(Icons.rate_review_outlined),
-            label: const Text('Review product'),
-          ),
+              ),
+            );
+          },
         ),
       ],
     );

@@ -109,12 +109,17 @@ class _PurchaseTile extends StatelessWidget {
             fontWeight: FontWeight.w700,
           ),
         ),
-        onTap: () {
-          Navigator.of(context).push(
+        onTap: () async {
+          await Navigator.of(context).push(
             MaterialPageRoute<void>(
-              builder: (_) => PurchaseDetailsScreen(purchaseId: purchase.id, initialPurchase: purchase),
+              builder: (_) => PurchaseDetailsScreen(
+                  purchaseId: purchase.id, initialPurchase: purchase),
             ),
           );
+
+          if (context.mounted) {
+            await context.read<PurchaseProvider>().refresh();
+          }
         },
       ),
     );
