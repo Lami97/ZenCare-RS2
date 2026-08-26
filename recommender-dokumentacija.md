@@ -126,7 +126,7 @@ Klijentski endpointi identitet uzimaju iz JWT-a. Admin endpointi eksplicitno pri
 
 ## 10. Mobilna aplikacija
 
-`RecommendationsScreen` paralelno ucitava produkt i service preporuke, prikazuje naziv, score i razlog te otvara postojece detalje proizvoda ili usluge. `ProductDetailsScreen` nakon uspjesnog GET detalja salje ne-kriticni view poziv. Supplier se prikazuje u detaljima proizvoda.
+`RecommendationsScreen` paralelno ucitava produkt i service preporuke, prikazuje naziv, tip i objasnjivi razlog te otvara postojece detalje proizvoda ili usluge. Interni score ostaje dostupan za serversko rangiranje i logiranje, ali se ne prikazuje korisniku. `ProductDetailsScreen` nakon uspjesnog GET detalja salje ne-kriticni view poziv. Supplier se prikazuje u detaljima proizvoda.
 
 ## 11. Ogranicenja
 
